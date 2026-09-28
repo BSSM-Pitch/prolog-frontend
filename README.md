@@ -38,7 +38,7 @@ npm run dev
 
 인증 코드(가입·비밀번호 재설정)는 실제 메일 대신 **브라우저 콘솔**에 `[mock] … 인증 코드` 로 출력된다.
 
-시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다.
+시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다. AI 질문·인물 추출은 문장에 `[실패]`를 넣으면 실패 화면을 시연할 수 있다.
 
 ## 백엔드 팀과 맞출 것 — API 명세와 다른 점
 
@@ -61,6 +61,17 @@ PRJ (`src/api/projects.ts`, `src/api/types.ts`):
 - `GET /projects/{id}/overview` — 개요 화면 요약(현재 원고, 이야기 구조, 미해결 충돌·복선 수, 최근 관계도, 우선 검토 항목). 명세에 대시보드용 API가 없음
 - 팀 프로젝트를 만들 때 고를 팀 목록은 TEAM `GET /teams` 사용 (Figma 새 프로젝트 화면에는 팀 선택 칸이 없어 추가)
 
-MSU (`src/api/manuscripts.ts`):
+MSU·AIQ (`src/api/manuscripts.ts`):
 
 - `Manuscript.file_size`, `Manuscript.char_count` — 업로드 목록의 "1.8MB", "82,420자" 표시
+- 파일 업로드본 원고도 편집기에서 수정·자동 저장(`PATCH .../chapters/{id}`)할 수 있다고 가정 (Figma 19가 DOCX 원고를 편집)
+- AIQ `selection_range`와 함께 `chapter_id`를 보낸다 — 명세의 범위는 원고 전체 기준 오프셋이라 장 단위 편집기와 맞지 않음
+- `QAThread.selected_text`, `QAThread.cited_chapters`, `QAMessage.citations`(근거 장·인용문) — Figma 02의 "근거 · 17장 / 원문 보기"
+
+NLCD·ASS·인물 (`src/api/characters.ts`):
+
+- NLCD 요청의 `character_name` — Figma 22 "인물 이름" 입력 (명세는 source_text만 받음)
+- 초안 항목의 `evidence` — 추출 근거를 초안 검토 화면에서 보여 줌 (ASS 명세에는 없음)
+- `Character.role_label`·`status_label`·`last_chapter`·`relationship_count`·`key_changes` — Figma 20 등장인물 목록·상세
+- `DELETE /projects/{id}/characters/{characterId}` — 관계가 남아 있으면 409 `CHARACTER_HAS_DEPENDENT_RELATIONSHIPS` + 관계 목록
+- 초안 항목은 카테고리별 배열 대신 `items[]` 한 줄로 받고 `field`로 구분 (내용은 명세와 같음)

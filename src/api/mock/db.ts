@@ -107,6 +107,43 @@ export interface MockQAMessage {
   created_at: string
 }
 
+export interface MockExtraction {
+  extraction_id: string
+  project_id: string
+  source_text: string
+  character_name: string | null
+  target_character_id: string | null
+  status: 'analyzing' | 'completed' | 'failed'
+  result: import('./ai').ReturnTypeExtract | null
+  duplicate_of: string | null
+  forwarded_draft_id: string | null
+  ready_at: number | null
+  created_at: string
+}
+
+export interface MockDraftItem {
+  item_id: string
+  field: 'personality_tags' | 'core_values' | 'influence_relations' | 'emotion_keywords'
+  value: string
+  type?: string
+  status?: string | null
+  origin: 'ai_extracted' | 'user_added'
+  evidence: string | null
+}
+
+export interface MockDraft {
+  draft_id: string
+  project_id: string
+  character_name: string | null
+  items: MockDraftItem[]
+  status: 'pending_review' | 'confirmed' | 'discarded'
+  source_extraction_id: string | null
+  target_character_id: string | null
+  confirmed_character_id: string | null
+  history: Array<{ action: 'added' | 'modified' | 'removed'; field: string; value: string; at: string }>
+  created_at: string
+}
+
 /** 작품별 이야기 세계 (인물·관계·충돌·복선·스토리 지도·규칙). 해당 화면을 만들면서 API로 노출한다. */
 export interface MockWorld {
   characters: DemoCharacter[]
@@ -133,6 +170,8 @@ export interface MockDb {
   worlds: Record<string, MockWorld>
   qaThreads: MockQAThread[]
   qaMessages: MockQAMessage[]
+  extractions: MockExtraction[]
+  drafts: MockDraft[]
   signupCodes: Record<string, PendingCode>
   resetCodes: Record<string, PendingCode>
   refreshTokens: Record<string, { user_id: string; revoked: boolean }>
@@ -176,6 +215,8 @@ function seed(): MockDb {
     ...seedProjects(),
     qaThreads: [],
     qaMessages: [],
+    extractions: [],
+    drafts: [],
     signupCodes: {},
     resetCodes: {},
     refreshTokens: {},
@@ -277,6 +318,8 @@ function seedProjects(): ProjectSeed {
 function withDefaults(db: MockDb): MockDb {
   db.qaThreads ??= []
   db.qaMessages ??= []
+  db.extractions ??= []
+  db.drafts ??= []
   return db
 }
 

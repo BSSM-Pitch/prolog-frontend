@@ -130,6 +130,91 @@ export interface QAMessage {
   created_at: string
 }
 
+// NLCD · ASS 명세 — 인물
+
+export type CharacterCategory = 'personality_tags' | 'core_values' | 'influence_relations' | 'emotion_keywords'
+
+export interface InfluenceRelation {
+  target: string
+  type: string
+  status: string | null
+}
+
+/** ASS 2.4 확정된 캐릭터 + (명세 미정의) 등장인물 화면용 필드 */
+export interface Character {
+  character_id: string
+  name: string
+  /** (명세 미정의) 주인공·조력자 등 — Figma 20 "주인공 · 활동 중" */
+  role_label: string
+  /** (명세 미정의) 활동 중·실종·상태 미확인 등 */
+  status_label: string
+  /** (명세 미정의) 마지막 등장 장 */
+  last_chapter: number | null
+  personality_tags: string[]
+  core_values: string[]
+  influence_relations: InfluenceRelation[]
+  emotion_keywords: string[]
+  /** (명세 미정의) 연결 관계 수와 주요 변화 — RCV 데이터를 인물 기준으로 모은 것 */
+  relationship_count: number
+  key_changes: Array<{ chapter: number; text: string }>
+}
+
+/** NLCD 2.2 */
+export interface ExtractedItem {
+  value: string
+  evidence: string
+  type?: string
+}
+
+/** NLCD 2.1 */
+export interface NLExtraction {
+  extraction_id: string
+  source_text: string
+  /** (명세 미정의) Figma 22 "인물 이름" 입력 */
+  character_name: string | null
+  target_character_id: string | null
+  status: 'analyzing' | 'completed' | 'failed'
+  personality_tags: ExtractedItem[]
+  core_values: ExtractedItem[]
+  influence_relations: ExtractedItem[]
+  emotion_keywords: ExtractedItem[]
+  duplicate_of: string | null
+  forwarded_draft_id: string | null
+  created_at: string
+}
+
+/** ASS 2.2 / 2.3 (영향 관계 항목은 target·type·status를 가진다) */
+export interface DraftItem {
+  item_id: string
+  field: CharacterCategory
+  value: string
+  target?: string
+  type?: string
+  status?: string | null
+  origin: 'ai_extracted' | 'user_added'
+  /** (명세 미정의) NLCD가 준 원문 근거 — ERD character_draft_items.evidence */
+  evidence: string | null
+}
+
+/** ASS 2.1 */
+export interface CharacterDraft {
+  draft_id: string
+  character_name: string | null
+  items: DraftItem[]
+  status: 'pending_review' | 'confirmed' | 'discarded'
+  target_character_id: string | null
+  confirmed_character_id: string | null
+  created_at: string
+}
+
+/** ASS 2.5 */
+export interface EditHistoryEntry {
+  action: 'added' | 'modified' | 'removed'
+  field: string
+  value: string
+  at: string
+}
+
 /** (명세 미정의) GET /projects/{id}/overview — Figma 01 개요의 요약 카드 */
 export interface ProjectOverview {
   current_manuscript: { manuscript_id: string; title: string; last_chapter: number } | null
