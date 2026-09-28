@@ -9,6 +9,8 @@ import { RolePage } from './features/auth/RolePage'
 import { SignupPage } from './features/auth/SignupPage'
 import { VerifyPage } from './features/auth/VerifyPage'
 import { AppShell } from './features/app/AppShell'
+import { EditorPage } from './features/manuscripts/EditorPage'
+import { ManuscriptsPage } from './features/manuscripts/ManuscriptsPage'
 import { ComingSoon } from './features/app/ComingSoon'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
@@ -60,8 +62,9 @@ export default function App() {
             <Route path="/projects/new" element={<NewProjectPage />} />
             <Route path="/projects/:projectId">
               <Route index element={<OverviewPage />} />
-              <Route path="manuscripts" element={<ComingSoon title="원고 관리" figma="Figma 841:376 · 18 원고 업로드" />} />
-              <Route path="manuscripts/:manuscriptId" element={<ComingSoon title="원고 편집기" figma="Figma 841:662 · 19 원고 편집기" />} />
+              <Route path="manuscripts" element={<ManuscriptsPage />} />
+              <Route path="manuscripts/:manuscriptId" element={<EditorPage />} />
+              <Route path="manuscripts/:manuscriptId/history" element={<ComingSoon title="편집 이력" figma="Figma 1261:3042 · 32 원고 편집 이력" />} />
               <Route path="ask" element={<ComingSoon title="AI 질문" figma="Figma 842:579 · 02 AI 질문" />} />
               <Route path="characters" element={<ComingSoon title="등장인물" figma="Figma 842:863 · 20 등장인물" />} />
               <Route path="rules" element={<ComingSoon title="설정 규칙" figma="Figma 843:1659 · 21 설정 규칙" />} />

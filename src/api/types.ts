@@ -95,6 +95,41 @@ export interface Chapter {
   updated_at: string
 }
 
+// AIQ 명세 2장
+export interface QAThread {
+  thread_id: string
+  manuscript_id: string
+  scope: 'whole' | 'selection'
+  selection_range: { start: number; end: number } | null
+  /** (명세 미정의) 선택 범위가 속한 장 */
+  chapter_id: string | null
+  /** (명세 미정의) 스레드를 만들 때 선택한 문장 스냅샷 — 원고가 바뀌어도 범위가 어긋나지 않게 */
+  selected_text: string | null
+  title: string
+  /** (명세 미정의) 목록의 "17장 · 22장" 표시용 */
+  cited_chapters: number[]
+  created_at: string
+  updated_at: string
+}
+
+export interface Citation {
+  chapter_no: number
+  chapter_title: string | null
+  quote: string
+}
+
+export interface QAMessage {
+  message_id: string
+  thread_id: string
+  role: 'user' | 'assistant'
+  content: string | null
+  status: 'pending' | 'completed' | 'failed'
+  /** (명세 미정의) 답변의 근거 장면 — Figma "근거 · 17장 / 원문 보기" */
+  citations: Citation[]
+  error: { code: string; message: string } | null
+  created_at: string
+}
+
 /** (명세 미정의) GET /projects/{id}/overview — Figma 01 개요의 요약 카드 */
 export interface ProjectOverview {
   current_manuscript: { manuscript_id: string; title: string; last_chapter: number } | null

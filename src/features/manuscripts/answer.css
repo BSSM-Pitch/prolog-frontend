@@ -1,0 +1,101 @@
+/* AI 답변 — 편집기 최근 답변과 AI 질문 화면이 함께 쓴다 */
+.answer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+}
+.answer--pending {
+  flex-direction: row;
+  align-items: flex-start;
+  padding: var(--itda-space-16);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-background);
+}
+.answer--failed {
+  padding: var(--itda-space-16);
+  border: 1px solid #f4c7c3;
+  border-radius: var(--prolog-radius-8);
+  background: #fdf1f0;
+}
+.answer__title {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 22px;
+}
+.answer--failed .answer__title {
+  color: var(--prolog-color-error);
+}
+.answer__body {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+.answer__actions {
+  display: flex;
+  gap: var(--itda-space-8);
+}
+.answer__speaker {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--prolog-color-interaction);
+}
+.answer__text {
+  font-size: 16px;
+  line-height: 26px;
+}
+.answer__citations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.citation {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-left: 3px solid #88bdf2;
+  border-radius: 0 var(--prolog-radius-8) var(--prolog-radius-8) 0;
+  background: #f5f9ff;
+}
+.citation__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--prolog-color-interaction);
+}
+.citation__quote {
+  font-size: 14px;
+  line-height: 22px;
+}
+.citation__open {
+  align-self: flex-start;
+  font-size: 13px;
+}
+.answer__caution {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+
+.answer__spinner {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 2px solid #b5d5f9;
+  border-top-color: var(--prolog-color-interaction);
+  border-radius: 50%;
+  animation: answer-spin 0.9s linear infinite;
+}
+@keyframes answer-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .answer__spinner {
+    animation-duration: 3s;
+  }
+}

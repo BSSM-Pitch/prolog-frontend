@@ -47,7 +47,8 @@ function toChapter(c: MockChapter): Chapter {
 /** "1장", "제 2 장", "Chapter 3" 같은 줄을 기준으로 본문을 장 단위로 나눈다 */
 export function splitChapters(text: string): Array<{ title: string; content: string }> {
   const lines = text.replace(/\r\n/g, '\n').split('\n')
-  const heading = /^\s*(?:제\s*)?(\d+)\s*장\b.*$|^\s*chapter\s+(\d+).*$/i
+  // 한글 '장' 뒤에서는 \b(단어 경계)가 동작하지 않으므로 공백 또는 줄 끝으로 판단한다
+  const heading = /^\s*(?:제\s*)?\d+\s*장(?:\s.*)?$|^\s*chapter\s+\d+(?:\s.*)?$/i
   const out: Array<{ title: string; content: string[] }> = []
   for (const line of lines) {
     if (heading.test(line)) out.push({ title: line.trim(), content: [] })
@@ -208,6 +209,53 @@ export const manuscriptRoutes: Route[] = [
       if (m.status !== 'ready') return ok(200, [], { next_cursor: null })
       const rows = db.chapters.filter((c) => c.manuscript_id === manuscriptId).sort((a, b) => a.chapter_no - b.chapter_no)
       return ok(200, rows.map(toChapter), { next_cursor: null })
+    },
+  ],
+  [
+    // 4.7 챕터 추가 (편집기)
+    'POST',
+    '/projects/:projectId/manuscripts/:manuscriptId/chapters',
+    (req, db, { projectId, manuscriptId }) => {
+      const access = requireProject(req, db, projectId, 'editor')
+      if (isResponse(access)) return access
+      const m = findManuscript(db, projectId, manuscriptId)
+      if (!m) return fail(404, 'MANUSCRIPT_NOT_FOUND', '원고를 찾을 수 없어요.')
+      const b = (req.body ?? {}) as Body
+      const last = db.chapters.filter((c) => c.manuscript_id === manuscriptId).reduce((max, c) => Math.max(max, c.chapter_no), 0)
+      const no = last + 1
+      const t = stamp()
+      const chapter: MockChapter = {
+        chapter_id: `${manuscriptId}_ch${no}_${db.seq++}`,
+        manuscript_id: manuscriptId,
+        chapter_no: no,
+        title: str(b.title) || `${no}장`,
+        content: typeof b.content === 'string' ? b.content : '',
+        updated_at: t,
+      }
+      db.chapters.push(chapter)
+      m.updated_at = t
+      touchProject(db, projectId)
+      return ok(201, toChapter(chapter))
+    },
+  ],
+  [
+    // 4.9 챕터 수정 — 편집기 자동 저장
+    'PATCH',
+    '/projects/:projectId/manuscripts/:manuscriptId/chapters/:chapterId',
+    (req, db, { projectId, manuscriptId, chapterId }) => {
+      const access = requireProject(req, db, projectId, 'editor')
+      if (isResponse(access)) return access
+      const m = findManuscript(db, projectId, manuscriptId)
+      const c = db.chapters.find((x) => x.manuscript_id === manuscriptId && x.chapter_id === chapterId)
+      if (!m || !c) return fail(404, 'CHAPTER_NOT_FOUND', '장을 찾을 수 없어요.')
+      const b = (req.body ?? {}) as Body
+      if (typeof b.content === 'string') c.content = b.content
+      if (b.title !== undefined) c.title = str(b.title) || c.title
+      const t = stamp()
+      c.updated_at = t
+      m.updated_at = t
+      touchProject(db, projectId)
+      return ok(200, toChapter(c))
     },
   ],
 ]

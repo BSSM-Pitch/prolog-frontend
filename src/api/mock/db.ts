@@ -80,6 +80,33 @@ export interface MockChapter {
   updated_at: string
 }
 
+export interface MockQAThread {
+  thread_id: string
+  project_id: string
+  manuscript_id: string
+  scope: 'whole' | 'selection'
+  /** (명세 미정의) 선택 범위가 속한 장. 명세의 selection_range는 원고 전체 기준 오프셋이라 장 단위 편집기와 맞지 않는다 */
+  chapter_id: string | null
+  selection_range: { start: number; end: number } | null
+  selected_text: string | null
+  title: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MockQAMessage {
+  message_id: string
+  thread_id: string
+  role: 'user' | 'assistant'
+  content: string | null
+  status: 'pending' | 'completed' | 'failed'
+  citations: Array<{ chapter_no: number; chapter_title: string | null; quote: string }>
+  /** 목업: 이 시각이 지나면 답변이 완성된다 */
+  ready_at: number | null
+  will_fail: boolean
+  created_at: string
+}
+
 /** 작품별 이야기 세계 (인물·관계·충돌·복선·스토리 지도·규칙). 해당 화면을 만들면서 API로 노출한다. */
 export interface MockWorld {
   characters: DemoCharacter[]
@@ -104,6 +131,8 @@ export interface MockDb {
   manuscripts: MockManuscript[]
   chapters: MockChapter[]
   worlds: Record<string, MockWorld>
+  qaThreads: MockQAThread[]
+  qaMessages: MockQAMessage[]
   signupCodes: Record<string, PendingCode>
   resetCodes: Record<string, PendingCode>
   refreshTokens: Record<string, { user_id: string; revoked: boolean }>
@@ -145,6 +174,8 @@ function seed(): MockDb {
       },
     ],
     ...seedProjects(),
+    qaThreads: [],
+    qaMessages: [],
     signupCodes: {},
     resetCodes: {},
     refreshTokens: {},
@@ -242,10 +273,17 @@ function seedProjects(): ProjectSeed {
   }
 }
 
+/** 나중에 추가된 테이블이 예전 저장본에 없으면 빈 값으로 채운다 */
+function withDefaults(db: MockDb): MockDb {
+  db.qaThreads ??= []
+  db.qaMessages ??= []
+  return db
+}
+
 export function loadDb(): MockDb {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw) as MockDb
+    if (raw) return withDefaults(JSON.parse(raw) as MockDb)
     // v1(로그인 기능만 있던 때) 저장소가 있으면 가입한 계정만 옮겨 온다
     const legacy = localStorage.getItem(LEGACY_KEY)
     if (legacy) {

@@ -1,5 +1,5 @@
 import { request } from './client'
-import type { Chapter, Manuscript, ManuscriptSource } from './types'
+import type { Chapter, Manuscript, ManuscriptSource, QAMessage, QAThread } from './types'
 
 // MSU 명세
 
@@ -30,4 +30,53 @@ export function uploadManuscriptFile(accessToken: string, projectId: string, man
 
 export function listChapters(accessToken: string, projectId: string, manuscriptId: string) {
   return request<Chapter[]>('GET', `${base(projectId)}/${manuscriptId}/chapters`, { accessToken })
+}
+
+/** 4.7 장 추가 */
+export function addChapter(accessToken: string, projectId: string, manuscriptId: string, input: { title?: string } = {}) {
+  return request<Chapter>('POST', `${base(projectId)}/${manuscriptId}/chapters`, { body: input, accessToken })
+}
+
+/** 4.9 장 수정 — 편집기 자동 저장 */
+export function saveChapter(accessToken: string, projectId: string, manuscriptId: string, chapterId: string, input: { content?: string; title?: string }) {
+  return request<Chapter>('PATCH', `${base(projectId)}/${manuscriptId}/chapters/${chapterId}`, { body: input, accessToken })
+}
+
+// AIQ 명세 — 원고 단위 질문 스레드
+
+const qa = (projectId: string, manuscriptId: string) => `${base(projectId)}/${manuscriptId}/qa-threads`
+
+export interface AskInput {
+  question: string
+  scope: 'whole' | 'selection'
+  chapter_id?: string
+  selection_range?: { start: number; end: number }
+}
+
+export function listThreads(accessToken: string, projectId: string, manuscriptId: string) {
+  return request<QAThread[]>('GET', qa(projectId, manuscriptId), { accessToken })
+}
+
+export function createThread(accessToken: string, projectId: string, manuscriptId: string, input: AskInput) {
+  return request<{ thread: QAThread; messages: QAMessage[] }>('POST', qa(projectId, manuscriptId), { body: input, accessToken })
+}
+
+export function getThread(accessToken: string, projectId: string, manuscriptId: string, threadId: string) {
+  return request<{ thread: QAThread; messages: QAMessage[] }>('GET', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken })
+}
+
+export function deleteThread(accessToken: string, projectId: string, manuscriptId: string, threadId: string) {
+  return request<null>('DELETE', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken })
+}
+
+export function askFollowUp(accessToken: string, projectId: string, manuscriptId: string, threadId: string, content: string) {
+  return request<QAMessage[]>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages`, { body: { content }, accessToken })
+}
+
+export function getMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
+  return request<QAMessage>('GET', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}`, { accessToken })
+}
+
+export function retryMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
+  return request<QAMessage>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/retry`, { accessToken })
 }
