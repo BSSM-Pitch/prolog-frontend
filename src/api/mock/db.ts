@@ -1,4 +1,5 @@
 import type { AuthProvider, OwnerType, ProjectRole, UserRole } from '../types'
+import { seedCollaboration } from './collab'
 import {
   DEMO_CHAPTERS,
   DEMO_CHARACTERS,
@@ -41,6 +42,31 @@ interface PendingCode {
 export interface MockTeam {
   team_id: string
   name: string
+  description?: string | null
+  created_by?: string
+  created_at?: string
+}
+
+export type TeamRole = 'owner' | 'admin' | 'member'
+
+export interface MockTeamMember {
+  team_id: string
+  user_id: string
+  role: TeamRole
+  joined_at: string
+}
+
+/** PRJ 2.3 ProjectInvitation · TEAM 2.3 TeamInvitation. expires_at은 팀 명세(7일)를 프로젝트 초대에도 적용 */
+export interface MockInvitation {
+  invitation_id: string
+  /** project_id 또는 team_id */
+  target_id: string
+  invited_email: string
+  role: string
+  status: 'pending' | 'accepted' | 'expired' | 'revoked'
+  invited_by: string
+  created_at: string
+  expires_at: string
 }
 
 export interface MockProject {
@@ -190,6 +216,8 @@ export interface MockProjectMember {
   project_id: string
   user_id: string
   role: ProjectRole
+  /** 예전 저장본에는 없을 수 있다 */
+  joined_at?: string
 }
 
 export interface MockDb {
@@ -197,6 +225,9 @@ export interface MockDb {
   teams: MockTeam[]
   projects: MockProject[]
   projectMembers: MockProjectMember[]
+  projectInvitations: MockInvitation[]
+  teamMembers: MockTeamMember[]
+  teamInvitations: MockInvitation[]
   manuscripts: MockManuscript[]
   chapters: MockChapter[]
   versions: MockVersion[]
@@ -221,7 +252,7 @@ const LEGACY_KEY = 'prolog.mock-db.v1'
 const now = new Date('2026-08-12T09:00:00Z').toISOString()
 
 function seed(): MockDb {
-  return {
+  return seedCollaboration({
     users: [
       {
         user_id: 'user_101',
@@ -249,6 +280,7 @@ function seed(): MockDb {
       },
     ],
     ...seedProjects(),
+
     qaThreads: [],
     qaMessages: [],
     extractions: [],
@@ -260,7 +292,11 @@ function seed(): MockDb {
     refreshTokens: {},
     accessTokens: {},
     seq: 300,
-  }
+    // seedCollaboration이 채운다
+    projectInvitations: [],
+    teamMembers: [],
+    teamInvitations: [],
+  })
 }
 
 const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
@@ -398,6 +434,8 @@ function seedVersions(chapters: MockChapter[]): MockVersion[] {
 /** 나중에 추가된 테이블이 예전 저장본에 없으면 빈 값으로 채운다 */
 function withDefaults(db: MockDb): MockDb {
   db.versions ??= seedVersions(db.chapters)
+  // 협업(멤버·팀·초대) 데이터가 없는 저장본에는 시연용 사람들을 채운다
+  if (!db.teamMembers) seedCollaboration(db)
   db.qaThreads ??= []
   db.qaMessages ??= []
   db.extractions ??= []

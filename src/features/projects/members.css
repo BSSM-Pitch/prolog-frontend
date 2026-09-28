@@ -1,0 +1,114 @@
+/* Figma 1260:2438 · 28 프로젝트 멤버 (29 팀원과 초대도 함께 쓴다) */
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+.members__layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-16);
+  align-items: flex-start;
+}
+.members__layout > .panel:first-child {
+  flex: 999 1 560px;
+}
+.members__side {
+  display: flex;
+  flex: 1 1 380px;
+  flex-direction: column;
+  gap: var(--itda-space-16);
+  max-width: 460px;
+}
+.members__alert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.members__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.members__table th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--input-stroke);
+  color: var(--itda-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+}
+.members__table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+  vertical-align: middle;
+}
+.members__table tr:last-child td {
+  border-bottom: 0;
+}
+.members__name {
+  display: block;
+  font-weight: 500;
+}
+.members__email {
+  display: block;
+  color: var(--itda-muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+.members__role {
+  height: 36px;
+}
+.members__action {
+  text-align: right;
+}
+
+.members__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+}
+.members__roles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.members__invites {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.members__invite {
+  display: flex;
+  align-items: center;
+  gap: var(--itda-space-8);
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+}
+.members__invite:last-child {
+  border-bottom: 0;
+}
+.members__invite-email {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.members__danger {
+  border-color: rgba(180, 35, 24, 0.25);
+}
+
+@media (max-width: 1100px) {
+  .members__side {
+    max-width: none;
+  }
+}

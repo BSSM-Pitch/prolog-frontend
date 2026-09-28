@@ -119,7 +119,7 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
       </nav>
 
       <div className="sidebar__bottom">
-        <NavItem icon={IconSettings} label="설정" to={null} disabledReason="준비 중이에요" />
+        <NavItem icon={IconSettings} label="프로젝트 멤버" to={project ? toProject('members') : null} disabledReason={disabledReason} />
         <button type="button" className="sidebar__item" onClick={onLogout} title={collapsed ? '로그아웃' : undefined}>
           <IconLogout size={24} stroke={1.5} aria-hidden="true" />
           <span className="sidebar__label">로그아웃</span>

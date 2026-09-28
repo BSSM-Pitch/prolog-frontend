@@ -174,30 +174,6 @@
   min-width: 120px;
 }
 
-/* 두세 개 중 하나를 고르는 버튼 묶음 */
-.segmented {
-  display: inline-flex;
-  gap: var(--itda-space-8);
-}
-.segmented button {
-  height: var(--prolog-control-height);
-  padding: 0 var(--itda-space-16);
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
-  font-size: 14px;
-  transition: background var(--transition-state);
-}
-.segmented button[aria-checked='true'] {
-  border-color: var(--itda-muted);
-  background: var(--itda-soft);
-  font-weight: 500;
-}
-.segmented button:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
-  outline-offset: 2px;
-}
-
 @media (max-width: 1100px) {
   .ask__layout {
     grid-template-columns: 1fr;

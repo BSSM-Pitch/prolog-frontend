@@ -36,6 +36,7 @@ npm run dev
 | `/projects/:id/relationships` | 843:1109 · 13 관계 변화 · 38 덮어쓰기 확인 |
 | `/projects/:id/foreshadowings` | 843:1394 · 04 복선 추적 · 843:1534 · 24 복선 타임라인 |
 | `/projects/:id/story-map` | 843:1243 · 03 스토리 지도 |
+| `/projects/:id/members` | 1260:2438 · 28 프로젝트 멤버 |
 | `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
 
 ## 목업 테스트 계정
@@ -46,6 +47,7 @@ npm run dev
 - Google 로그인: 가입된 데모 계정으로 바로 로그인
 - 네이버 로그인: 미가입 상태 → 회원가입으로 안내
 - `writer_kim`은 예시 프로젝트 8개(개인 4·팀 4)를 갖고 있고, Google 데모 계정은 프로젝트가 없어 빈 상태를 볼 수 있다
+- 협업 화면용 예시 팀원: `hm_lee`(이형민), `seoyeon`(박서연), `daeun`(정다은) — 비밀번호는 모두 `prolog1234`
 
 인증 코드(가입·비밀번호 재설정)는 실제 메일 대신 **브라우저 콘솔**에 `[mock] … 인증 코드` 로 출력된다.
 
@@ -71,6 +73,11 @@ PRJ (`src/api/projects.ts`, `src/api/types.ts`):
 - `Project.description` — 개요 화면의 작품 소개 한 줄
 - `GET /projects/{id}/overview` — 개요 화면 요약(현재 원고, 이야기 구조, 미해결 충돌·복선 수, 최근 관계도, 우선 검토 항목). 명세에 대시보드용 API가 없음
 - 팀 프로젝트를 만들 때 고를 팀 목록은 TEAM `GET /teams` 사용 (Figma 새 프로젝트 화면에는 팀 선택 칸이 없어 추가)
+- 멤버 목록의 사용자 이름·이메일을 `ProjectMember.name`, `ProjectMember.email`로 가정 (명세는 "사용자 이름 포함"만 적혀 있음)
+- Figma 28 "보낸 초대"를 위해 `GET /projects/{id}/invitations` 필요 (명세에 없음). 취소한 초대(`revoked`)는 목록에서 뺌
+- `ProjectInvitation.expires_at`(7일)과 만료 초대 수락 시 410 `INVITATION_EXPIRED`는 TEAM 명세를 따라 가정. "다시 초대"는 같은 이메일로 `POST /invitations`를 다시 보내 기한을 늘림
+- 초대 응답 `meta.is_registered` — 미가입 이메일이면 "회원가입 안내와 함께" 문구를 보여 주기 위함
+- 역할 변경·내보내기는 목업에서 owner만 가능. 초대는 owner·editor (명세 5장 처리 흐름 기준)
 
 MSU·AIQ (`src/api/manuscripts.ts`):
 

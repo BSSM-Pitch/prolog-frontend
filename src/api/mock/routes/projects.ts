@@ -78,7 +78,7 @@ export const projectRoutes: Route[] = [
       if (ownerType === 'team') {
         teamId = str(b.team_id)
         if (!db.teams.some((t) => t.team_id === teamId)) return fail(404, 'TEAM_NOT_FOUND', '팀을 찾을 수 없어요.', { field: 'team_id' })
-        const inTeam = db.projectMembers.some((m) => m.user_id === user.user_id && db.projects.some((p) => p.project_id === m.project_id && p.team_id === teamId))
+        const inTeam = db.teamMembers.some((m) => m.user_id === user.user_id && m.team_id === teamId)
         if (!inTeam) return fail(403, 'NOT_TEAM_MEMBER', '이 팀의 팀원만 팀 프로젝트를 만들 수 있어요.')
       }
 
@@ -94,7 +94,7 @@ export const projectRoutes: Route[] = [
         updated_at: t,
       }
       db.projects.push(project)
-      db.projectMembers.push({ project_id: project.project_id, user_id: user.user_id, role: 'owner' })
+      db.projectMembers.push({ project_id: project.project_id, user_id: user.user_id, role: 'owner', joined_at: t })
       db.worlds[project.project_id] = emptyWorld()
       return ok(201, toProject(db, project, user.user_id))
     },
@@ -169,18 +169,13 @@ export const projectRoutes: Route[] = [
     },
   ],
   [
-    // TEAM 4.1 내가 속한 팀 목록 — 목업에서는 팀 프로젝트 멤버십으로 소속을 판단한다
+    // TEAM 4.1 내가 속한 팀 목록
     'GET',
     '/teams',
     (req, db) => {
       const user = authenticate(req, db)
       if (isResponse(user)) return user
-      const teamIds = new Set(
-        db.projectMembers
-          .filter((m) => m.user_id === user.user_id)
-          .map((m) => db.projects.find((p) => p.project_id === m.project_id)?.team_id)
-          .filter((id): id is string => Boolean(id)),
-      )
+      const teamIds = new Set(db.teamMembers.filter((m) => m.user_id === user.user_id).map((m) => m.team_id))
       return ok(200, db.teams.filter((t) => teamIds.has(t.team_id)), { next_cursor: null })
     },
   ],

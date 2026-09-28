@@ -212,10 +212,6 @@
   background: var(--itda-surface);
   font-size: 14px;
 }
-.segmented--wide {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-}
 
 .extract-card {
   display: flex;

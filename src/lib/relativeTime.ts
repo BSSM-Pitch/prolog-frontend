@@ -25,3 +25,9 @@ export function formatStamp(iso: string, now = new Date()): string {
   const date = `${d.getMonth() + 1}월 ${d.getDate()}일`
   return d.getFullYear() === now.getFullYear() ? `${date} ${time}` : `${d.getFullYear()}년 ${date} ${time}`
 }
+
+/** "8월 12일" */
+export function shortDate(iso: string): string {
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`
+}

@@ -2,12 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { IconChevronDown, IconPlus } from '@tabler/icons-react'
 import * as projectsApi from '../../api/projects'
-import type { OwnerType, Project, ProjectListMeta, ProjectRole, ProjectSort } from '../../api/types'
+import type { OwnerType, Project, ProjectListMeta, ProjectSort } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { describeError } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import './ProjectsPage.css'
+import { PROJECT_ROLE_LABEL } from '../../lib/roles'
 
 type Filter = 'all' | OwnerType
 
@@ -25,7 +26,6 @@ const SORTS: Array<{ value: ProjectSort; label: string }> = [
   { value: 'title_asc', label: '이름순' },
 ]
 
-const ROLE_LABEL: Record<ProjectRole, string> = { owner: '소유자', editor: '편집자', viewer: '보기 전용' }
 
 /** 첫 페이지 요청 결과. key가 현재 필터·정렬과 다르면 아직 불러오는 중이다. */
 type FirstPage = { key: string; error: string | null }
@@ -203,7 +203,7 @@ function ProjectCard({ project: p }: { project: Project }) {
     <article className="project-card" aria-labelledby={titleId}>
       <div className="project-card__badges">
         <span className="badge badge--filled">{p.owner_type === 'team' ? `팀 · ${p.team_name ?? '이름 없는 팀'}` : '개인'}</span>
-        <span className="badge badge--outline">{ROLE_LABEL[p.my_role]}</span>
+        <span className="badge badge--outline">{PROJECT_ROLE_LABEL[p.my_role]}</span>
       </div>
       <h2 id={titleId} className="project-card__title">
         {p.title}

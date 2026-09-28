@@ -16,6 +16,7 @@ import { AskPage } from './features/manuscripts/AskPage'
 import { EditorPage } from './features/manuscripts/EditorPage'
 import { HistoryPage } from './features/manuscripts/HistoryPage'
 import { ManuscriptsPage } from './features/manuscripts/ManuscriptsPage'
+import { MembersPage } from './features/projects/MembersPage'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
 import { ForeshadowingsPage } from './features/foreshadowings/ForeshadowingsPage'
@@ -83,6 +84,7 @@ export default function App() {
               <Route path="relationships" element={<RelationshipsPage />} />
               <Route path="foreshadowings" element={<ForeshadowingsPage />} />
               <Route path="story-map" element={<StoryMapPage />} />
+              <Route path="members" element={<MembersPage />} />
               <Route path="*" element={<Navigate to="." replace />} />
             </Route>
           </Route>

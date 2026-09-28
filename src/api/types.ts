@@ -64,6 +64,31 @@ export interface Team {
   name: string
 }
 
+// PRJ 2.2 · 2.3
+export interface ProjectMember {
+  project_id: string
+  user_id: string
+  role: ProjectRole
+  joined_at: string
+  /** 명세 4.6 "사용자 이름 포함" — 필드 이름은 명세 미정의 */
+  name: string
+  /** (명세 미정의) Figma 28의 이메일 표시 */
+  email: string | null
+}
+
+export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked'
+
+export interface ProjectInvitation {
+  invitation_id: string
+  project_id: string
+  invited_email: string
+  role: Exclude<ProjectRole, 'owner'>
+  status: InvitationStatus
+  created_at: string
+  /** (명세 미정의) 팀 초대처럼 7일 뒤 만료된다고 가정 */
+  expires_at: string
+}
+
 // MSU 명세 2장
 export type ManuscriptSource = 'file' | 'editor'
 export type ManuscriptStatus = 'processing' | 'ready' | 'extraction_failed'
