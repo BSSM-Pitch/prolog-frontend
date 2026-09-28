@@ -23,6 +23,9 @@ import { ForeshadowingsPage } from './features/foreshadowings/ForeshadowingsPage
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { RelationshipsPage } from './features/relationships/RelationshipsPage'
 import { StoryMapPage } from './features/story/StoryMapPage'
+import { NewTeamPage } from './features/teams/NewTeamPage'
+import { TeamMembersPage } from './features/teams/TeamMembersPage'
+import { TeamPage } from './features/teams/TeamPage'
 import { ConflictsPage } from './features/world/ConflictsPage'
 import { RulesPage } from './features/world/RulesPage'
 
@@ -70,6 +73,9 @@ export default function App() {
           >
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/new" element={<NewProjectPage />} />
+            <Route path="/teams/new" element={<NewTeamPage />} />
+            <Route path="/teams/:teamId" element={<TeamPage />} />
+            <Route path="/teams/:teamId/members" element={<TeamMembersPage />} />
             <Route path="/projects/:projectId">
               <Route index element={<OverviewPage />} />
               <Route path="manuscripts" element={<ManuscriptsPage />} />

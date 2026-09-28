@@ -168,15 +168,4 @@ export const projectRoutes: Route[] = [
       })
     },
   ],
-  [
-    // TEAM 4.1 내가 속한 팀 목록
-    'GET',
-    '/teams',
-    (req, db) => {
-      const user = authenticate(req, db)
-      if (isResponse(user)) return user
-      const teamIds = new Set(db.teamMembers.filter((m) => m.user_id === user.user_id).map((m) => m.team_id))
-      return ok(200, db.teams.filter((t) => teamIds.has(t.team_id)), { next_cursor: null })
-    },
-  ],
 ]

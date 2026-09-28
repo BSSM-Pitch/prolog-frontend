@@ -37,6 +37,9 @@ npm run dev
 | `/projects/:id/foreshadowings` | 843:1394 · 04 복선 추적 · 843:1534 · 24 복선 타임라인 |
 | `/projects/:id/story-map` | 843:1243 · 03 스토리 지도 |
 | `/projects/:id/members` | 1260:2438 · 28 프로젝트 멤버 |
+| `/teams/new` | 843:2082 · 25 새 팀 만들기 |
+| `/teams/:teamId` | 843:2184 · 26 팀 작업공간 |
+| `/teams/:teamId/members` | 1260:2672 · 29 팀원과 초대 |
 | `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
 
 ## 목업 테스트 계정
@@ -109,6 +112,16 @@ RCV (`src/api/relationships.ts`):
 - 기록의 원인 사건을 `event_id` 대신 `event_title`(이름)로 받음 — 사건(Event) 리소스가 아직 없어서
 - 두 인물 사이에 관계가 이미 있으면 409 `RELATIONSHIP_EXISTS` (명세에 없음)
 - 마인드맵 엣지에 `is_carried_forward`·`resolved_chapter`를 함께 돌려줌
+
+TEAM (`src/api/teams.ts`):
+
+- `Team.my_role`, `Team.project_count`, `Team.pending_invitation_count` — Figma 26 "팀원 04명 · 초대 대기 1 · 팀 프로젝트 03개"와 관리 버튼 노출용
+- `TeamMember.name`, `TeamMember.email` 가정 (명세는 "사용자 이름 포함"만)
+- `GET /teams/{id}/invitations`는 명세상 "대기 중인 초대"지만 Figma 29가 만료된 초대(다시 초대)도 보여 줘서 `pending`·`expired`를 함께 돌려줌
+- "다시 초대"는 같은 이메일로 `POST /invitations`를 다시 보내 기한을 7일로 늘림
+- 역할 변경은 목업에서 owner만 가능, admin은 member만 내보낼 수 있음 (명세 4.11·4.12에 세부 권한 없음)
+- "작업 중 N"은 최근 7일 안에 수정된 팀 프로젝트 수로 화면에서 계산
+- 팀원이 되어도 팀 프로젝트에 자동으로 참여하지는 않음(프로젝트 멤버 초대가 따로 필요). PRJ 4.1 "개인 + 참여 팀" 범위를 백엔드와 맞출 것
 
 FTS (`src/api/foreshadowings.ts`):
 

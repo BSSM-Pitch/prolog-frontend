@@ -11,11 +11,15 @@ import {
   IconLogout,
   IconNotebook,
   IconSettings,
+  IconUsersGroup,
   type IconProps,
 } from '@tabler/icons-react'
+import * as teamsApi from '../../api/teams'
 import type { Project } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { ROLE_OPTIONS } from '../../lib/roles'
+import { useResource } from '../../lib/useResource'
+import { useTeamsChanged } from '../teams/teamEvents'
 import { projectPath } from './currentProject'
 
 type Icon = ComponentType<IconProps>
@@ -44,6 +48,8 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   const { pathname } = useLocation()
   const { user, signOut } = useSession()
   const [open, setOpen] = useState<Record<string, boolean>>({})
+  const teams = useResource(user ? teamsApi.listTeams : null, [user?.user_id])
+  useTeamsChanged(teams.reload)
   if (!user) return null
 
   const roleTitle = ROLE_OPTIONS.find((r) => r.value === user.role)?.title ?? ''
@@ -119,6 +125,16 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
       </nav>
 
       <div className="sidebar__bottom">
+        <NavGroup icon={IconUsersGroup} label="팀" open={open.teams ?? pathname.startsWith('/teams')} onToggle={() => setOpen((o) => ({ ...o, teams: !(o.teams ?? pathname.startsWith('/teams')) }))} collapsed={collapsed} active={pathname.startsWith('/teams')}>
+          {(teams.data ?? []).map((t) => (
+            <NavLink key={t.team_id} to={`/teams/${t.team_id}`} className="sidebar__subitem">
+              {t.name}
+            </NavLink>
+          ))}
+          <NavLink to="/teams/new" className="sidebar__subitem">
+            + 새 팀 만들기
+          </NavLink>
+        </NavGroup>
         <NavItem icon={IconSettings} label="프로젝트 멤버" to={project ? toProject('members') : null} disabledReason={disabledReason} />
         <button type="button" className="sidebar__item" onClick={onLogout} title={collapsed ? '로그아웃' : undefined}>
           <IconLogout size={24} stroke={1.5} aria-hidden="true" />

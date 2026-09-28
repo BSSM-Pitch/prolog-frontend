@@ -59,9 +59,42 @@ export interface ProjectListMeta extends ListMeta {
 }
 
 // TEAM 명세 2.1 (목록에 필요한 필드만)
+// TEAM 2.1 ~ 2.3
+export type TeamRole = 'owner' | 'admin' | 'member'
+
 export interface Team {
   team_id: string
   name: string
+  description: string | null
+  created_by: string
+  member_count: number
+  created_at: string
+  /** (명세 미정의) 요청한 사용자의 팀 역할 — 관리 버튼 노출용 */
+  my_role: TeamRole
+  /** (명세 미정의) Figma 26 "팀 프로젝트 3개" */
+  project_count: number
+  /** (명세 미정의) Figma 26 "초대 대기 1" — owner·admin에게만 값이 있다 */
+  pending_invitation_count: number | null
+}
+
+export interface TeamMember {
+  team_id: string
+  user_id: string
+  role: TeamRole
+  joined_at: string
+  /** 명세 4.6 "사용자 이름 포함" — 필드 이름은 명세 미정의 */
+  name: string
+  email: string | null
+}
+
+export interface TeamInvitation {
+  invitation_id: string
+  team_id: string
+  invited_email: string
+  role: Exclude<TeamRole, 'owner'>
+  status: 'pending' | 'accepted' | 'expired' | 'revoked'
+  created_at: string
+  expires_at: string
 }
 
 // PRJ 2.2 · 2.3

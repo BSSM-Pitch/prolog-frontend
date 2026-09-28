@@ -1,5 +1,5 @@
 import { request, requestWithMeta } from './client'
-import type { OwnerType, Project, ProjectListMeta, ProjectOverview, ProjectSort, Team } from './types'
+import type { OwnerType, Project, ProjectListMeta, ProjectOverview, ProjectSort } from './types'
 
 export interface ListProjectsParams {
   owner_type?: OwnerType
@@ -32,9 +32,4 @@ export function getProject(accessToken: string, projectId: string) {
 /** (명세 미정의) 개요 화면 요약 */
 export function getOverview(accessToken: string, projectId: string) {
   return request<ProjectOverview>('GET', `/projects/${projectId}/overview`, { accessToken })
-}
-
-/** TEAM 4.1 내가 속한 팀 목록 */
-export function listTeams(accessToken: string) {
-  return request<Team[]>('GET', '/teams', { accessToken })
 }

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
 import * as projectsApi from '../../api/projects'
+import * as teamsApi from '../../api/teams'
 import type { OwnerType, Team } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
@@ -27,9 +28,11 @@ export function NewProjectPage() {
   const { withAuth } = useSession()
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const [ownerType, setOwnerType] = useState<OwnerType>('personal')
+  // 팀 작업공간의 "새 프로젝트"로 들어오면 그 팀을 고른 채로 시작한다
+  const presetTeam = useSearchParams()[0].get('team') ?? ''
+  const [ownerType, setOwnerType] = useState<OwnerType>(presetTeam ? 'team' : 'personal')
   const [teams, setTeams] = useState<Team[] | null>(null)
-  const [teamId, setTeamId] = useState('')
+  const [teamId, setTeamId] = useState(presetTeam)
   const [title, setTitle] = useState('')
   const [titleError, setTitleError] = useState<string | null>(null)
   const [start, setStart] = useState<Start>({ kind: 'none' })
@@ -39,7 +42,7 @@ export function NewProjectPage() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    withAuth(projectsApi.listTeams)
+    withAuth(teamsApi.listTeams)
       .then((list) => {
         setTeams(list)
         if (list[0]) setTeamId((id) => id || list[0].team_id)

@@ -1,0 +1,180 @@
+/* Figma 843:2082 · 25 새 팀 만들기 / 843:2184 · 26 팀 작업공간 */
+.team-new,
+.team {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+.team-new {
+  max-width: 880px;
+}
+
+.team-step {
+  position: relative;
+  gap: var(--itda-space-8);
+  padding-left: 88px;
+}
+.team-step__no {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  color: var(--prolog-color-interaction);
+  font-size: 24px;
+  font-weight: 600;
+}
+.team-step.is-done .team-step__no::after {
+  content: ' ✓';
+  font-size: 16px;
+}
+.team-step.is-locked {
+  opacity: 0.6;
+}
+.team-step.is-locked .team-step__no {
+  color: var(--itda-muted);
+}
+.team-step__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+  max-width: 560px;
+  margin-top: var(--itda-space-8);
+}
+.team-step__form .btn {
+  align-self: flex-start;
+}
+.team-step__desc {
+  min-height: 88px;
+}
+.team-step__locked {
+  padding: 14px 16px;
+  border: 1px dashed var(--input-stroke);
+  border-radius: var(--prolog-radius-8);
+  color: var(--itda-muted);
+  font-size: 14px;
+}
+.team-step__sent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+/* 팀원 초대 폼 (25 · 26 · 29 공용) */
+.team-invite {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+}
+.team-invite--inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.team-invite--inline .field {
+  flex: 1 1 260px;
+}
+.team-invite__role {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.team-invite--inline .btn {
+  margin-top: 28px;
+}
+
+.team__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--itda-space-16);
+  max-width: 760px;
+}
+.team__metric {
+  gap: 2px;
+  color: inherit;
+  text-decoration: none;
+}
+.team__metric strong {
+  font-size: 28px;
+  font-weight: 600;
+}
+a.team__metric:hover {
+  border-color: var(--itda-muted);
+}
+a.team__metric:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+}
+.team__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+}
+.team__tasks {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: var(--itda-space-16);
+}
+.team__create .btn {
+  align-self: flex-start;
+}
+.team__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+  gap: var(--itda-space-16);
+  align-items: start;
+}
+.team__projects,
+.team__people {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.team__projects li,
+.team__people li {
+  display: flex;
+  align-items: center;
+  gap: var(--itda-space-12);
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+}
+.team__projects li:last-child,
+.team__people li:last-child {
+  border-bottom: 0;
+}
+.team__projects li > div {
+  flex: 1;
+  min-width: 0;
+}
+.team__project-title {
+  font-size: 17px;
+  font-weight: 500;
+}
+.team__avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #dcebfd;
+  color: var(--prolog-color-interaction);
+  font-weight: 600;
+}
+.team__person {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .team__tasks,
+  .team__grid {
+    grid-template-columns: 1fr;
+  }
+}
