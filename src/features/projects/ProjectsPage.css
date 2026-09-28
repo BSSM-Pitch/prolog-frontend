@@ -1,0 +1,219 @@
+/* Figma 1260:2218 — 작업 영역 폭 1504 기준 */
+.projects {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+
+.projects__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--itda-space-24);
+}
+.projects__crumb {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+.projects__title {
+  margin-top: var(--itda-space-8);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36px;
+}
+.projects__desc {
+  margin-top: var(--itda-space-8);
+  font-size: 16px;
+  line-height: 24px;
+}
+.projects__new {
+  flex: none;
+  gap: var(--itda-space-8);
+}
+
+.projects__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itda-space-16);
+}
+.projects__filters {
+  display: flex;
+  gap: var(--itda-space-8);
+}
+.projects__filter {
+  height: var(--prolog-control-height);
+  padding: 0 var(--itda-space-16);
+  border: 0;
+  border-radius: var(--prolog-radius-8);
+  background: transparent;
+  color: var(--prolog-color-interaction);
+  font-size: 14px;
+  font-weight: 500;
+  transition: background var(--transition-state), color var(--transition-state);
+}
+.projects__filter:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+.projects__filter[aria-pressed='true'] {
+  background: linear-gradient(180deg, #475c70 0%, #384959 100%);
+  color: var(--itda-surface);
+}
+.projects__filter:focus-visible,
+.projects__more:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+}
+
+/* 임시/Select */
+.projects__sort {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.projects__sort select {
+  appearance: none;
+  width: 200px;
+  height: var(--prolog-control-height);
+  padding: 0 40px 0 16px;
+  border: 1px solid var(--input-stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-surface);
+  font-size: 14px;
+  cursor: pointer;
+}
+.projects__sort select:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 0;
+}
+.projects__sort svg {
+  position: absolute;
+  right: 14px;
+  pointer-events: none;
+}
+
+.projects__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--itda-space-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.project-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+  height: 100%;
+  padding: var(--itda-space-24);
+  border: 1px solid var(--input-stroke);
+  border-radius: 12px;
+  background: var(--itda-surface);
+}
+.project-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8);
+}
+.project-card__title {
+  margin-top: var(--itda-space-4);
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-card__meta {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+.project-card__open {
+  margin-top: var(--itda-space-8);
+  text-decoration: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge--filled {
+  background: var(--itda-background);
+}
+.badge--outline {
+  border: 1px solid var(--itda-ink);
+}
+
+.projects__more {
+  align-self: center;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--prolog-radius-8);
+  background: transparent;
+  color: var(--prolog-color-interaction);
+  font-size: 14px;
+  font-weight: 500;
+}
+.projects__more:hover:not(:disabled) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.projects__more:disabled {
+  color: var(--itda-muted);
+  cursor: progress;
+}
+.projects__more-error {
+  text-align: center;
+}
+
+/* State block — 빈 상태·불러오기·오류 (Figma 1255:2134) */
+.projects__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--itda-space-12);
+  padding: 64px 24px;
+  border: 1px dashed var(--input-stroke);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+.projects__state-title {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+.projects__state-body {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+
+@media (max-width: 1280px) {
+  .projects__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .projects__grid {
+    grid-template-columns: 1fr;
+  }
+  .projects__header,
+  .projects__toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .projects__sort select {
+    width: 100%;
+  }
+}

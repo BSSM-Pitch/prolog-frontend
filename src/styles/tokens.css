@@ -1,0 +1,37 @@
+/* Figma 변수(임시 페이지 · 제품 UI 기준)를 그대로 옮긴 토큰 */
+:root {
+  --itda-ink: #384959;
+  --itda-muted: #6a89a7;
+  --itda-surface: #ffffff;
+  --itda-background: #e5f0ff;
+  --itda-soft: #bdddfc;
+  --itda-accent: #88bdf2;
+
+  --prolog-color-interaction: #345e8d;
+  --prolog-color-error: #b42318;
+  --prolog-color-success: #26734d;
+
+  --itda-space-4: 4px;
+  --itda-space-8: 8px;
+  --itda-space-12: 12px;
+  --itda-space-16: 16px;
+  --itda-space-24: 24px;
+  --itda-space-32: 32px;
+  --itda-space-48: 48px;
+
+  --prolog-control-height: 40px;
+  --prolog-radius-8: 8px;
+  --itda-radius-6: 6px;
+  --itda-border-1: 1px;
+
+  --stroke: rgba(0, 0, 0, 0.25);
+  --input-stroke: rgba(106, 137, 167, 0.5);
+
+  /* 로그인 섹션 배경 */
+  --auth-page-bg: linear-gradient(180deg, #e9f3ff 0%, #c9dff7 100%);
+  --auth-panel-light: linear-gradient(180deg, #ffffff 0%, #ecf4ff 100%);
+  --auth-panel-blue: linear-gradient(180deg, #bdddfc 0%, #88bdf1 100%);
+
+  --font-sans: 'Paperlogy', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
+  --transition-state: 150ms ease;
+}

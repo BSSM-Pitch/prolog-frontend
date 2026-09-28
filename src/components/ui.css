@@ -1,0 +1,380 @@
+/* ───────── 임시/Input (Figma 999:2239) ───────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-8);
+  width: 100%;
+}
+
+.field__label {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.field__control {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--prolog-control-height);
+  padding: 0 20px;
+  background: var(--itda-surface);
+  border: 1px solid var(--input-stroke);
+  border-radius: 10px;
+  transition:
+    border-color var(--transition-state),
+    box-shadow var(--transition-state),
+    background-color var(--transition-state);
+}
+
+.field__control:focus-within {
+  border-color: var(--prolog-color-interaction);
+  box-shadow: inset 0 0 0 1px var(--prolog-color-interaction);
+}
+
+.field__input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0.4px;
+}
+
+.field__input::placeholder {
+  color: rgba(56, 73, 89, 0.4);
+}
+
+.field--error .field__control {
+  border-color: var(--prolog-color-error);
+}
+.field--error .field__control:focus-within {
+  box-shadow: inset 0 0 0 1px var(--prolog-color-error);
+}
+.field--error .field__input {
+  color: var(--prolog-color-error);
+}
+
+.field--success .field__control {
+  border-color: var(--prolog-color-success);
+}
+
+.field--disabled .field__control {
+  background: var(--itda-soft);
+  border-color: var(--itda-accent);
+}
+.field--disabled .field__input {
+  color: var(--itda-muted);
+  cursor: not-allowed;
+}
+
+.field__hint {
+  font-size: 12px;
+  line-height: 20px;
+}
+.field--error .field__hint {
+  color: var(--prolog-color-error);
+  font-size: 14px;
+  font-weight: 500;
+}
+.field--success .field__hint {
+  color: var(--prolog-color-success);
+  font-weight: 500;
+}
+
+/* 인증 코드 6자리 — Figma는 숫자 사이를 넓게 띄운다 */
+.field__input--code {
+  letter-spacing: 1.6em;
+  font-variant-numeric: tabular-nums;
+}
+.field__input--code::placeholder {
+  letter-spacing: 0.2px;
+}
+
+/* 로그인·회원가입 패널의 큰 입력 (Figma 1175:2058: 50px · 25px) */
+.field--lg {
+  gap: 10px;
+}
+.field--lg .field__label {
+  font-size: 17.5px;
+  line-height: 25px;
+}
+.field--lg .field__control {
+  height: 50px;
+}
+.field--lg .field__input {
+  font-size: 25px;
+  line-height: 37.5px;
+}
+
+/* ───────── 임시/Button (Figma 837:86) ───────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--itda-space-16);
+  height: var(--prolog-control-height);
+  padding: 0 var(--itda-space-16);
+  border: 1px solid var(--stroke);
+  border-radius: var(--prolog-radius-8);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  text-align: center;
+  transition:
+    background var(--transition-state),
+    color var(--transition-state),
+    border-color var(--transition-state),
+    opacity var(--transition-state);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn--primary {
+  background: linear-gradient(180deg, #475c70 0%, #384959 100%);
+  color: var(--itda-surface);
+}
+.btn--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7c94a9 0%, #6a89a7 100%);
+}
+.btn--primary:active:not(:disabled) {
+  background: var(--itda-ink);
+}
+
+/* Secondary (Figma 837:80 / Hover 999:2248 / Focus 999:2250) */
+.btn--secondary {
+  background: linear-gradient(180deg, #c7e3fd 0%, #b5d5f9 100%);
+  color: var(--itda-ink);
+}
+.btn--secondary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+}
+.btn--secondary:active:not(:disabled) {
+  background: var(--itda-soft);
+}
+
+.btn--ink {
+  background: var(--itda-ink);
+  color: var(--itda-surface);
+}
+.btn--ink:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7c94a9 0%, #6a89a7 100%);
+}
+
+.btn--outline {
+  background: var(--itda-surface);
+  border-color: rgba(56, 73, 89, 0.25);
+  color: var(--itda-ink);
+  font-weight: 400;
+}
+.btn--outline:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+}
+
+.btn--outline-strong {
+  background: var(--itda-surface);
+  border-color: var(--itda-ink);
+  color: var(--itda-ink);
+  font-size: 16px;
+  font-weight: 400;
+}
+.btn--outline-strong:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+}
+
+/* 오류 상태 (Figma 1214:2186, 1214:2151) */
+.btn--error {
+  background: var(--itda-surface);
+  border-color: var(--prolog-color-error);
+  color: var(--prolog-color-error);
+}
+
+/* 비활성 (Figma 1214:2158) */
+.btn--primary:disabled,
+.btn--ink:disabled {
+  background: var(--itda-surface);
+  border-color: rgba(56, 73, 89, 0.5);
+  color: rgba(56, 73, 89, 0.5);
+}
+
+.btn--busy {
+  opacity: 0.75;
+  cursor: progress;
+}
+
+/* 로그인·회원가입 패널의 큰 버튼 (Figma 1175:2062: 50px · 21.88px) */
+.btn--lg {
+  height: 50px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-size: 21.88px;
+  font-weight: 600;
+  line-height: 31.25px;
+  letter-spacing: 0.4px;
+}
+.btn--lg.btn--primary {
+  background: var(--itda-ink);
+}
+.btn--lg.btn--primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #7c94a9 0%, #6a89a7 100%);
+}
+.btn--lg.btn--error {
+  opacity: 0.75;
+}
+
+/* ───────── 소셜 로그인 (Figma 1181:2054) ───────── */
+.social {
+  display: flex;
+  gap: 20px;
+  width: 100%;
+}
+
+.social__btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0 20px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(199, 227, 253, 0.5) 0%, rgba(156, 198, 245, 0.5) 100%);
+  opacity: 0.75;
+  font-size: 17.5px;
+  font-weight: 400;
+  white-space: nowrap;
+  transition: opacity var(--transition-state);
+}
+.social--on-blue .social__btn {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(190, 219, 252, 0.5) 100%);
+}
+.social__btn:hover:not(:disabled) {
+  opacity: 1;
+}
+.social__btn:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+.social__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: #fff;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+}
+.social__mark--google {
+  background: #4285f4;
+}
+.social__mark--naver {
+  background: #03c75a;
+}
+
+/* ───────── 임시/Option (Figma 837:250) ───────── */
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-8);
+  width: 100%;
+  padding: var(--itda-space-16);
+  border: 1px solid var(--stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-surface);
+  text-align: left;
+  transition:
+    background var(--transition-state),
+    border-color var(--transition-state);
+}
+.option:hover {
+  border-color: var(--itda-muted);
+}
+.option:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+}
+.option[aria-checked='true'] {
+  background: var(--itda-background);
+  border-color: var(--itda-muted);
+}
+.option__title {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 28px;
+}
+.option__body {
+  font-size: 14px;
+  font-weight: 300;
+  line-height: 20px;
+}
+
+/* ───────── 안내 문구 ───────── */
+.notice {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.notice--error {
+  color: var(--prolog-color-error);
+}
+.notice--success {
+  color: var(--prolog-color-success);
+}
+/* Figma "안내" 블록: 위아래 16px, 줄바꿈 유지 */
+.notice--block {
+  padding: var(--itda-space-16) 0;
+  white-space: pre-line;
+}
+
+.result-box {
+  width: 100%;
+  padding: var(--itda-space-16);
+  border: 1px solid var(--stroke);
+  border-radius: var(--itda-radius-6);
+  background: var(--itda-background);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  letter-spacing: 0.2px;
+}
+
+.text-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--itda-muted);
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 25px;
+  text-decoration: none;
+}
+.text-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.text-link:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

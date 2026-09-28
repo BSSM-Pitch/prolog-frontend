@@ -1,0 +1,305 @@
+/*
+ * 로그인 및 회원가입 섹션 (Figma 1215:2403)
+ * 1920 기준: 브랜드 영역 700px, 접힌 탭 80px, 시작 화면 탭 214px / 120px.
+ * 흰 패널 = 로그인 섹션, 파란 패널 = 회원가입 섹션.
+ */
+.auth {
+  --brand-w: clamp(360px, 36.4583vw, 700px);
+  --tab-collapsed: 80px;
+  --tab-start-light: 214px;
+  --tab-start-blue: 120px;
+  --slide: 480ms cubic-bezier(0.22, 0.8, 0.24, 1);
+
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--auth-page-bg);
+}
+
+/* ───────── 브랜드 ───────── */
+.auth__brand {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--brand-w);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--itda-ink);
+  transition: width var(--slide);
+  pointer-events: none;
+}
+.auth[data-mode='start'] .auth__brand {
+  width: calc(100% - var(--tab-start-light));
+}
+
+/* 패널이 펼쳐져 있을 때 브랜드 영역을 누르면 접힌다 */
+.auth__brand--button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.auth__brand--button:hover .brand__title {
+  opacity: 0.85;
+}
+.auth__brand--button:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: -8px;
+}
+
+.brand__title {
+  font-size: clamp(64px, 5vw, 96px);
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.brand__tagline {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* ───────── 패널 ───────── */
+.auth__panel {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  left: 100%;
+  border: 1px solid var(--stroke);
+  border-right: 0;
+  border-radius: 20px 0 0 20px;
+  transition: left var(--slide);
+}
+.auth__panel--login {
+  z-index: 1;
+  background: var(--auth-panel-light);
+}
+.auth__panel--signup {
+  z-index: 2;
+  background: var(--auth-panel-blue);
+}
+
+/* 패널 왼쪽 손잡이 (Figma Rectangle 4×120) */
+.auth__panel::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 20px;
+  width: 4px;
+  height: 120px;
+  translate: 0 -50%;
+  border: 1px solid var(--stroke);
+  border-radius: 2px;
+  transition: opacity var(--slide);
+}
+.auth__panel--login::before {
+  background: #5e7a94;
+}
+.auth__panel--signup::before {
+  background: #ffffff;
+  height: 124px;
+}
+
+/* 모드별 위치 */
+.auth[data-mode='start'] .auth__panel--login {
+  left: calc(100% - var(--tab-start-light));
+}
+.auth[data-mode='start'] .auth__panel--signup {
+  left: calc(100% - var(--tab-start-blue));
+}
+
+.auth[data-mode='login'] .auth__panel--login {
+  left: var(--brand-w);
+}
+.auth[data-mode='login'] .auth__panel--signup {
+  left: calc(100% - var(--tab-collapsed));
+}
+
+.auth[data-mode='signup'] .auth__panel--login {
+  left: var(--brand-w);
+}
+.auth[data-mode='signup'] .auth__panel--signup {
+  left: calc(var(--brand-w) + var(--tab-collapsed));
+}
+
+.auth[data-mode='login-full'] .auth__panel--login {
+  left: 0;
+}
+.auth[data-mode='signup-full'] .auth__panel--login {
+  left: var(--brand-w);
+}
+.auth[data-mode='signup-full'] .auth__panel--signup {
+  left: 0;
+}
+
+/* 화면 전체를 덮는 단계에서는 손잡이를 숨긴다 */
+.auth[data-mode='login-full'] .auth__panel--login::before,
+.auth[data-mode='signup-full'] .auth__panel--signup::before {
+  opacity: 0;
+}
+
+/* 접힌 패널 전체가 탭 역할 */
+.auth__tab {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  transition: background var(--transition-state);
+}
+.auth__tab:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.auth__tab:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: -4px;
+}
+
+/* 펼쳐진 패널의 왼쪽 손잡이 영역 — 누르면 접힌다 */
+.auth__handle {
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 2;
+  width: 56px;
+  padding: 0;
+  border: 0;
+  border-radius: 20px 0 0 20px;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-state);
+}
+.auth__handle:hover {
+  background: rgba(56, 73, 89, 0.06);
+}
+.auth__handle:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: -4px;
+}
+
+/* ───────── 콘텐츠 ───────── */
+.auth__content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  overflow-y: auto;
+  animation: auth-content-in 320ms ease 160ms both;
+}
+/* 로그인 폼은 오른쪽 80px이 회원가입 탭에 덮이므로 그만큼 비운다 */
+.auth[data-mode='login'] .auth__content {
+  padding-right: calc(var(--tab-collapsed) + 24px);
+}
+
+@keyframes auth-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ───────── 로그인·회원가입 폼 (Figma 인증 폼 600×, padding 40, gap 20) ───────── */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: min(600px, 100%);
+  padding: 40px;
+}
+.auth-form__title {
+  font-size: 35px;
+  font-weight: 500;
+  line-height: 45px;
+}
+.auth-form__link {
+  align-self: center;
+}
+
+/* ───────── 카드 단계 (Figma 인증 폼 480×, padding 32, gap 16) ───────── */
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-16);
+  width: min(480px, 100%);
+  padding: var(--itda-space-32);
+  border-radius: 12px;
+  background: var(--itda-surface);
+}
+.auth-card--bordered {
+  gap: 20px;
+  border: 1px solid var(--input-stroke);
+  border-radius: 10px;
+}
+.auth-card__title {
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36px;
+}
+.auth-card__desc {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+.auth-card__meta {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.auth-card__caption {
+  font-size: 12px;
+  line-height: 20px;
+}
+.auth-card__row {
+  display: flex;
+  gap: var(--itda-space-16);
+}
+.auth-card__row > * {
+  flex: 1;
+}
+.auth-card__row > .btn--grow-3 {
+  flex: 3;
+}
+
+.role-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-16);
+}
+
+/* ───────── 좁은 화면 ───────── */
+@media (max-width: 960px) {
+  .auth {
+    --brand-w: 0px;
+    --tab-collapsed: 56px;
+    --tab-start-light: 120px;
+    --tab-start-blue: 64px;
+  }
+  .auth[data-mode='start'] .auth__brand {
+    width: calc(100% - var(--tab-start-light));
+  }
+  .auth-form {
+    padding: 24px 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth,
+  .auth * {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+}
