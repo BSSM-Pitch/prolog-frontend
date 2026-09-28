@@ -216,6 +216,8 @@ export function NotificationsPage() {
                     )}
                     {invite && ref.status === 'accepted' && <span className="badge badge--success">참가함</span>}
                     {invite && (ref.status === 'expired' || ref.status === 'revoked') && <span className="badge badge--filled">{ref.status === 'expired' ? '만료된 초대' : '취소된 초대'}</span>}
+                    {/* 백엔드 알림에는 초대가 속한 팀·프로젝트와 수락 토큰이 없어 여기서 바로 참가할 수 없다 */}
+                    {invite && !ref.status && <span className="panel__label">초대한 사람에게 받은 초대 링크로 참가할 수 있어요</span>}
                     <button type="button" className="text-link" onClick={() => toggleRead(n)} disabled={busy}>
                       {n.read_at ? '안 읽음으로' : '읽음으로'}
                     </button>

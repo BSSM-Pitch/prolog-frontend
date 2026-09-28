@@ -6,6 +6,8 @@ import type { TeamInvitation, TeamMember, TeamRole } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { InviteLink } from '../../components/InviteLink'
+import { inviteUrl } from '../../api/sentInvitations'
 import { describeError } from '../../lib/errors'
 import { shortDate } from '../../lib/relativeTime'
 import { TEAM_ROLE_LABEL } from '../../lib/roles'
@@ -283,6 +285,7 @@ function InviteRow({ invitation: i, onCancel, onResend }: { invitation: TeamInvi
       {i.status === 'pending' ? (
         <>
           <span className="badge badge--waiting">{daysLeft(i.expires_at)}일 남음</span>
+          {i.token && <InviteLink url={inviteUrl('team', i.team_id, i.invitation_id, i.token)!} compact />}
           <Button tone="outline" onClick={act(onCancel)} busy={busy}>
             초대 취소
           </Button>

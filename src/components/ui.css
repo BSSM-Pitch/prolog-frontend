@@ -492,3 +492,24 @@
   outline: 2px solid var(--prolog-color-interaction);
   outline-offset: 2px;
 }
+
+/* 초대 링크 */
+.invite-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8);
+}
+.invite-link__url {
+  flex: 1 1 220px;
+  min-width: 0;
+  height: var(--prolog-control-height);
+  padding: 0 12px;
+  border: 1px solid var(--input-stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-background);
+  color: var(--itda-muted);
+  font-size: 13px;
+}
+.invite-link .panel__label {
+  flex-basis: 100%;
+}

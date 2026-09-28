@@ -1,3 +1,4 @@
+import { IS_REAL } from '../config'
 import type { RawResponse } from '../client'
 import type { MockDb, MockUser } from './db'
 
@@ -36,6 +37,10 @@ export function nextId(db: MockDb, prefix: string) {
 export function authenticate(req: MockRequest, db: MockDb): MockUser | RawResponse {
   const token = (req.headers.Authorization ?? '').replace(/^Bearer /, '')
   const record = db.accessTokens[token]
+  // 혼합 모드: 토큰은 실제 서버가 발급했으므로 목업은 확인할 수 없다. 로그인한 사용자로 본다
+  if (!record && IS_REAL && token && db.bridgeUserId) {
+    return db.users.find((u) => u.user_id === db.bridgeUserId) ?? fail(401, 'UNAUTHORIZED', '로그인이 필요해요.')
+  }
   if (!record || record.expires_at < Date.now()) return fail(401, 'UNAUTHORIZED', '로그인이 필요해요.')
   return db.users.find((u) => u.user_id === record.user_id) ?? fail(404, 'USER_NOT_FOUND', '사용자를 찾을 수 없어요.')
 }

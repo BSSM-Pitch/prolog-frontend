@@ -1,4 +1,7 @@
-import { request, requestWithMeta } from './client'
+import { splitChapters } from '../lib/chapters'
+import { toChapter, toManuscript, type BackendChapter, type BackendManuscript } from './backendShapes'
+import { ApiError, request, requestWithMeta } from './client'
+import { IS_REAL } from './config'
 import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
 // MSU 명세
@@ -6,14 +9,19 @@ import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, Manuscri
 const base = (projectId: string) => `/projects/${projectId}/manuscripts`
 
 export function listManuscripts(accessToken: string, projectId: string) {
+  if (IS_REAL) return real.listManuscripts(accessToken, projectId)
   return request<Manuscript[]>('GET', base(projectId), { accessToken, query: { limit: '100' } })
 }
 
-export function createManuscript(accessToken: string, projectId: string, input: { title: string; source_type: ManuscriptSource }) {
-  return request<Manuscript>('POST', base(projectId), { body: input, accessToken })
+export async function createManuscript(accessToken: string, projectId: string, input: { title: string; source_type: ManuscriptSource }) {
+  if (!IS_REAL) return request<Manuscript>('POST', base(projectId), { body: input, accessToken })
+  // 백엔드는 업로드 원고를 source_type "upload"로 부른다
+  const m = await request<BackendManuscript>('POST', base(projectId), { body: { title: input.title, source_type: input.source_type === 'file' ? 'upload' : 'editor' }, accessToken })
+  return toManuscript(m)
 }
 
 export function getManuscript(accessToken: string, projectId: string, manuscriptId: string) {
+  if (IS_REAL) return real.getManuscript(accessToken, projectId, manuscriptId)
   return request<Manuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken })
 }
 
@@ -21,25 +29,104 @@ export function deleteManuscript(accessToken: string, projectId: string, manuscr
   return request<null>('DELETE', `${base(projectId)}/${manuscriptId}`, { accessToken })
 }
 
-/** 4.6 원고 파일 업로드 (multipart, 필드명 file) */
+/** 4.6 원고 파일 업로드. 목업은 multipart, 백엔드는 presigned URL → 직접 PUT → 완료 알림 */
 export function uploadManuscriptFile(accessToken: string, projectId: string, manuscriptId: string, file: File) {
+  if (IS_REAL) return real.upload(accessToken, projectId, manuscriptId, file)
   const form = new FormData()
   form.append('file', file)
   return request<Manuscript>('POST', `${base(projectId)}/${manuscriptId}/file`, { body: form, accessToken })
 }
 
 export function listChapters(accessToken: string, projectId: string, manuscriptId: string) {
+  if (IS_REAL) return real.listChapters(accessToken, projectId, manuscriptId)
   return request<Chapter[]>('GET', `${base(projectId)}/${manuscriptId}/chapters`, { accessToken })
 }
 
 /** 4.7 장 추가 */
 export function addChapter(accessToken: string, projectId: string, manuscriptId: string, input: { title?: string } = {}) {
+  if (IS_REAL) return real.addChapter(accessToken, projectId, manuscriptId, input)
   return request<Chapter>('POST', `${base(projectId)}/${manuscriptId}/chapters`, { body: input, accessToken })
 }
 
-/** 4.9 장 수정 — 편집기 자동 저장 */
-export function saveChapter(accessToken: string, projectId: string, manuscriptId: string, chapterId: string, input: { content?: string; title?: string }) {
-  return request<Chapter>('PATCH', `${base(projectId)}/${manuscriptId}/chapters/${chapterId}`, { body: input, accessToken })
+/** 4.9 장 수정 — 편집기 자동 저장. 백엔드는 챕터가 프로젝트 직속 경로다 */
+export async function saveChapter(accessToken: string, projectId: string, manuscriptId: string, chapterId: string, input: { content?: string; title?: string }) {
+  if (!IS_REAL) return request<Chapter>('PATCH', `${base(projectId)}/${manuscriptId}/chapters/${chapterId}`, { body: input, accessToken })
+  return toChapter(await request<BackendChapter>('PATCH', `/projects/${projectId}/chapters/${chapterId}`, { body: input, accessToken }))
+}
+
+// --- real 모드 (prolog-backend MSU) ----------------------------------------------------------------
+
+// 백엔드 app/content/manuscripts/storage.py _CONTENT_TYPES — presigned URL이 이 Content-Type으로 서명된다
+const CONTENT_TYPES: Record<string, string> = {
+  txt: 'text/plain',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+}
+
+/** 개발 중에는 s3mock 주소를 Vite 프록시(/__s3)로 바꿔 CORS를 피한다 */
+function uploadUrlOf(url: string) {
+  const u = new URL(url)
+  return u.hostname === 'localhost' || u.hostname === '127.0.0.1' ? `/__s3${u.pathname}${u.search}` : url
+}
+
+const chaptersOf = (token: string, projectId: string, manuscriptId?: string) =>
+  request<BackendChapter[]>('GET', `/projects/${projectId}/chapters`, { accessToken: token, query: manuscriptId ? { manuscript_id: manuscriptId } : undefined })
+
+const real = {
+  async listManuscripts(token: string, projectId: string) {
+    const [rows, chapters] = await Promise.all([
+      request<BackendManuscript[]>('GET', base(projectId), { accessToken: token, query: { limit: '100' } }),
+      chaptersOf(token, projectId),
+    ])
+    // "82,420자" — 편집기 원고는 본문이 장에 있어 장 길이를 더한다
+    const chars = new Map<string, number>()
+    for (const c of chapters) chars.set(c.manuscript_id, (chars.get(c.manuscript_id) ?? 0) + c.content.length)
+    return rows.map((m) => toManuscript(m, chars.get(m.manuscript_id)))
+  },
+
+  async getManuscript(token: string, projectId: string, manuscriptId: string) {
+    const [m, chapters] = await Promise.all([
+      request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken: token }),
+      chaptersOf(token, projectId, manuscriptId),
+    ])
+    return toManuscript(m, chapters.length ? chapters.reduce((n, c) => n + c.content.length, 0) : undefined)
+  },
+
+  async upload(token: string, projectId: string, manuscriptId: string, file: File) {
+    const format = file.name.split('.').pop()?.toLowerCase() ?? ''
+    const issued = await request<{ upload_url: string }>('POST', `${base(projectId)}/${manuscriptId}/file`, { body: { file_format: format }, accessToken: token })
+    const put = await fetch(uploadUrlOf(issued.upload_url), { method: 'PUT', headers: { 'Content-Type': CONTENT_TYPES[format] ?? 'application/octet-stream' }, body: file }).catch(() => null)
+    if (!put?.ok) throw new ApiError(put?.status ?? 0, { code: 'UPLOAD_FAILED', message: '파일을 저장소에 올리지 못했어요. 잠시 뒤 다시 시도해 주세요.', details: {} })
+    return toManuscript(await request<BackendManuscript>('POST', `${base(projectId)}/${manuscriptId}/file/complete`, { accessToken: token }))
+  },
+
+  /**
+   * 백엔드 추출 워커는 원고 본문(content)만 채우고 장을 만들지 않는다.
+   * 장이 없는데 본문이 있으면 "1장" 같은 줄로 나눠 장을 만든다 (보기 전용이면 저장하지 않고 보여만 준다).
+   */
+  async listChapters(token: string, projectId: string, manuscriptId: string): Promise<Chapter[]> {
+    const rows = await chaptersOf(token, projectId, manuscriptId)
+    if (rows.length) return rows.map(toChapter)
+    const m = await request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken: token })
+    if (m.status !== 'ready' || !m.content?.trim()) return []
+    const parts = splitChapters(m.content)
+    try {
+      const created: Chapter[] = []
+      for (const [i, p] of parts.entries()) {
+        const c = await request<BackendChapter>('POST', `/projects/${projectId}/chapters`, { body: { manuscript_id: manuscriptId, chapter_no: i + 1, title: p.title, content: p.content }, accessToken: token })
+        created.push(toChapter(c))
+      }
+      return created
+    } catch {
+      return parts.map((p, i) => ({ chapter_id: `preview-${i + 1}`, manuscript_id: manuscriptId, chapter_no: i + 1, title: p.title, content: p.content, updated_at: null }))
+    }
+  },
+
+  async addChapter(token: string, projectId: string, manuscriptId: string, input: { title?: string }) {
+    const last = (await chaptersOf(token, projectId, manuscriptId)).reduce((max, c) => Math.max(max, c.chapter_no), 0)
+    const no = last + 1
+    const c = await request<BackendChapter>('POST', `/projects/${projectId}/chapters`, { body: { manuscript_id: manuscriptId, chapter_no: no, title: input.title || `${no}장`, content: '' }, accessToken: token })
+    return toChapter(c)
+  },
 }
 
 /** 4.10 편집 이력 조회 (선택) — meta.total은 명세 미정의 */

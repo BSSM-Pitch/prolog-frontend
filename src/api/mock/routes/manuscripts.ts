@@ -1,6 +1,7 @@
 import type { Chapter, Manuscript, ManuscriptVersion, ManuscriptVersionDetail } from '../../types'
 import { requireProject, touchProject } from '../access'
 import type { MockChapter, MockDb, MockManuscript, MockVersion } from '../db'
+import { splitChapters } from '../../../lib/chapters'
 import { fail, isResponse, nextId, noContent, ok, paginate, stamp, str, type Body, type Route } from '../http'
 
 const PROCESSING_MS = 3000
@@ -44,28 +45,12 @@ function toChapter(c: MockChapter): Chapter {
   return { chapter_id: c.chapter_id, manuscript_id: c.manuscript_id, chapter_no: c.chapter_no, title: c.title, content: c.content, updated_at: c.updated_at }
 }
 
-/** "1장", "제 2 장", "Chapter 3" 같은 줄을 기준으로 본문을 장 단위로 나눈다 */
-export function splitChapters(text: string): Array<{ title: string; content: string }> {
-  const lines = text.replace(/\r\n/g, '\n').split('\n')
-  // 한글 '장' 뒤에서는 \b(단어 경계)가 동작하지 않으므로 공백 또는 줄 끝으로 판단한다
-  const heading = /^\s*(?:제\s*)?\d+\s*장(?:\s.*)?$|^\s*chapter\s+\d+(?:\s.*)?$/i
-  const out: Array<{ title: string; content: string[] }> = []
-  for (const line of lines) {
-    if (heading.test(line)) out.push({ title: line.trim(), content: [] })
-    else {
-      if (out.length === 0) out.push({ title: '1장', content: [] })
-      out[out.length - 1].content.push(line)
-    }
-  }
-  return out.map((c) => ({ title: c.title, content: c.content.join('\n').trim() })).filter((c) => c.content || out.length === 1)
-}
-
 /** 같은 장을 이어서 고치는 동안에는 스냅샷 하나를 갱신하고, 이 시간이 지나면 새 스냅샷을 남긴다 */
 const SNAPSHOT_GAP_MS = 10 * 60_000
 const MAX_VERSIONS = 60
 
 /** (명세 미정의) 편집 이력 스냅샷을 남긴다. 편집을 시작하면 "직접 수정", 오래 이어서 쓰면 "자동 저장" */
-function recordVersion(db: MockDb, c: MockChapter, reason?: MockVersion['reason'], label: string | null = null) {
+export function recordVersion(db: MockDb, c: MockChapter, reason?: MockVersion['reason'], label: string | null = null) {
   const mine = db.versions.filter((v) => v.manuscript_id === c.manuscript_id)
   const last = mine.find((v) => v.chapter_id === c.chapter_id)
   const now = Date.now()

@@ -272,6 +272,8 @@ export interface MockDb {
   refreshTokens: Record<string, { user_id: string; revoked: boolean }>
   accessTokens: Record<string, { user_id: string; expires_at: number }>
   seq: number
+  /** 혼합 모드(real): 실제 서버로 로그인한 사용자. 목업 API는 이 사용자로 인증한다 */
+  bridgeUserId?: string
 }
 
 const STORAGE_KEY = 'prolog.mock-db.v2'

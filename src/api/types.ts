@@ -95,6 +95,8 @@ export interface TeamInvitation {
   status: 'pending' | 'accepted' | 'expired' | 'revoked'
   created_at: string
   expires_at: string
+  /** 생성 응답에만 오는 수락 토큰 */
+  token?: string
 }
 
 // PRJ 2.2 · 2.3
@@ -120,6 +122,8 @@ export interface ProjectInvitation {
   created_at: string
   /** (명세 미정의) 팀 초대처럼 7일 뒤 만료된다고 가정 */
   expires_at: string
+  /** 생성 응답에만 오는 수락 토큰 (백엔드 CLAUDE.md §6.4 — 명세 미정의) */
+  token?: string
 }
 
 // NOTI 2.1 ~ 2.3
@@ -182,7 +186,8 @@ export interface Chapter {
   chapter_no: number
   title: string | null
   content: string
-  updated_at: string
+  /** 백엔드 챕터 응답에는 없다 (real 모드에서는 null) */
+  updated_at: string | null
 }
 
 /**

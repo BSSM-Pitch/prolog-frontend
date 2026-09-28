@@ -9,7 +9,25 @@ npm install
 npm run dev
 ```
 
-기본은 **브라우저 안의 목업 API**로 동작한다. 실제 백엔드를 붙일 때는 `.env.example`을 `.env`로 복사하고 `VITE_API_MODE=real`, `VITE_API_BASE_URL`을 바꾼다.
+기본은 **브라우저 안의 목업 API**로 동작한다.
+
+### 실제 백엔드(prolog-backend)에 붙이기 — 혼합 모드
+
+[prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)는 Phase 1(AUTH·TEAM·PRJ·원고/챕터·인앱 알림)까지 있다.
+`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(AI 질문·캐릭터·설정 규칙/충돌·관계·복선·스토리 지도·편집 이력·개요 요약·알림 설정)는 목업으로** 보낸다.
+목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장)를 목업 DB로 옮기므로 AI 기능도 실제 원고로 시연할 수 있다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
+
+1. 백엔드 README대로 서버를 띄운다 (`docker compose up -d` → `uv run alembic upgrade head` → `uv run uvicorn app.main:app`). 초대 알림·업로드 추출은 워커(`worker.outbox_relay`·`worker.notifier`·`worker.extractor`)가 있어야 한다
+2. 백엔드 `.env`의 `GOOGLE_REDIRECT_URI`를 이 앱의 `http://localhost:5173/auth/callback`으로 맞춘다
+3. 이 앱의 `.env.example`을 `.env`로 복사하고 `VITE_API_MODE=real`, `VITE_GOOGLE_CLIENT_ID`(백엔드와 같은 값)를 채운다
+4. `npm run dev` — 백엔드에 CORS 설정이 없어 개발 서버가 `/v1`을 백엔드로, `/__s3`를 s3mock으로 프록시한다 (`vite.config.ts`)
+
+real 모드에서 달라지는 것:
+
+- 로그인은 **Google만** 된다(AUTH v0.2). 아이디·비밀번호, 네이버, 아이디 찾기, 비밀번호 재설정 화면은 그대로 두고 누르면 "아직 지원하지 않아요"로 안내한다
+- 처음 Google로 들어온 사람은 가입 티켓(10분)을 받고 아이디 → 사용자 유형을 정해 가입을 마친다 (`/auth/callback` → `/auth/signup` → `/auth/signup/role`)
+- 초대 수락에는 초대 생성 응답의 토큰이 필요하고 초대 메일은 아직 없다. 초대하면 **초대 링크**(`/invite/:kind/:id/:invitationId?token=…`)를 보여 주고, 받은 사람이 열어서 참가한다
+- 원고 업로드는 presigned URL로 직접 올린 뒤 완료를 알린다(txt·docx만). 백엔드는 본문만 추출하므로 장이 없으면 편집기가 "1장" 같은 줄로 나눠 장을 만든다
 
 ## 화면과 경로
 
@@ -59,6 +77,16 @@ npm run dev
 인증 코드(가입·비밀번호 재설정)는 실제 메일 대신 **브라우저 콘솔**에 `[mock] … 인증 코드` 로 출력된다.
 
 시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다. AI 질문·인물 추출은 문장에 `[실패]`를 넣으면 실패 화면을 시연할 수 있다. 설정 충돌 검사는 확정된 규칙의 위반 판정 키워드로 원고 문장을 찾는다(예: 27장에 "윤서는 비가 오는 중에 붉은 문을 열었다."를 쓰고 R11을 확정한 뒤 다시 검사).
+
+## prolog-backend와 다른 점 (real 모드에서 화면 쪽에서 채우는 것)
+
+- `Project`에 `my_role`·`team_name`이 없어 멤버 목록·팀 목록으로 계산한다(팀 프로젝트는 팀원에게 editor — 백엔드 `TEAM_MEMBER_PROJECT_ROLE`과 같은 규칙). 목록의 탭 숫자(`meta.counts`)와 정렬(`sort`)도 없어 한 번 더 받아 세고 받은 페이지 안에서만 정렬한다
+- 멤버 목록은 `username`만 있고 이메일이 없다
+- PRJ 보낸 초대 목록 API가 없어(백엔드에서 제거) 이 브라우저에서 보낸 초대만 보여 준다. 초대·취소는 owner만(목업도 맞춤)
+- `Team`에 `my_role`·`project_count`·`pending_invitation_count`가 없어 팀원·팀 프로젝트·초대 목록으로 채운다
+- 챕터 경로가 `/projects/{p}/chapters`이고 응답에 `updated_at`이 없다. 장 추가 때 `chapter_no`를 화면이 정한다
+- `Manuscript`는 `source_type: upload`, `status: draft|failed`, `file_key`를 쓴다. 업로드 중단(draft)은 "업로드가 끝나지 않았어요"로 보여 준다
+- 알림 `related_ref`에 팀·프로젝트 ID와 수락 토큰이 없어 알림에서 바로 참가할 수 없다(초대 링크로 안내)
 
 ## 백엔드 팀과 맞출 것 — API 명세와 다른 점
 

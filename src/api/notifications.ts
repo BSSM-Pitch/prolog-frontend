@@ -9,12 +9,14 @@ export interface NotificationListMeta {
 }
 
 /** 4.1 알림 목록 */
-export function listNotifications(accessToken: string, params: { unread_only?: boolean; type?: NotificationType | ''; cursor?: string | null; limit?: number } = {}) {
+export async function listNotifications(accessToken: string, params: { unread_only?: boolean; type?: NotificationType | ''; cursor?: string | null; limit?: number } = {}) {
   const query: Record<string, string> = { limit: String(params.limit ?? 5) }
   if (params.unread_only) query.unread_only = 'true'
   if (params.type) query.type = params.type
   if (params.cursor) query.cursor = params.cursor
-  return requestWithMeta<Notification[], NotificationListMeta>('GET', '/notifications', { accessToken, query })
+  const res = await requestWithMeta<Notification[], NotificationListMeta>('GET', '/notifications', { accessToken, query })
+  // 백엔드는 body가 null일 수 있다
+  return { ...res, data: res.data.map((n) => ({ ...n, body: n.body ?? n.title })) }
 }
 
 /** 4.3 읽음 처리 */

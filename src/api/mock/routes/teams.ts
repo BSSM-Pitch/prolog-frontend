@@ -170,7 +170,7 @@ export const teamRoutes: Route[] = [
           parent_id: teamId,
         })
       } else console.info(`[mock] 회원가입 안내 메일 → ${email}`)
-      return ok(201, toInvitation(prev ?? inv), { is_registered: Boolean(invitee) })
+      return ok(201, { ...toInvitation(prev ?? inv), token: `mock-${(prev ?? inv).invitation_id}` }, { is_registered: Boolean(invitee) })
     },
   ],
   [

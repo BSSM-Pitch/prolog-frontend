@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { SessionProvider, useSession } from './auth/session'
+import { AuthCallbackPage } from './features/auth/AuthCallbackPage'
 import { AuthShell } from './features/auth/AuthShell'
 import { FindIdPage } from './features/auth/FindIdPage'
 import { LoginPage } from './features/auth/LoginPage'
@@ -9,6 +10,8 @@ import { RolePage } from './features/auth/RolePage'
 import { SignupPage } from './features/auth/SignupPage'
 import { VerifyPage } from './features/auth/VerifyPage'
 import { AppShell } from './features/app/AppShell'
+import { AcceptInvitePage } from './features/invite/AcceptInvitePage'
+import { saveReturnTo } from './lib/returnTo'
 import { CharactersPage } from './features/characters/CharactersPage'
 import { LandingPage } from './features/landing/LandingPage'
 import { DraftPage } from './features/characters/DraftPage'
@@ -34,8 +37,12 @@ import { RulesPage } from './features/world/RulesPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { status } = useSession()
+  const location = useLocation()
   if (status === 'loading') return null
-  return status === 'signed-in' ? children : <Navigate to="/auth/login" replace />
+  if (status === 'signed-in') return children
+  // 초대 링크처럼 로그인 뒤 돌아와야 하는 주소를 기억한다
+  if (location.pathname.startsWith('/invite/')) saveReturnTo(`${location.pathname}${location.search}`)
+  return <Navigate to="/auth/login" replace state={location.pathname.startsWith('/invite/') ? { notice: '초대를 받으려면 먼저 로그인해 주세요.' } : undefined} />
 }
 
 function GuestOnly({ children }: { children: ReactNode }) {
@@ -63,6 +70,7 @@ export default function App() {
             {/* 시작 화면(Figma 1173:2377)은 패널 셸만 보인다 */}
             <Route index element={null} />
             <Route path="login" element={<LoginPage />} />
+            <Route path="callback" element={<AuthCallbackPage />} />
             <Route path="signup" element={<SignupPage />} />
             <Route path="signup/role" element={<RolePage />} />
             <Route path="signup/verify" element={<VerifyPage />} />
@@ -78,6 +86,7 @@ export default function App() {
           >
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/new" element={<NewProjectPage />} />
+            <Route path="/invite/:kind/:parentId/:invitationId" element={<AcceptInvitePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
             <Route path="/teams/new" element={<NewTeamPage />} />

@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import * as api from '../../api/teams'
 import type { TeamInvitation } from '../../api/types'
 import { useSession } from '../../auth/session'
+import { inviteUrl } from '../../api/sentInvitations'
 import { Button } from '../../components/Button'
+import { InviteLink } from '../../components/InviteLink'
 import { TextField } from '../../components/TextField'
 import { describeError } from '../../lib/errors'
 import { TEAM_ROLE_LABEL } from '../../lib/roles'
@@ -23,17 +25,20 @@ export function TeamInviteForm({ teamId, layout = 'stack', autoFocus, onInvited 
   const [role, setRole] = useState<TeamInvitation['role']>('member')
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState<string | null>(null)
+  const [link, setLink] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setSent(null)
+    setLink(null)
     const value = email.trim()
     if (!EMAIL_RULE.test(value)) return setError('이메일 형식을 확인해 주세요.')
     setBusy(true)
     try {
       const res = await withAuth((t) => api.inviteToTeam(t, teamId, { invited_email: value, role }))
       onInvited?.(res.data)
+      setLink(inviteUrl('team', teamId, res.data.invitation_id, res.data.token))
       setSent(res.meta.is_registered === false ? `${value}에 회원가입 안내와 함께 초대를 보냈어요.` : `${value}에 초대를 보냈어요. 7일 안에 수락하면 합류해요.`)
       setEmail('')
     } catch (err) {
@@ -72,6 +77,11 @@ export function TeamInviteForm({ teamId, layout = 'stack', autoFocus, onInvited 
       <Button type="submit" busy={busy}>
         초대 보내기
       </Button>
+      {link && (
+        <div className="team-invite__link">
+          <InviteLink url={link} />
+        </div>
+      )}
     </form>
   )
 }

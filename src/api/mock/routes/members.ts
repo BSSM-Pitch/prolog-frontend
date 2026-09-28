@@ -58,11 +58,11 @@ export const memberRoutes: Route[] = [
     },
   ],
   [
-    // 4.7 공동 작업자 초대 — owner·editor
+    // 4.7 공동 작업자 초대 — owner만 (prolog-backend와 같게)
     'POST',
     '/projects/:projectId/invitations',
     (req, db, { projectId }) => {
-      const access = requireProject(req, db, projectId, 'editor')
+      const access = requireProject(req, db, projectId, 'owner')
       if (isResponse(access)) return access
       const b = (req.body ?? {}) as Body
       const email = lower(str(b.invited_email))
@@ -89,7 +89,8 @@ export const memberRoutes: Route[] = [
         })
       } else console.info(`[mock] 회원가입 안내 메일 → ${email}`)
       touchProject(db, projectId)
-      return ok(201, toInvitation(prev ?? inv), { is_registered: Boolean(invitee) })
+      // 백엔드처럼 생성 응답에만 수락 토큰을 담는다 (목업은 토큰을 확인하지 않는다)
+      return ok(201, { ...toInvitation(prev ?? inv), token: `mock-${(prev ?? inv).invitation_id}` }, { is_registered: Boolean(invitee) })
     },
   ],
   [
@@ -113,11 +114,11 @@ export const memberRoutes: Route[] = [
     },
   ],
   [
-    // 4.9 초대 취소
+    // 4.9 초대 취소 — owner만
     'DELETE',
     '/projects/:projectId/invitations/:invitationId',
     (req, db, { projectId, invitationId }) => {
-      const access = requireProject(req, db, projectId, 'editor')
+      const access = requireProject(req, db, projectId, 'owner')
       if (isResponse(access)) return access
       const inv = db.projectInvitations.find((i) => i.target_id === projectId && i.invitation_id === invitationId)
       if (!inv) return fail(404, 'INVITATION_NOT_FOUND', '초대를 찾을 수 없어요.')

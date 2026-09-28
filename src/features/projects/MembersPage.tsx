@@ -6,12 +6,14 @@ import type { InvitationStatus, ProjectInvitation, ProjectMember, ProjectRole } 
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { InviteLink } from '../../components/InviteLink'
 import { TextField } from '../../components/TextField'
 import { describeError } from '../../lib/errors'
 import { shortDate } from '../../lib/relativeTime'
 import { PROJECT_ROLE_LABEL } from '../../lib/roles'
 import { useResource } from '../../lib/useResource'
 import { EMAIL_RULE } from '../../lib/validation'
+import { inviteUrl } from '../../api/sentInvitations'
 import { useCurrentProject, useProject } from '../app/currentProject'
 import '../characters/characters.css'
 import '../world/world.css'
@@ -33,7 +35,8 @@ export function MembersPage() {
   const navigate = useNavigate()
   const { user, withAuth } = useSession()
   const projectId = project?.project_id ?? ''
-  const canInvite = project?.my_role === 'owner' || project?.my_role === 'editor'
+  // 초대·초대 취소는 소유자만 (PRJ 4.7 — prolog-backend 기준)
+  const canInvite = project?.my_role === 'owner'
   const isOwner = project?.my_role === 'owner'
 
   const members = useResource(project ? (t) => api.listMembers(t, projectId) : null, [projectId])
@@ -179,7 +182,7 @@ export function MembersPage() {
           ) : (
             <section className="panel">
               <h2 className="panel__title">초대하기</h2>
-              <p className="page-desc">보기 전용 멤버는 다른 사람을 초대할 수 없어요. 소유자나 편집자에게 요청해 주세요.</p>
+              <p className="page-desc">초대는 프로젝트 소유자만 할 수 있어요. 함께할 사람이 있으면 소유자에게 요청해 주세요.</p>
             </section>
           )}
 
@@ -234,17 +237,20 @@ function InviteForm({ projectId, onInvited }: { projectId: string; onInvited: (i
   const [role, setRole] = useState<ProjectInvitation['role']>('editor')
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState<string | null>(null)
+  const [link, setLink] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setSent(null)
+    setLink(null)
     const value = email.trim()
     if (!EMAIL_RULE.test(value)) return setError('이메일 형식을 확인해 주세요.')
     setBusy(true)
     try {
       const res = await withAuth((t) => api.invite(t, projectId, { invited_email: value, role }))
       onInvited(res.data)
+      setLink(inviteUrl('project', projectId, res.data.invitation_id, res.data.token))
       setSent(res.meta.is_registered === false ? `${value}에 회원가입 안내와 함께 초대를 보냈어요.` : `${value}에 초대를 보냈어요.`)
       setEmail('')
     } catch (err) {
@@ -287,7 +293,8 @@ function InviteForm({ projectId, onInvited }: { projectId: string; onInvited: (i
         <Button type="submit" busy={busy}>
           초대 보내기
         </Button>
-        <p className="panel__label">초대하면 알림과 이메일로 안내돼요. 가입하지 않은 이메일이면 회원가입 안내가 함께 가요.</p>
+        {link && <InviteLink url={link} />}
+        <p className="panel__label">가입한 사람이면 알림으로도 알려 줘요. 초대 링크를 전해 주면 링크를 열고 바로 참가할 수 있어요.</p>
       </form>
     </section>
   )
@@ -307,6 +314,7 @@ function InvitationRow({ invitation: i, onCancel, onResend }: { invitation: Proj
         <span className="members__email">{PROJECT_ROLE_LABEL[i.role]}</span>
       </span>
       <span className={`badge ${STATUS[i.status].badge}`}>{STATUS[i.status].label}</span>
+      {i.status === 'pending' && i.token && <InviteLink url={inviteUrl('project', i.project_id, i.invitation_id, i.token)!} compact />}
       {i.status === 'pending' && (
         <Button tone="outline" onClick={act(onCancel)} busy={busy}>
           취소

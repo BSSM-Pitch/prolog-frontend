@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
+import { IS_REAL } from '../../api/config'
 import type { OAuthProvider } from '../../api/types'
 import { useSession } from '../../auth/session'
+import { takeReturnTo } from '../../lib/returnTo'
 import { Button } from '../../components/Button'
 import { SocialButtons } from '../../components/SocialButtons'
 import { TextField } from '../../components/TextField'
-import { describeError, errorCode, mockOAuthCode } from '../../lib/errors'
+import { describeError, errorCode } from '../../lib/errors'
+import { useSocialLogin } from './useSocialLogin'
 
 interface LoginLocationState {
   notice?: string
@@ -19,6 +22,7 @@ export function LoginPage() {
   const location = useLocation()
   const state = (location.state ?? {}) as LoginLocationState
   const { signIn } = useSession()
+  const social = useSocialLogin()
 
   const [loginId, setLoginId] = useState(state.loginId ?? '')
   const [password, setPassword] = useState('')
@@ -34,7 +38,7 @@ export function LoginPage() {
     setBusy(true)
     try {
       signIn(await authApi.login(loginId.trim(), password))
-      navigate('/projects', { replace: true })
+      navigate(takeReturnTo(), { replace: true })
     } catch (err) {
       setError(errorCode(err) === 'INVALID_CREDENTIALS' ? '아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.' : describeError(err))
     } finally {
@@ -46,13 +50,8 @@ export function LoginPage() {
     setBusy(true)
     setError(null)
     try {
-      signIn(await authApi.oauthLogin(provider, { oauth_code: mockOAuthCode(provider) }))
-      navigate('/projects', { replace: true })
+      await social.start(provider)
     } catch (err) {
-      if (errorCode(err) === 'USERNAME_REQUIRED') {
-        navigate('/auth/signup', { state: { notice: `${provider === 'google' ? 'Google' : '네이버'} 계정이 아직 가입되지 않았어요. 아이디를 정하고 다시 눌러 주세요.` } })
-        return
-      }
       setError(describeError(err))
     } finally {
       setBusy(false)
@@ -66,6 +65,11 @@ export function LoginPage() {
   return (
     <form className="auth-form" onSubmit={onSubmit} noValidate>
       <h1 className="auth-form__title">로그인</h1>
+      {IS_REAL && !state.notice && !error && (
+        <p className="notice" role="status">
+          지금은 Google 로그인만 쓸 수 있어요. 아이디·비밀번호와 네이버 로그인은 준비 중이에요.
+        </p>
+      )}
       {state.notice && !error && (
         <p className="notice notice--success" role="status">
           {state.notice}

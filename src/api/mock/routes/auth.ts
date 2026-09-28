@@ -42,6 +42,38 @@ function findByLoginId(db: MockDb, loginId: string) {
 }
 
 // AUTH 명세
+/** AUTH v0.2 가입 완료 — 소셜 인증 때 받은 가입 티켓 + 아이디 + 유형 */
+function ticketSignup(db: MockDb, b: Body) {
+  let claims: { provider: OAuthProvider; sub: string; email: string; exp: number } | null = null
+  try {
+    claims = JSON.parse(atob(str(b.signup_ticket)))
+  } catch {
+    claims = null
+  }
+  if (!claims || claims.exp < Date.now()) return fail(401, 'SIGNUP_TICKET_INVALID', '가입 시간이 지났어요. 다시 소셜 로그인해 주세요.')
+  const username = str(b.username)
+  if (!username) return fail(400, 'USERNAME_REQUIRED', '아이디를 입력해 주세요.')
+  if (db.users.some((u) => lower(u.username) === lower(username))) return fail(409, 'USERNAME_TAKEN', '이미 사용 중인 아이디예요.', { field: 'username' })
+  if (db.users.some((u) => u.auth_provider === claims.provider && u.provider_user_id === claims.sub)) {
+    return fail(401, 'SIGNUP_TICKET_INVALID', '이미 가입이 완료된 티켓이에요.')
+  }
+  const t = stamp()
+  const user: MockUser = {
+    user_id: nextId(db, 'user'),
+    username,
+    name: null,
+    email: claims.email,
+    password: null,
+    role: ROLES.includes(b.role as UserRole) ? (b.role as UserRole) : 'writer',
+    auth_provider: claims.provider,
+    provider_user_id: claims.sub,
+    created_at: t,
+    updated_at: t,
+  }
+  db.users.push(user)
+  return ok(201, { user: toUser(user), tokens: issueTokens(db, user.user_id) })
+}
+
 export const authRoutes: Route[] = [
   [
     'GET',
@@ -73,6 +105,7 @@ export const authRoutes: Route[] = [
     '/auth/signup',
     (req, db) => {
       const b = (req.body ?? {}) as Body
+      if (b.signup_ticket !== undefined) return ticketSignup(db, b)
       const username = str(b.username)
       const email = str(b.email)
       const password = typeof b.password === 'string' ? b.password : ''
@@ -138,27 +171,10 @@ export const authRoutes: Route[] = [
       const existing = db.users.find((u) => u.auth_provider === provider && u.provider_user_id === providerUserId)
       if (existing) return ok(200, { user: toUser(existing), tokens: issueTokens(db, existing.user_id) }, { is_new_user: false })
 
-      const username = str(b.username)
-      if (!username) return fail(400, 'USERNAME_REQUIRED', '처음 연결한 계정이에요. 회원가입에서 아이디를 정해 주세요.')
-      if (db.users.some((u) => lower(u.username) === lower(username))) {
-        return fail(409, 'USERNAME_TAKEN', '이미 사용 중인 아이디예요.', { field: 'username' })
-      }
-      const role = ROLES.includes(b.role as UserRole) ? (b.role as UserRole) : 'writer'
-      const t = stamp()
-      const user: MockUser = {
-        user_id: nextId(db, 'user'),
-        username,
-        name: null,
-        email: `${username}@${provider === 'google' ? 'gmail.com' : 'naver.com'}`,
-        password: null,
-        role,
-        auth_provider: provider,
-        provider_user_id: providerUserId,
-        created_at: t,
-        updated_at: t,
-      }
-      db.users.push(user)
-      return ok(201, { user: toUser(user), tokens: issueTokens(db, user.user_id) }, { is_new_user: true })
+      // AUTH v0.2: 처음 연결한 계정은 만들지 않고 가입 티켓(10분)만 준다 — /auth/signup에서 아이디·유형과 함께 가입
+      const email = `demo.${provider}@${provider === 'google' ? 'gmail.com' : 'naver.com'}`
+      const signup_ticket = btoa(JSON.stringify({ provider, sub: providerUserId, email, exp: Date.now() + 10 * 60_000 }))
+      return ok(200, { signup_ticket, email }, { is_new_user: true })
     },
   ],
   [

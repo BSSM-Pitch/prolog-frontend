@@ -10,9 +10,11 @@ export interface SignupDraft {
   role: UserRole
   /** 소셜로 가입하면 이메일 인증 단계를 건너뛴다 */
   provider: OAuthProvider | null
+  /** AUTH v0.2 — 소셜 인증 후 받은 가입 티켓(10분). 있으면 아이디·유형만 정하고 가입을 마친다 */
+  signupTicket: string | null
 }
 
-const empty: SignupDraft = { username: '', email: '', password: '', role: 'writer', provider: null }
+const empty: SignupDraft = { username: '', email: '', password: '', role: 'writer', provider: null, signupTicket: null }
 
 interface DraftValue {
   draft: SignupDraft

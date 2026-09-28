@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
+import { IS_REAL } from '../../api/config'
 import type { OAuthProvider } from '../../api/types'
 import { useSignupDraft } from '../../auth/signupDraft'
 import { Button } from '../../components/Button'
@@ -8,6 +9,7 @@ import { SocialButtons } from '../../components/SocialButtons'
 import { TextField } from '../../components/TextField'
 import { describeError } from '../../lib/errors'
 import { validateConfirm, validateEmail, validatePassword, validateUsername } from '../../lib/validation'
+import { useSocialLogin } from './useSocialLogin'
 
 type Field = 'username' | 'email' | 'password' | 'confirm'
 type Errors = Partial<Record<Field, string>>
@@ -17,7 +19,10 @@ export function SignupPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const notice = (location.state as { notice?: string } | null)?.notice
-  const { draft, update } = useSignupDraft()
+  const { draft, update, clear } = useSignupDraft()
+  const social = useSocialLogin()
+  // 소셜 인증을 마치고 가입 티켓을 받았으면 아이디만 정하면 된다 (AUTH v0.2)
+  const ticketMode = Boolean(draft.signupTicket)
 
   const [username, setUsername] = useState(draft.username)
   const [email, setEmail] = useState(draft.email)
@@ -44,6 +49,11 @@ export function SignupPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setFormError(null)
+    if (ticketMode) return onTicketSubmit()
+    if (IS_REAL) {
+      setFormError('아이디·비밀번호 가입은 아직 지원하지 않아요. 아래 Google로 회원가입을 이용해 주세요.')
+      return
+    }
     const next: Errors = {
       username: validateUsername(username) ?? undefined,
       email: validateEmail(email) ?? undefined,
@@ -65,18 +75,29 @@ export function SignupPage() {
     }
   }
 
-  // 소셜 가입은 비밀번호·이메일 대신 공급자 계정을 쓴다. 명세상 신규 소셜 가입에도 아이디는 필요하다.
-  async function onSocial(provider: OAuthProvider) {
-    setFormError(null)
+  /** 가입 티켓이 있을 때: 아이디만 확인하고 사용자 유형으로 */
+  async function onTicketSubmit() {
     const usernameError = validateUsername(username)
-    setErrors(usernameError ? { username: `${usernameError} 소셜 가입에도 아이디가 필요해요.` } : {})
+    setErrors(usernameError ? { username: usernameError } : {})
     if (usernameError) return
-
     setBusy(true)
     try {
       if (!(await ensureUsernameAvailable())) return
-      update({ username: username.trim(), email: '', password: '', provider })
+      update({ username: username.trim() })
       navigate('/auth/signup/role')
+    } catch (err) {
+      setFormError(describeError(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // 소셜 가입(AUTH v0.2): 먼저 공급자 인증을 받고, 처음 연결한 계정이면 돌아와서 아이디를 정한다.
+  async function onSocial(provider: OAuthProvider) {
+    setFormError(null)
+    setBusy(true)
+    try {
+      await social.start(provider)
     } catch (err) {
       setFormError(describeError(err))
     } finally {
@@ -102,46 +123,64 @@ export function SignupPage() {
         placeholder="침착맨"
         autoFocus
       />
-      <TextField
-        size="lg"
-        type="email"
-        label="이메일"
-        value={email}
-        onChange={set('email', setEmail)}
-        error={errors.email}
-        autoComplete="email"
-        placeholder="writer.kim@example.com"
-      />
-      <TextField
-        size="lg"
-        type="password"
-        label="비밀번호"
-        value={password}
-        onChange={set('password', setPassword)}
-        error={errors.password}
-        autoComplete="new-password"
-      />
-      <TextField
-        size="lg"
-        type="password"
-        label="비밀번호 확인"
-        value={confirm}
-        onChange={set('confirm', setConfirm)}
-        error={errors.confirm}
-        autoComplete="new-password"
-      />
+      {ticketMode ? (
+        <>
+          {draft.email && <TextField size="lg" label="연결한 계정" value={draft.email} onChange={() => {}} disabled />}
+          <button
+            type="button"
+            className="text-link auth-form__link"
+            onClick={() => {
+              clear()
+              navigate('/auth/signup', { replace: true, state: null })
+            }}
+          >
+            다른 방법으로 가입하기
+          </button>
+        </>
+      ) : (
+        <>
+          <TextField
+            size="lg"
+            type="email"
+            label="이메일"
+            value={email}
+            onChange={set('email', setEmail)}
+            error={errors.email}
+            autoComplete="email"
+            placeholder="writer.kim@example.com"
+          />
+          <TextField
+            size="lg"
+            type="password"
+            label="비밀번호"
+            value={password}
+            onChange={set('password', setPassword)}
+            error={errors.password}
+            autoComplete="new-password"
+          />
+          <TextField
+            size="lg"
+            type="password"
+            label="비밀번호 확인"
+            value={confirm}
+            onChange={set('confirm', setConfirm)}
+            error={errors.confirm}
+            autoComplete="new-password"
+          />
+        </>
+      )}
       {formError && (
         <p className="notice notice--error" role="alert">
           {formError}
         </p>
       )}
       <Button type="submit" size="lg" block busy={busy}>
-        {busy ? '확인 중…' : '회원가입'}
+        {busy ? '확인 중…' : ticketMode ? '다음' : '회원가입'}
       </Button>
       <Link className="text-link auth-form__link" to="/auth/login">
         이미 계정이 있으신가요?
       </Link>
-      <SocialButtons mode="signup" onSelect={onSocial} disabled={busy} />
+      {!ticketMode && <SocialButtons mode="signup" onSelect={onSocial} disabled={busy} />}
     </form>
   )
 }

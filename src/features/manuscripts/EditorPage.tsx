@@ -50,7 +50,7 @@ export function EditorPage() {
     try {
       const saved = await withAuth((t) => api.saveChapter(t, projectId, manuscriptId, job.chapterId, { content: job.content }))
       chapters.setData((prev) => prev?.map((c) => (c.chapter_id === saved.chapter_id ? saved : c)) ?? null)
-      setSave(pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at })
+      setSave(pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at ?? new Date().toISOString() })
     } catch (e) {
       pendingSave.current = pendingSave.current ?? job
       setSave({ kind: 'error', message: describeError(e) })
