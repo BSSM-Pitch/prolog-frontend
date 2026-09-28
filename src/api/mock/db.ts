@@ -144,6 +144,20 @@ export interface MockDraft {
   created_at: string
 }
 
+/** SCDS 충돌 검사 · REX 규칙 추출 작업 (목업: ready_at이 지나면 끝난다) */
+export interface MockJob {
+  job_id: string
+  project_id: string
+  kind: 'conflict_check' | 'rule_extraction'
+  status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
+  manuscript_id: string | null
+  ready_at: number | null
+  will_fail: boolean
+  result_ids: string[]
+  skipped_reason: string | null
+  created_at: string
+}
+
 /** 작품별 이야기 세계 (인물·관계·충돌·복선·스토리 지도·규칙). 해당 화면을 만들면서 API로 노출한다. */
 export interface MockWorld {
   characters: DemoCharacter[]
@@ -172,6 +186,9 @@ export interface MockDb {
   qaMessages: MockQAMessage[]
   extractions: MockExtraction[]
   drafts: MockDraft[]
+  jobs: MockJob[]
+  /** SCDS: 무시한 충돌이 다시 감지되지 않도록 보관하는 키 */
+  suppressions: string[]
   signupCodes: Record<string, PendingCode>
   resetCodes: Record<string, PendingCode>
   refreshTokens: Record<string, { user_id: string; revoked: boolean }>
@@ -217,6 +234,8 @@ function seed(): MockDb {
     qaMessages: [],
     extractions: [],
     drafts: [],
+    jobs: [],
+    suppressions: [],
     signupCodes: {},
     resetCodes: {},
     refreshTokens: {},
@@ -320,6 +339,8 @@ function withDefaults(db: MockDb): MockDb {
   db.qaMessages ??= []
   db.extractions ??= []
   db.drafts ??= []
+  db.jobs ??= []
+  db.suppressions ??= []
   return db
 }
 

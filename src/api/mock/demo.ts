@@ -104,6 +104,10 @@ export const DEMO_RELATIONSHIPS: DemoRelationship[] = [
 export interface DemoConflict {
   conflict_id: string
   title: string
+  /** 규칙 위반으로 감지된 충돌이면 규칙 ID */
+  rule_id?: string | null
+  modified_content?: string | null
+  resolved_at?: string | null
   severity: 'high' | 'medium' | 'low'
   status: 'pending' | 'accepted' | 'ignored' | 'modified'
   evidence: Array<{ chapter: number; character: string | null; quote: string }>
@@ -211,7 +215,7 @@ export interface DemoRule {
   description: string
   violation_keywords: string[]
   origin: 'ai_extracted' | 'user_added'
-  status: 'confirmed' | 'pending'
+  status: 'confirmed' | 'pending' | 'ignored'
   source_chapter: number | null
   evidence: string | null
 }

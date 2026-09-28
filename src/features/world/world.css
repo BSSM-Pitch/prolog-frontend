@@ -1,0 +1,91 @@
+/* Figma 21 설정 규칙 · 05 설정 충돌 검토 */
+.world {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+.world__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--itda-space-16);
+}
+.world__list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itda-space-8);
+}
+.world__list-head .nl-select {
+  height: 34px;
+}
+
+.rule-tag {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #fdf1e7;
+  color: #b54708;
+  font-size: 12px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+.severity {
+  font-weight: 600;
+}
+.severity--high {
+  color: var(--prolog-color-error);
+}
+.severity--medium {
+  color: #b54708;
+}
+.severity--low {
+  color: var(--itda-muted);
+}
+
+.evidence-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--itda-space-12);
+}
+.evidence-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--itda-space-16);
+  border: 1px solid var(--input-stroke);
+  border-radius: 10px;
+  background: #fbfdff;
+}
+.evidence-card__quote {
+  flex: 1;
+  font-size: 15px;
+  line-height: 24px;
+}
+.evidence-card .text-link {
+  align-self: flex-start;
+  font-size: 13px;
+}
+.advice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--itda-space-16);
+  border-radius: 10px;
+  background: var(--itda-background);
+  font-size: 15px;
+  line-height: 24px;
+}
+
+@media (max-width: 900px) {
+  .evidence-pair {
+    grid-template-columns: 1fr;
+  }
+  .world__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

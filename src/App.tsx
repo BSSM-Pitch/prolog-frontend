@@ -19,6 +19,8 @@ import { ComingSoon } from './features/app/ComingSoon'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
+import { ConflictsPage } from './features/world/ConflictsPage'
+import { RulesPage } from './features/world/RulesPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const { status } = useSession()
@@ -73,8 +75,8 @@ export default function App() {
               <Route path="characters" element={<CharactersPage />} />
               <Route path="characters/new" element={<NewCharacterPage />} />
               <Route path="characters/drafts/:draftId" element={<DraftPage />} />
-              <Route path="rules" element={<ComingSoon title="설정 규칙" figma="Figma 843:1659 · 21 설정 규칙" />} />
-              <Route path="conflicts" element={<ComingSoon title="설정 충돌 검토" figma="Figma 843:1781 · 05 설정 충돌 검토" />} />
+              <Route path="rules" element={<RulesPage />} />
+              <Route path="conflicts" element={<ConflictsPage />} />
               <Route path="relationships" element={<ComingSoon title="관계 변화" figma="Figma 843:1109 · 13 관계 변화" />} />
               <Route path="foreshadowings" element={<ComingSoon title="복선 추적" figma="Figma 843:1394 · 04 복선 추적" />} />
               <Route path="story-map" element={<ComingSoon title="스토리 지도" figma="Figma 843:1243 · 03 스토리 지도" />} />

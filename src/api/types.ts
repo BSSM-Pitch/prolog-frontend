@@ -215,6 +215,48 @@ export interface EditHistoryEntry {
   at: string
 }
 
+// REX · SCDS 명세 — 설정 규칙과 충돌
+
+/** REX 2.2 WorldRule (SCDS와 같은 리소스) + (명세 미정의) 화면 표시용 필드 */
+export interface WorldRule {
+  rule_id: string
+  /** (명세 미정의) "R01" 같은 표시 번호 */
+  code: string
+  /** (명세 미정의) "붉은 빛과 기억" 같은 짧은 이름 */
+  title: string
+  description: string
+  violation_keywords: string[]
+  origin: 'ai_extracted' | 'user_added'
+  /** (명세 미정의) 후보 상태. 명세는 후보를 추출 작업 결과에만 두고 확정분만 WorldRule로 만든다 */
+  status: 'confirmed' | 'pending' | 'ignored'
+  source_chapter: number | null
+  evidence: string | null
+}
+
+/** SCDS 2.7 Conflict — Figma 05는 "두 근거 비교"라서 evidence[] 구조로 받는다 (명세 미정의) */
+export interface Conflict {
+  conflict_id: string
+  index: number
+  title: string
+  severity: 'high' | 'medium' | 'low'
+  status: 'pending' | 'accepted' | 'ignored' | 'modified'
+  rule_id: string | null
+  evidence: Array<{ chapter: number; character: string | null; quote: string }>
+  advice: string
+  modified_content: string | null
+  resolved_at: string | null
+}
+
+/** SCDS 2.5 ConflictCheck / REX 2.1 RuleExtraction 작업 */
+export interface ConflictCheck {
+  job_id: string
+  status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
+  result_ids: string[]
+  skipped_reason: string | null
+  manuscript_id: string | null
+}
+export type RuleExtraction = ConflictCheck
+
 /** (명세 미정의) GET /projects/{id}/overview — Figma 01 개요의 요약 카드 */
 export interface ProjectOverview {
   current_manuscript: { manuscript_id: string; title: string; last_chapter: number } | null

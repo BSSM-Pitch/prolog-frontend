@@ -184,3 +184,33 @@ export function extractCharacter(text: string): {
     emotion_keywords: scan(text, EMOTIONS),
   }
 }
+
+// ───────── 설정 규칙 · 충돌 (REX · SCDS) ─────────
+
+export function splitSentences(text: string): string[] {
+  return sentences(text)
+}
+
+/** 판정 키워드의 낱말 어간이 모두 문장에 있으면 위반 후보로 본다 ("비 오는 중에 열림" ↔ "비가 오는 중에 문을 열었다") */
+export function matchesKeyword(sentence: string, keyword: string): boolean {
+  const stems = keyword
+    .split(/\s+/)
+    .map((w) => w.replace(PARTICLES, ''))
+    .filter(Boolean)
+    // 어미가 바뀌어도 맞도록 활용 어미만 뗀다 (열림 → 열, 오는 → 오). 두 글자 명사(기억, 선명)는 그대로 둔다
+    .map((w) => (w.length >= 2 && /[림음함는은던된운고서]$/.test(w) ? w.slice(0, -1) : w.length >= 3 ? w.slice(0, -1) : w))
+  return stems.length > 0 && stems.every((s) => sentence.includes(s))
+}
+
+const RULE_PATTERNS = [/수 없(다|었다)/, /반드시/, /해야 (한다|했다)/, /만 (열린다|열 수|들어갈)/, /필요하다/, /금지/, /되어야 한다/, /지워진다/]
+
+/** 세계관 규칙처럼 읽히는 문장을 원고에서 모은다 */
+export function findRuleCandidates(chapters: MockChapter[]): Array<{ chapter_no: number; sentence: string }> {
+  const out: Array<{ chapter_no: number; sentence: string }> = []
+  for (const c of [...chapters].sort((a, b) => a.chapter_no - b.chapter_no)) {
+    for (const s of sentences(c.content)) {
+      if (RULE_PATTERNS.some((re) => re.test(s)) && !out.some((o) => o.sentence === s)) out.push({ chapter_no: c.chapter_no, sentence: s.replace(/^["“]|["”]$/g, '') })
+    }
+  }
+  return out
+}

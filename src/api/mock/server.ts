@@ -6,12 +6,13 @@ import { characterRoutes } from './routes/characters'
 import { manuscriptRoutes } from './routes/manuscripts'
 import { projectRoutes } from './routes/projects'
 import { qaRoutes } from './routes/qa'
+import { worldRoutes } from './routes/world'
 
 // 브라우저 안에서 도는 목업 API 서버. 실제 백엔드가 준비되면 VITE_API_MODE=real로 바꾼다.
 
 const LATENCY_MS = 350
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...manuscriptRoutes, ...qaRoutes, ...characterRoutes]
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...manuscriptRoutes, ...qaRoutes, ...characterRoutes, ...worldRoutes]
 
 function match(pattern: string, path: string): Record<string, string> | null {
   const p = pattern.split('/')

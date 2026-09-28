@@ -38,7 +38,7 @@ npm run dev
 
 인증 코드(가입·비밀번호 재설정)는 실제 메일 대신 **브라우저 콘솔**에 `[mock] … 인증 코드` 로 출력된다.
 
-시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다. AI 질문·인물 추출은 문장에 `[실패]`를 넣으면 실패 화면을 시연할 수 있다.
+시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다. AI 질문·인물 추출은 문장에 `[실패]`를 넣으면 실패 화면을 시연할 수 있다. 설정 충돌 검사는 확정된 규칙의 위반 판정 키워드로 원고 문장을 찾는다(예: 27장에 "윤서는 비가 오는 중에 붉은 문을 열었다."를 쓰고 R11을 확정한 뒤 다시 검사).
 
 ## 백엔드 팀과 맞출 것 — API 명세와 다른 점
 
@@ -75,3 +75,11 @@ NLCD·ASS·인물 (`src/api/characters.ts`):
 - `Character.role_label`·`status_label`·`last_chapter`·`relationship_count`·`key_changes` — Figma 20 등장인물 목록·상세
 - `DELETE /projects/{id}/characters/{characterId}` — 관계가 남아 있으면 409 `CHARACTER_HAS_DEPENDENT_RELATIONSHIPS` + 관계 목록
 - 초안 항목은 카테고리별 배열 대신 `items[]` 한 줄로 받고 `field`로 구분 (내용은 명세와 같음)
+
+REX·SCDS (`src/api/world.ts`):
+
+- `WorldRule.code`·`title`·`status`(confirmed/pending/ignored) — 명세는 후보를 추출 작업 결과에만 두지만, Figma 21은 후보와 확정 규칙을 한 목록에서 다룸
+- `POST /world-rules/{id}/confirm`·`/ignore` — 후보 하나씩 확정·무시 (명세는 `rule-extractions/{id}/confirm`에 `selected_indices`로 한꺼번에)
+- `Conflict.evidence[]`(두 근거) — Figma 05는 원고의 두 장면을 비교하는데, 명세의 Conflict는 입력 사건 하나와 설정 항목 하나만 가짐
+- `POST /projects/{id}/rescan` — 명세의 챕터 단위 재검사(SCDS-007)를 프로젝트 전체로 사용. 사건(Event) 입력 화면이 Figma에 없어 이 경로로 검사를 시작함
+- "직접 수정"(`modified`)이면 원고의 해당 문장을 고친 문장으로 바꿈 (명세는 `modified_content`만 저장)
