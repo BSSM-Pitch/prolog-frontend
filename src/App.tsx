@@ -18,6 +18,7 @@ import { ManuscriptsPage } from './features/manuscripts/ManuscriptsPage'
 import { ComingSoon } from './features/app/ComingSoon'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
+import { ForeshadowingsPage } from './features/foreshadowings/ForeshadowingsPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { RelationshipsPage } from './features/relationships/RelationshipsPage'
 import { ConflictsPage } from './features/world/ConflictsPage'
@@ -79,7 +80,7 @@ export default function App() {
               <Route path="rules" element={<RulesPage />} />
               <Route path="conflicts" element={<ConflictsPage />} />
               <Route path="relationships" element={<RelationshipsPage />} />
-              <Route path="foreshadowings" element={<ComingSoon title="복선 추적" figma="Figma 843:1394 · 04 복선 추적" />} />
+              <Route path="foreshadowings" element={<ForeshadowingsPage />} />
               <Route path="story-map" element={<ComingSoon title="스토리 지도" figma="Figma 843:1243 · 03 스토리 지도" />} />
               <Route path="*" element={<Navigate to="." replace />} />
             </Route>

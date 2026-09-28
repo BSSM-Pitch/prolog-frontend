@@ -299,6 +299,40 @@ export interface MindmapGraph {
   }>
 }
 
+// FTS 명세 — 복선
+
+export interface Foreshadowing {
+  foreshadowing_id: string
+  /** (명세 미정의) "F01" 같은 표시 번호 */
+  code: string
+  title: string
+  description: string
+  setup_chapter: number
+  linked_chapters: number[]
+  payoff_chapter: number | null
+  status: 'resolved' | 'unresolved'
+  /** (명세 미정의) 명세는 linked_character_ids·linked_event_ids — 목업은 이름으로 보관 */
+  linked_characters: string[]
+  linked_events: string[]
+}
+
+export interface Advisory {
+  foreshadowing_id: string
+  message: string
+  setup_chapter: number
+  latest_linked_chapter: number | null
+  elapsed_chapters: number
+  priority: 'low' | 'medium' | 'high'
+}
+
+export interface SimilarCandidate {
+  foreshadowing_id: string
+  code: string
+  title: string
+  setup_chapter: number
+  payoff_chapter: number | null
+}
+
 /** (명세 미정의) GET /projects/{id}/overview — Figma 01 개요의 요약 카드 */
 export interface ProjectOverview {
   current_manuscript: { manuscript_id: string; title: string; last_chapter: number } | null

@@ -3,6 +3,7 @@ import { loadDb, saveDb } from './db'
 import { fail, type MockRequest, type Route } from './http'
 import { authRoutes } from './routes/auth'
 import { characterRoutes } from './routes/characters'
+import { foreshadowingRoutes } from './routes/foreshadowings'
 import { manuscriptRoutes } from './routes/manuscripts'
 import { projectRoutes } from './routes/projects'
 import { qaRoutes } from './routes/qa'
@@ -13,7 +14,7 @@ import { worldRoutes } from './routes/world'
 
 const LATENCY_MS = 350
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...manuscriptRoutes, ...qaRoutes, ...characterRoutes, ...worldRoutes, ...relationshipRoutes]
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...manuscriptRoutes, ...qaRoutes, ...characterRoutes, ...worldRoutes, ...relationshipRoutes, ...foreshadowingRoutes]
 
 function match(pattern: string, path: string): Record<string, string> | null {
   const p = pattern.split('/')

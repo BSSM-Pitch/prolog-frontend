@@ -89,3 +89,9 @@ RCV (`src/api/relationships.ts`):
 - 기록의 원인 사건을 `event_id` 대신 `event_title`(이름)로 받음 — 사건(Event) 리소스가 아직 없어서
 - 두 인물 사이에 관계가 이미 있으면 409 `RELATIONSHIP_EXISTS` (명세에 없음)
 - 마인드맵 엣지에 `is_carried_forward`·`resolved_chapter`를 함께 돌려줌
+
+FTS (`src/api/foreshadowings.ts`):
+
+- `Foreshadowing.code`("F01") 표시 번호, 관련 인물·사건을 ID 대신 이름(`linked_characters`, `linked_events`)으로 보관
+- 미회수 안내에 `elapsed_chapters`를 함께 돌려줌. 현재 장은 가장 최근 원고의 장 수로 계산
+- 비슷한 복선 안내에서 "기존에 연결"을 고르면 새 복선을 지우고 설치 장을 기존 복선의 연결 장으로 옮김 (화면 쪽 처리)
