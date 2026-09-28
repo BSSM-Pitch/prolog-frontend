@@ -1,4 +1,20 @@
 import type { AuthProvider, OwnerType, ProjectRole, UserRole } from '../types'
+import {
+  DEMO_CHAPTERS,
+  DEMO_CHARACTERS,
+  DEMO_CONFLICTS,
+  DEMO_FORESHADOWINGS,
+  DEMO_PROJECT_ID,
+  DEMO_RELATIONSHIPS,
+  DEMO_RULES,
+  DEMO_STORY,
+  type DemoCharacter,
+  type DemoConflict,
+  type DemoForeshadowing,
+  type DemoRelationship,
+  type DemoRule,
+  type DemoStoryNode,
+} from './demo'
 
 // 목업 서버 저장소. 브라우저 localStorage에 두어 새로고침해도 가입한 계정이 남는다.
 // 실제 서버가 아니므로 비밀번호를 평문으로 저장한다 — 절대 실서비스 코드로 옮기지 말 것.
@@ -30,12 +46,48 @@ export interface MockTeam {
 export interface MockProject {
   project_id: string
   title: string
+  /** (명세 미정의) 개요 화면의 작품 소개 한 줄 */
+  description: string | null
   owner_type: OwnerType
   team_id: string | null
   created_by: string
-  manuscript_count: number
   created_at: string
   updated_at: string
+}
+
+export interface MockManuscript {
+  manuscript_id: string
+  project_id: string
+  title: string
+  source_type: 'file' | 'editor'
+  file_name: string | null
+  file_format: string | null
+  file_size: number | null
+  status: 'processing' | 'ready' | 'extraction_failed'
+  /** 목업: 이 시각이 지나면 processing → ready(또는 실패)로 바뀐다 */
+  processing_until: number | null
+  fail_extraction: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface MockChapter {
+  chapter_id: string
+  manuscript_id: string
+  chapter_no: number
+  title: string | null
+  content: string
+  updated_at: string
+}
+
+/** 작품별 이야기 세계 (인물·관계·충돌·복선·스토리 지도·규칙). 해당 화면을 만들면서 API로 노출한다. */
+export interface MockWorld {
+  characters: DemoCharacter[]
+  relationships: DemoRelationship[]
+  conflicts: DemoConflict[]
+  foreshadowings: DemoForeshadowing[]
+  story: { acts: typeof DEMO_STORY.acts; nodes: DemoStoryNode[]; edges: typeof DEMO_STORY.edges } | null
+  rules: DemoRule[]
 }
 
 export interface MockProjectMember {
@@ -49,6 +101,9 @@ export interface MockDb {
   teams: MockTeam[]
   projects: MockProject[]
   projectMembers: MockProjectMember[]
+  manuscripts: MockManuscript[]
+  chapters: MockChapter[]
+  worlds: Record<string, MockWorld>
   signupCodes: Record<string, PendingCode>
   resetCodes: Record<string, PendingCode>
   refreshTokens: Record<string, { user_id: string; revoked: boolean }>
@@ -56,7 +111,8 @@ export interface MockDb {
   seq: number
 }
 
-const STORAGE_KEY = 'prolog.mock-db.v1'
+const STORAGE_KEY = 'prolog.mock-db.v2'
+const LEGACY_KEY = 'prolog.mock-db.v1'
 
 const now = new Date('2026-08-12T09:00:00Z').toISOString()
 
@@ -93,12 +149,31 @@ function seed(): MockDb {
     resetCodes: {},
     refreshTokens: {},
     accessTokens: {},
-    seq: 200,
+    seq: 300,
   }
 }
 
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
+
+export function emptyWorld(): MockWorld {
+  return { characters: [], relationships: [], conflicts: [], foreshadowings: [], story: null, rules: [] }
+}
+
+function demoWorld(): MockWorld {
+  return {
+    characters: clone(DEMO_CHARACTERS),
+    relationships: clone(DEMO_RELATIONSHIPS),
+    conflicts: clone(DEMO_CONFLICTS),
+    foreshadowings: clone(DEMO_FORESHADOWINGS),
+    story: clone(DEMO_STORY),
+    rules: clone(DEMO_RULES),
+  }
+}
+
+type ProjectSeed = Pick<MockDb, 'teams' | 'projects' | 'projectMembers' | 'manuscripts' | 'chapters' | 'worlds'>
+
 // Figma 27 · 내 프로젝트의 예시 데이터(writer_kim 기준). 수정 시각은 "2시간 전" 등이 그대로 보이도록 지금 기준으로 만든다.
-function seedProjects(): Pick<MockDb, 'teams' | 'projects' | 'projectMembers'> {
+function seedProjects(): ProjectSeed {
   const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
   const rows: Array<[string, string, OwnerType, string | null, ProjectRole, number, number]> = [
     // id, 제목, 소유 유형, 팀, writer_kim의 역할, 원고 수, 몇 시간 전 수정
@@ -111,29 +186,73 @@ function seedProjects(): Pick<MockDb, 'teams' | 'projects' | 'projectMembers'> {
     ['proj_7', '바다의 문법', 'personal', null, 'owner', 1, 24 * 40],
     ['proj_8', '밤의 정원사', 'personal', null, 'owner', 0, 24 * 75],
   ]
+
+  const manuscripts: MockManuscript[] = []
+  const chapters: MockChapter[] = []
+  let seq = 1
+  function addManuscript(projectId: string, title: string, source: 'file' | 'editor', chapterTexts: Array<{ no: number; title: string; body: string }>, hours: number) {
+    const manuscript_id = `ms_${String(seq++).padStart(3, '0')}`
+    manuscripts.push({
+      manuscript_id,
+      project_id: projectId,
+      title,
+      source_type: source,
+      file_name: source === 'file' ? `${title.replace(/ /g, '_')}.docx` : null,
+      file_format: source === 'file' ? 'docx' : null,
+      file_size: source === 'file' ? 1_800_000 : null,
+      status: 'ready',
+      processing_until: null,
+      fail_extraction: false,
+      created_at: ago(hours + 24),
+      updated_at: ago(hours),
+    })
+    chapterTexts.forEach((c) =>
+      chapters.push({ chapter_id: `${manuscript_id}_ch${c.no}`, manuscript_id, chapter_no: c.no, title: c.title, content: c.body, updated_at: ago(hours) }),
+    )
+  }
+
+  for (const [project_id, title, , , , count, hours] of rows) {
+    if (project_id === DEMO_PROJECT_ID) {
+      addManuscript(project_id, '1차 원고', 'editor', DEMO_CHAPTERS.slice(0, 12), hours + 24 * 60)
+      addManuscript(project_id, '2차 원고', 'editor', DEMO_CHAPTERS.slice(0, 26), hours + 24 * 37)
+      addManuscript(project_id, '3차 원고', 'file', DEMO_CHAPTERS, hours)
+      continue
+    }
+    for (let i = 1; i <= count; i++) {
+      addManuscript(project_id, `${i}차 원고`, 'editor', [{ no: 1, title: '1장', body: `${title}의 첫 장면.` }], hours + (count - i) * 48)
+    }
+  }
+
   return {
     teams: [{ team_id: 'team_10', name: '문장 수집소' }],
-    projects: rows.map(([project_id, title, owner_type, team_id, role, manuscript_count, hours]) => ({
+    projects: rows.map(([project_id, title, owner_type, team_id, role, , hours]) => ({
       project_id,
       title,
+      description: project_id === DEMO_PROJECT_ID ? '서울 외곽의 폐역과 사라진 기록을 둘러싼 미스터리 장편소설.' : null,
       owner_type,
       team_id,
       created_by: role === 'owner' ? 'user_101' : 'user_150',
-      manuscript_count,
-      created_at: ago(hours + 24 * 30),
+      created_at: ago(hours + 24 * 90),
       updated_at: ago(hours),
     })),
     projectMembers: rows.map(([project_id, , , , role]) => ({ project_id, user_id: 'user_101', role })),
+    manuscripts,
+    chapters,
+    worlds: Object.fromEntries(rows.map(([project_id]) => [project_id, project_id === DEMO_PROJECT_ID ? demoWorld() : emptyWorld()])),
   }
 }
 
 export function loadDb(): MockDb {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const db = JSON.parse(raw) as MockDb
-      // 프로젝트 기능 이전에 저장된 목업 DB에는 예시 프로젝트를 채워 넣는다
-      if (!db.projects) Object.assign(db, seedProjects())
+    if (raw) return JSON.parse(raw) as MockDb
+    // v1(로그인 기능만 있던 때) 저장소가 있으면 가입한 계정만 옮겨 온다
+    const legacy = localStorage.getItem(LEGACY_KEY)
+    if (legacy) {
+      const db = seed()
+      const old = JSON.parse(legacy) as Pick<MockDb, 'users' | 'seq'>
+      db.users = old.users ?? db.users
+      db.seq = Math.max(db.seq, old.seq ?? 0)
       return db
     }
   } catch {
@@ -153,6 +272,7 @@ export function saveDb(db: MockDb) {
 export function resetMockDb() {
   try {
     localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(LEGACY_KEY)
   } catch {
     // 무시
   }

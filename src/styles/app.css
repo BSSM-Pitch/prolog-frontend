@@ -1,0 +1,96 @@
+/* 로그인 이후 화면들이 함께 쓰는 제목·카드 (Figma 제품 UI 기준 999:2218) */
+.page-crumb {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+.page-title {
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 36px;
+}
+.page-crumb + .page-title {
+  margin-top: var(--itda-space-8);
+}
+.page-desc {
+  font-size: 16px;
+  line-height: 24px;
+}
+.page-title + .page-desc {
+  margin-top: var(--itda-space-8);
+}
+
+/* 정적 영역은 여백으로 구분하고, 카드는 얇은 테두리만 쓴다 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+  padding: var(--itda-space-24);
+  border: 1px solid var(--input-stroke);
+  border-radius: 12px;
+  background: var(--itda-surface);
+}
+.panel__title {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+.panel__label {
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--itda-muted);
+}
+
+/* 링크처럼 쓰는 버튼 모양 */
+a.btn {
+  text-decoration: none;
+}
+
+/* Badge (Figma 1255:2086) */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge--filled {
+  background: var(--itda-background);
+}
+.badge--outline {
+  border: 1px solid var(--itda-ink);
+}
+.badge--waiting {
+  background: #fdf1e7;
+  color: #b54708;
+}
+.badge--waiting::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.badge--done {
+  background: #dcebfd;
+  color: var(--prolog-color-interaction);
+}
+.badge--error {
+  background: #fdecea;
+  color: var(--prolog-color-error);
+}
+.badge--success {
+  background: #e3f3ea;
+  color: var(--prolog-color-success);
+}

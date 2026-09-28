@@ -23,7 +23,9 @@ npm run dev
 | `/auth/find-id` | 840:433 · 1214:2224 아이디 찾기 |
 | `/auth/reset-password` | 840:457 · 1214:2353 비밀번호 재설정 |
 | `/projects` | 1260:2218 · 27 내 프로젝트 (사이드바 915:2343) |
-| `/projects/new`, `/projects/:id` | 준비 중 안내 (1247:1989 새 프로젝트, 841:784 개요) |
+| `/projects/new` | 1247:1989 새 프로젝트 |
+| `/projects/:id` | 841:784 · 01 개요 |
+| `/projects/:id/…` | 원고·인물·관계·복선 등은 순서대로 구현 중 (준비 중 안내) |
 
 ## 목업 테스트 계정
 
@@ -35,6 +37,8 @@ npm run dev
 - `writer_kim`은 예시 프로젝트 8개(개인 4·팀 4)를 갖고 있고, Google 데모 계정은 프로젝트가 없어 빈 상태를 볼 수 있다
 
 인증 코드(가입·비밀번호 재설정)는 실제 메일 대신 **브라우저 콘솔**에 `[mock] … 인증 코드` 로 출력된다.
+
+시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다.
 
 ## 백엔드 팀과 맞출 것 — API 명세와 다른 점
 
@@ -53,3 +57,10 @@ PRJ (`src/api/projects.ts`, `src/api/types.ts`):
 - `GET /projects` 응답의 `team_name`, `my_role` — 카드의 "팀 · 문장 수집소" 배지와 소유자·편집자·보기 전용 배지
 - `GET /projects?sort=updated_desc|created_desc|title_asc` — "최근 수정순" 정렬 (페이지네이션 때문에 서버 정렬 필요)
 - `meta.counts = { all, personal, team }` — 탭의 "전체 5 · 개인 2 · 팀 3"
+- `Project.description` — 개요 화면의 작품 소개 한 줄
+- `GET /projects/{id}/overview` — 개요 화면 요약(현재 원고, 이야기 구조, 미해결 충돌·복선 수, 최근 관계도, 우선 검토 항목). 명세에 대시보드용 API가 없음
+- 팀 프로젝트를 만들 때 고를 팀 목록은 TEAM `GET /teams` 사용 (Figma 새 프로젝트 화면에는 팀 선택 칸이 없어 추가)
+
+MSU (`src/api/manuscripts.ts`):
+
+- `Manuscript.file_size`, `Manuscript.char_count` — 업로드 목록의 "1.8MB", "82,420자" 표시

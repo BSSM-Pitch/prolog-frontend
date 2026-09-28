@@ -156,6 +156,18 @@
   background: var(--itda-ink);
 }
 
+/* Soft (Figma 837:82 / Hover 999:2252 / Focus 999:2254) */
+.btn--soft {
+  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+  color: var(--itda-ink);
+}
+.btn--soft:hover:not(:disabled) {
+  background: linear-gradient(180deg, #9cc6f5 0%, #6fa8e8 100%);
+}
+.btn--soft[aria-pressed='true'] {
+  background: var(--itda-soft);
+}
+
 /* Secondary (Figma 837:80 / Hover 999:2248 / Focus 999:2250) */
 .btn--secondary {
   background: linear-gradient(180deg, #c7e3fd 0%, #b5d5f9 100%);
@@ -235,6 +247,14 @@
 }
 .btn--lg.btn--error {
   opacity: 0.75;
+}
+
+/* 화면의 마지막 주요 행동 (Figma 1247:2015 "프로젝트 만들고 계속" 64px) */
+.btn--xl {
+  height: 64px;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 /* ───────── 소셜 로그인 (Figma 1181:2054) ───────── */

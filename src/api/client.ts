@@ -33,7 +33,8 @@ interface RequestOptions {
 async function send(method: string, path: string, options: RequestOptions): Promise<RawResponse> {
   const query = options.query ? `?${new URLSearchParams(options.query)}` : ''
   const headers: Record<string, string> = {}
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  const isForm = options.body instanceof FormData
+  if (options.body !== undefined && !isForm) headers['Content-Type'] = 'application/json'
   if (options.accessToken) headers.Authorization = `Bearer ${options.accessToken}`
 
   if (useMock) {
@@ -43,7 +44,7 @@ async function send(method: string, path: string, options: RequestOptions): Prom
   const res = await fetch(`${baseUrl}${path}${query}`, {
     method,
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? undefined : isForm ? (options.body as FormData) : JSON.stringify(options.body),
   })
   const body = res.status === 204 ? null : await res.json().catch(() => null)
   return { status: res.status, body }

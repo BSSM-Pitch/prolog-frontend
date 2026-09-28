@@ -10,6 +10,8 @@ import { SignupPage } from './features/auth/SignupPage'
 import { VerifyPage } from './features/auth/VerifyPage'
 import { AppShell } from './features/app/AppShell'
 import { ComingSoon } from './features/app/ComingSoon'
+import { NewProjectPage } from './features/projects/NewProjectPage'
+import { OverviewPage } from './features/projects/OverviewPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -55,8 +57,20 @@ export default function App() {
             }
           >
             <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/projects/new" element={<ComingSoon title="새 프로젝트" figma="Figma 1247:1989 새 프로젝트" />} />
-            <Route path="/projects/:projectId" element={<ComingSoon title="작품 개요" figma="Figma 841:784 · 01 개요" />} />
+            <Route path="/projects/new" element={<NewProjectPage />} />
+            <Route path="/projects/:projectId">
+              <Route index element={<OverviewPage />} />
+              <Route path="manuscripts" element={<ComingSoon title="원고 관리" figma="Figma 841:376 · 18 원고 업로드" />} />
+              <Route path="manuscripts/:manuscriptId" element={<ComingSoon title="원고 편집기" figma="Figma 841:662 · 19 원고 편집기" />} />
+              <Route path="ask" element={<ComingSoon title="AI 질문" figma="Figma 842:579 · 02 AI 질문" />} />
+              <Route path="characters" element={<ComingSoon title="등장인물" figma="Figma 842:863 · 20 등장인물" />} />
+              <Route path="rules" element={<ComingSoon title="설정 규칙" figma="Figma 843:1659 · 21 설정 규칙" />} />
+              <Route path="conflicts" element={<ComingSoon title="설정 충돌 검토" figma="Figma 843:1781 · 05 설정 충돌 검토" />} />
+              <Route path="relationships" element={<ComingSoon title="관계 변화" figma="Figma 843:1109 · 13 관계 변화" />} />
+              <Route path="foreshadowings" element={<ComingSoon title="복선 추적" figma="Figma 843:1394 · 04 복선 추적" />} />
+              <Route path="story-map" element={<ComingSoon title="스토리 지도" figma="Figma 843:1243 · 03 스토리 지도" />} />
+              <Route path="*" element={<Navigate to="." replace />} />
+            </Route>
           </Route>
           {/* 이전 임시 홈 주소 */}
           <Route path="/home" element={<Navigate to="/projects" replace />} />

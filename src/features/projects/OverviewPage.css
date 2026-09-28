@@ -1,0 +1,189 @@
+/* Figma 841:784 · 01 개요 */
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+
+.overview__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-12);
+}
+
+.overview__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--itda-space-16);
+}
+.overview__metric {
+  gap: 4px;
+}
+.overview__metric-value {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+
+.overview__tasks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--itda-space-16);
+}
+.overview__task {
+  gap: var(--itda-space-8);
+}
+.overview__task .btn {
+  margin-top: var(--itda-space-12);
+}
+
+.overview__review {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--itda-space-16);
+  background: rgba(255, 255, 255, 0.7);
+}
+.overview__relations {
+  gap: var(--itda-space-16);
+}
+.overview__relations-open {
+  align-self: flex-start;
+}
+.overview__empty {
+  color: var(--itda-muted);
+}
+
+.overview__priority {
+  gap: var(--itda-space-12);
+  align-self: start;
+}
+.overview__priority-title {
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 28px;
+}
+.overview__badges {
+  display: flex;
+  gap: var(--itda-space-8);
+}
+.overview__priority-ref {
+  font-size: 16px;
+  line-height: 24px;
+}
+.overview__note {
+  padding: var(--itda-space-16);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-background);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.overview__problem {
+  align-items: flex-start;
+}
+
+/* 작은 관계도 — 중심 인물 + 상하좌우 */
+.mini-graph {
+  position: relative;
+  height: 220px;
+  border: 1px solid var(--input-stroke);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+}
+.mini-graph__node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 10px 16px;
+  border: 1px solid var(--input-stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-surface);
+  translate: -50% -50%;
+}
+.mini-graph__node strong {
+  font-size: 16px;
+  font-weight: 500;
+}
+.mini-graph__node span {
+  font-size: 12px;
+  color: var(--itda-muted);
+}
+.mini-graph__node--center {
+  left: 50%;
+  top: 50%;
+  min-width: 140px;
+  background: var(--itda-ink);
+  border-color: var(--itda-ink);
+  color: var(--itda-surface);
+}
+.mini-graph__node--center span {
+  color: rgba(255, 255, 255, 0.75);
+}
+.mini-graph__node--strong {
+  background: #9cc6f5;
+  border-color: #9cc6f5;
+}
+.mini-graph__node--strong span {
+  color: var(--itda-ink);
+}
+.mini-graph__node--right {
+  left: 84%;
+  top: 50%;
+}
+.mini-graph__node--left {
+  left: 16%;
+  top: 50%;
+}
+.mini-graph__node--top {
+  left: 50%;
+  top: 17%;
+}
+.mini-graph__node--bottom {
+  left: 50%;
+  top: 83%;
+}
+
+.mini-graph__line {
+  position: absolute;
+  background: var(--itda-muted);
+}
+.mini-graph__line--right,
+.mini-graph__line--left {
+  top: 50%;
+  height: 2px;
+  width: 34%;
+}
+.mini-graph__line--right {
+  left: 50%;
+}
+.mini-graph__line--left {
+  right: 50%;
+}
+.mini-graph__line--top,
+.mini-graph__line--bottom {
+  left: 50%;
+  width: 2px;
+  height: 33%;
+}
+.mini-graph__line--top {
+  bottom: 50%;
+}
+.mini-graph__line--bottom {
+  top: 50%;
+}
+
+@media (max-width: 1280px) {
+  .overview__review {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 900px) {
+  .overview__metrics,
+  .overview__tasks {
+    grid-template-columns: 1fr;
+  }
+}

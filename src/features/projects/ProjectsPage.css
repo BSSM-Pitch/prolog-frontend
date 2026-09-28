@@ -137,22 +137,6 @@
   text-decoration: none;
 }
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-.badge--filled {
-  background: var(--itda-background);
-}
-.badge--outline {
-  border: 1px solid var(--itda-ink);
-}
 
 .projects__more {
   align-self: center;
