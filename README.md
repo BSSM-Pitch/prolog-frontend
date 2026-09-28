@@ -25,11 +25,22 @@ npm run dev
 | `/projects` | 1260:2218 · 27 내 프로젝트 (사이드바 915:2343) |
 | `/projects/new` | 1247:1989 새 프로젝트 |
 | `/projects/:id` | 841:784 · 01 개요 |
-| `/projects/:id/…` | 원고·인물·관계·복선 등은 순서대로 구현 중 (준비 중 안내) |
+| `/projects/:id/manuscripts` | 841:376 · 18 원고 업로드 |
+| `/projects/:id/manuscripts/:msId` | 841:662 · 19 원고 편집기 |
+| `/projects/:id/ask` | 842:579 · 02 AI 질문 · 35 답변 대기 · 36 답변 실패 |
+| `/projects/:id/characters` | 842:863 · 20 등장인물 |
+| `/projects/:id/characters/new` | 842:994 · 22 자연어로 인물 설계 |
+| `/projects/:id/characters/drafts/:draftId` | 842:1115 · 23 초안 검토 · 37 병합 선택 |
+| `/projects/:id/rules` | 843:1659 · 21 설정 규칙 |
+| `/projects/:id/conflicts` | 843:1781 · 05 설정 충돌 검토 |
+| `/projects/:id/relationships` | 843:1109 · 13 관계 변화 · 38 덮어쓰기 확인 |
+| `/projects/:id/foreshadowings` | 843:1394 · 04 복선 추적 · 843:1534 · 24 복선 타임라인 |
+| `/projects/:id/story-map` | 843:1243 · 03 스토리 지도 |
+| `/projects/:id/manuscripts/:msId/history` | 32 편집 이력 (준비 중 안내) |
 
 ## 목업 테스트 계정
 
-`src/api/mock/db.ts`의 시드 데이터. 목업 DB는 localStorage(`prolog.mock-db.v1`)에 저장되며, 지우면 초기화된다.
+`src/api/mock/db.ts`의 시드 데이터. 목업 DB는 localStorage(`prolog.mock-db.v2`)에 저장되며, 지우면 초기화된다.
 
 - 아이디/비밀번호: `writer_kim` 또는 `writer.kim@example.com` / `prolog1234` (이름 `김유진`)
 - Google 로그인: 가입된 데모 계정으로 바로 로그인
@@ -95,3 +106,11 @@ FTS (`src/api/foreshadowings.ts`):
 - `Foreshadowing.code`("F01") 표시 번호, 관련 인물·사건을 ID 대신 이름(`linked_characters`, `linked_events`)으로 보관
 - 미회수 안내에 `elapsed_chapters`를 함께 돌려줌. 현재 장은 가장 최근 원고의 장 수로 계산
 - 비슷한 복선 안내에서 "기존에 연결"을 고르면 새 복선을 지우고 설치 장을 기존 복선의 연결 장으로 옮김 (화면 쪽 처리)
+
+SSM (`src/api/story.ts`):
+
+- 구조 분석 작업은 `analysis_id`로 조회(다른 비동기 작업의 `job_id`와 이름이 다름). 목업은 3초 뒤 완료, `simulate_failure: true`로 실패 시연
+- 내용이 있는 장이 3개 미만이면 422 `MANUSCRIPT_TOO_SHORT` (최소 분량 기준은 명세에 없음)
+- 노드의 관련 인물을 `character_id` 대신 이름(`characters`)으로 돌려줌
+- 노드 수정(`PATCH …/structure-map/nodes/:nodeId`)은 제목·요약만 받음. 다시 분석해도 사용자가 고친 지도는 유지
+- 화면은 장이 가장 많은 원고를 기본 분석 대상으로 고르고, 복선 연결은 그 본편 지도에서만 보여 줌 (복선의 장 번호가 어느 원고 기준인지 명세에 없음)

@@ -41,7 +41,7 @@ function toJob(j: MockJob): ConflictCheck & RuleExtraction {
 /** 목업: 끝날 시간이 된 작업의 결과를 만든다 */
 function settleJobs(db: MockDb) {
   for (const j of db.jobs) {
-    if ((j.status !== 'queued' && j.status !== 'analyzing') || j.ready_at === null) continue
+    if (j.kind === 'structure_analysis' || (j.status !== 'queued' && j.status !== 'analyzing') || j.ready_at === null) continue
     if (j.ready_at - JOB_MS / 2 <= Date.now() && j.status === 'queued') j.status = 'analyzing'
     if (j.ready_at > Date.now()) continue
     j.ready_at = null

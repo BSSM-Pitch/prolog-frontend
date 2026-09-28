@@ -21,6 +21,7 @@ import { OverviewPage } from './features/projects/OverviewPage'
 import { ForeshadowingsPage } from './features/foreshadowings/ForeshadowingsPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
 import { RelationshipsPage } from './features/relationships/RelationshipsPage'
+import { StoryMapPage } from './features/story/StoryMapPage'
 import { ConflictsPage } from './features/world/ConflictsPage'
 import { RulesPage } from './features/world/RulesPage'
 
@@ -81,7 +82,7 @@ export default function App() {
               <Route path="conflicts" element={<ConflictsPage />} />
               <Route path="relationships" element={<RelationshipsPage />} />
               <Route path="foreshadowings" element={<ForeshadowingsPage />} />
-              <Route path="story-map" element={<ComingSoon title="스토리 지도" figma="Figma 843:1243 · 03 스토리 지도" />} />
+              <Route path="story-map" element={<StoryMapPage />} />
               <Route path="*" element={<Navigate to="." replace />} />
             </Route>
           </Route>

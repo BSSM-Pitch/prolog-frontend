@@ -1,0 +1,153 @@
+/* Figma 843:1243 · 03 스토리 지도 */
+.story {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+.story__layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(280px, 340px);
+  gap: var(--itda-space-16);
+  align-items: start;
+}
+.story__pick {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 220px;
+}
+.story__detail {
+  gap: var(--itda-space-12);
+}
+
+.acts {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.acts__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 90px;
+  padding: 12px 14px;
+  border-radius: var(--prolog-radius-8);
+  font-size: 13px;
+}
+.acts__item strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+.acts__item--0 {
+  background: #e5f0ff;
+}
+.acts__item--1 {
+  background: #cfe3fb;
+}
+.acts__item--2 {
+  background: #b5d5f9;
+}
+.acts__item--3 {
+  background: var(--itda-ink);
+  color: var(--itda-surface);
+}
+
+.zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.zoom button {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--input-stroke);
+  border-radius: 6px;
+  background: var(--itda-surface);
+}
+.zoom button:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+}
+.zoom span {
+  min-width: 44px;
+  text-align: center;
+}
+
+.causal {
+  overflow-x: auto;
+  border: 1px solid var(--input-stroke);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+}
+.causal svg {
+  display: block;
+}
+.causal__axis {
+  stroke: rgba(56, 73, 89, 0.2);
+  stroke-width: 2;
+}
+.causal__tick {
+  fill: var(--itda-muted);
+  font-size: 11px;
+}
+.causal__edge {
+  fill: none;
+  stroke: #6a89a7;
+  stroke-width: 2;
+}
+.causal__edge--affects {
+  stroke-dasharray: 6 4;
+}
+.causal__arrowhead {
+  fill: #6a89a7;
+}
+.causal__node {
+  cursor: pointer;
+}
+.causal__node rect {
+  fill: var(--itda-surface);
+  stroke: rgba(106, 137, 167, 0.6);
+}
+.causal__node--turning_point rect {
+  fill: #dcebfd;
+  stroke: var(--prolog-color-interaction);
+}
+.causal__node--climax rect {
+  fill: var(--itda-ink);
+  stroke: var(--itda-ink);
+}
+.causal__node.is-selected rect {
+  stroke: var(--prolog-color-interaction);
+  stroke-width: 3;
+}
+.causal__label {
+  fill: var(--itda-ink);
+  font-size: 13px;
+  font-weight: 500;
+}
+.causal__type {
+  fill: var(--itda-muted);
+  font-size: 10px;
+}
+.causal__node--climax .causal__label,
+.causal__node--climax .causal__type {
+  fill: var(--itda-surface);
+}
+.causal__node:focus-visible {
+  outline: none;
+}
+.causal__node:focus-visible rect {
+  stroke: var(--prolog-color-interaction);
+  stroke-width: 3;
+}
+
+@media (max-width: 1280px) {
+  .story__layout {
+    grid-template-columns: 1fr;
+  }
+}

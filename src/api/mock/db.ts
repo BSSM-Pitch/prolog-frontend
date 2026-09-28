@@ -148,7 +148,7 @@ export interface MockDraft {
 export interface MockJob {
   job_id: string
   project_id: string
-  kind: 'conflict_check' | 'rule_extraction'
+  kind: 'conflict_check' | 'rule_extraction' | 'structure_analysis'
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   manuscript_id: string | null
   ready_at: number | null
@@ -164,9 +164,14 @@ export interface MockWorld {
   relationships: DemoRelationship[]
   conflicts: DemoConflict[]
   foreshadowings: DemoForeshadowing[]
-  story: { acts: typeof DEMO_STORY.acts; nodes: DemoStoryNode[]; edges: typeof DEMO_STORY.edges } | null
+  /** 본편(장이 가장 많은 원고)의 스토리 지도 */
+  story: MockStory | null
+  /** 본편이 아닌 원고의 스토리 지도 (원고 ID별) */
+  stories?: Record<string, MockStory>
   rules: DemoRule[]
 }
+
+export type MockStory = { acts: typeof DEMO_STORY.acts; nodes: DemoStoryNode[]; edges: typeof DEMO_STORY.edges }
 
 export interface MockProjectMember {
   project_id: string

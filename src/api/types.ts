@@ -333,6 +333,31 @@ export interface SimilarCandidate {
   payoff_chapter: number | null
 }
 
+// SSM 명세 — 스토리 구조 지도
+
+export interface StructureNode {
+  node_id: string
+  type: 'event' | 'turning_point' | 'climax'
+  chapter: number
+  title: string
+  summary: string
+  /** (명세 미정의) 명세는 character_ids — 목업은 이름 */
+  characters: string[]
+}
+
+export interface StructureMap {
+  manuscript_id: string
+  acts: Array<{ act_name: string; chapter_from: number; chapter_to: number; summary: string }>
+  nodes: StructureNode[]
+  edges: Array<{ from_node_id: string; to_node_id: string; relation: 'causes' | 'affects' }>
+}
+
+export interface StructureAnalysis {
+  analysis_id: string
+  status: 'queued' | 'analyzing' | 'completed' | 'failed'
+  manuscript_id: string | null
+}
+
 /** (명세 미정의) GET /projects/{id}/overview — Figma 01 개요의 요약 카드 */
 export interface ProjectOverview {
   current_manuscript: { manuscript_id: string; title: string; last_chapter: number } | null
