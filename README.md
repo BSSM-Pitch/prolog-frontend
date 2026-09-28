@@ -60,8 +60,18 @@ real 모드에서 달라지는 것:
 | `/teams/:teamId/members` | 1260:2672 · 29 팀원과 초대 |
 | `/notifications` | 1261:2571 · 30 알림 |
 | `/settings/notifications` | 1261:2820 · 31 알림 설정 |
-| `/landing` | 1289:3388 랜딩 — 디자인 확정 전 임시 뼈대. 시연 흐름에서는 링크하지 않음 (`/`는 계속 로그인으로) |
+| `/` | 랜딩 (디자인 팀 Prolog-landing 소스, `src/features/landing/`). 로그인 상태면 버튼이 "내 프로젝트"로 바뀐다 |
 | `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
+
+## 랜딩
+
+디자인 팀이 따로 만든 Prolog-landing(Vite 프로젝트)을 `src/features/landing/`으로 옮겼다.
+
+- 스타일은 모두 `.lp` 아래로 가둬 앱 화면과 섞이지 않게 했다. 원본과 이름이 겹치는 클래스만 바꿨다: `.btn` → `.lbtn`, `.story` → `.tale`
+- 스크롤 영상 프레임은 코드가 쓰는 만큼만 `public/landing/frames/`에 둔다(hero 72 · talk 80 · hand 120 · type 156장, 약 9MB)
+- Paperlogy는 앱의 `fonts.css`를 쓰고, Pretendard·JetBrains Mono·Nanum Pen Script는 랜딩을 열 때만 불러온다
+- 로그인·회원가입 버튼은 앱의 `/auth/login`, `/auth/signup`으로 연결했다. 수치(Stats)·후기(Voices) 섹션은 원본처럼 꺼 두었다
+- 추가 패키지: `lenis`(관성 스크롤), `motion`(스크롤 애니메이션)
 
 ## 목업 테스트 계정
 

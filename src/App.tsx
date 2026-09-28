@@ -56,9 +56,9 @@ export default function App() {
     <SessionProvider>
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Navigate to="/auth" replace />} />
-          {/* 임시 랜딩 — 디자인 확정 전이라 시연 흐름에서 링크하지 않는다. 확정되면 "/"를 이 화면으로 */}
-          <Route path="/landing" element={<LandingPage />} />
+          {/* 랜딩 — 로그인 여부와 상관없이 보여 주고, 버튼만 로그인 상태에 맞게 바뀐다 */}
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route
             path="/auth"
             element={
