@@ -1,4 +1,4 @@
-import type { MockDb, MockInvitation, MockUser } from './db'
+import type { MockDb, MockInvitation, MockNotification, MockUser } from './db'
 
 // 협업 화면(Figma 26·28·29·30)의 예시 사람과 초대. writer_kim(김유진)을 기준으로 만든다.
 // 예시 팀원도 같은 비밀번호로 로그인해 볼 수 있다 — 목업 전용.
@@ -86,5 +86,61 @@ export function seedCollaboration(db: MockDb): MockDb {
         invite('pinv_3', 'proj_1', 'old@example.com', 'editor', 'user_101', -2),
       ]
     : []
+  return seedNotifications(db)
+}
+
+const hoursAgo = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString()
+
+/**
+ * Figma 30 · 알림의 예시. writer_kim이 받은 초대 두 건(안 읽음)과 지난 소식 세 건.
+ * 초대를 실제로 수락할 수 있도록 이형민의 팀 "밤의 서재", 박서연의 프로젝트 "푸른 등대"를 함께 만든다.
+ */
+export function seedNotifications(db: MockDb): MockDb {
+  db.notifications = []
+  db.notificationSettings = {}
+  db.emailIntegrations = []
+  const kim = db.users.find((u) => u.user_id === 'user_101')
+  if (!kim?.email) return db
+  // 다시 채울 때(시연 초기화) 앞서 수락한 초대와 멤버십을 되돌린다
+  db.teamInvitations = db.teamInvitations.filter((i) => i.invitation_id !== 'tinv_4')
+  db.projectInvitations = db.projectInvitations.filter((i) => i.invitation_id !== 'pinv_4')
+  db.teamMembers = db.teamMembers.filter((m) => !(m.team_id === 'team_11' && m.user_id === 'user_101'))
+  db.projectMembers = db.projectMembers.filter((m) => !(m.project_id === 'proj_9' && m.user_id === 'user_101'))
+
+  if (!db.teams.some((t) => t.team_id === 'team_11')) {
+    db.teams.push({ team_id: 'team_11', name: '밤의 서재', description: '장르 단편을 돌려 읽는 모임', created_by: 'user_150', created_at: at('2026-09-05') })
+    db.teamMembers.push({ team_id: 'team_11', user_id: 'user_150', role: 'owner', joined_at: at('2026-09-05') })
+  }
+  const teamInv = invite('tinv_4', 'team_11', kim.email, 'member', 'user_150', 6)
+  db.teamInvitations.push(teamInv)
+
+  if (!db.projects.some((p) => p.project_id === 'proj_9')) {
+    const t = hoursAgo(30)
+    db.projects.push({ project_id: 'proj_9', title: '푸른 등대', description: '외딴섬 등대지기의 마지막 여름', owner_type: 'personal', team_id: null, created_by: 'user_151', created_at: t, updated_at: t })
+    db.projectMembers.push({ project_id: 'proj_9', user_id: 'user_151', role: 'owner', joined_at: t })
+    db.worlds.proj_9 = { characters: [], relationships: [], conflicts: [], foreshadowings: [], story: null, rules: [] }
+  }
+  const projectInv = { ...invite('pinv_4', 'proj_9', kim.email, 'editor', 'user_151', 7), created_at: hoursAgo(1) }
+  db.projectInvitations.push(projectInv)
+
+  const n = (id: string, type: MockNotification['type'], title: string, body: string, hours: number, read: boolean, related_ref: MockNotification['related_ref'] = null): MockNotification => ({
+    notification_id: id,
+    user_id: 'user_101',
+    type,
+    title,
+    body,
+    related_ref,
+    channels_sent: ['in_app', 'email'],
+    read_at: read ? hoursAgo(hours - 0.1) : null,
+    created_at: hoursAgo(hours),
+  })
+  db.notifications.push(
+    n('noti_1', 'team_invite', '팀 초대', '이형민 님이 밤의 서재 팀에 초대했어요', 20, false, { type: 'team_invitation', id: teamInv.invitation_id, parent_id: 'team_11' }),
+    n('noti_2', 'project_invite', '프로젝트 초대', '박서연 님이 푸른 등대에 편집자로 초대했어요', 1, false, { type: 'project_invitation', id: projectInv.invitation_id, parent_id: 'proj_9' }),
+    n('noti_3', 'mention', '멘션', '정다은 님이 27장 메모에서 회원님을 언급했어요', 26, true, { type: 'project', id: 'proj_1' }),
+    n('noti_4', 'team_joined', '팀 합류', '정다은 님이 문장 수집소 팀에 합류했어요', 72, true, { type: 'team', id: 'team_10' }),
+    n('noti_5', 'system', '시스템', 'Gmail 계정 연동이 완료됐어요', 24 * 7, true),
+  )
+  db.emailIntegrations.push({ integration_id: 'eint_1', user_id: 'user_101', provider: 'gmail', email_address: 'yujin.kim@gmail.com', connected_at: at('2026-08-30') })
   return db
 }

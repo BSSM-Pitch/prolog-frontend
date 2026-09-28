@@ -16,6 +16,8 @@ import { AskPage } from './features/manuscripts/AskPage'
 import { EditorPage } from './features/manuscripts/EditorPage'
 import { HistoryPage } from './features/manuscripts/HistoryPage'
 import { ManuscriptsPage } from './features/manuscripts/ManuscriptsPage'
+import { NotificationSettingsPage } from './features/notifications/NotificationSettingsPage'
+import { NotificationsPage } from './features/notifications/NotificationsPage'
 import { MembersPage } from './features/projects/MembersPage'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
@@ -73,6 +75,8 @@ export default function App() {
           >
             <Route path="/projects" element={<ProjectsPage />} />
             <Route path="/projects/new" element={<NewProjectPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
             <Route path="/teams/new" element={<NewTeamPage />} />
             <Route path="/teams/:teamId" element={<TeamPage />} />
             <Route path="/teams/:teamId/members" element={<TeamMembersPage />} />

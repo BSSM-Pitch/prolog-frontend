@@ -40,6 +40,8 @@ npm run dev
 | `/teams/new` | 843:2082 · 25 새 팀 만들기 |
 | `/teams/:teamId` | 843:2184 · 26 팀 작업공간 |
 | `/teams/:teamId/members` | 1260:2672 · 29 팀원과 초대 |
+| `/notifications` | 1261:2571 · 30 알림 |
+| `/settings/notifications` | 1261:2820 · 31 알림 설정 |
 | `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
 
 ## 목업 테스트 계정
@@ -51,6 +53,7 @@ npm run dev
 - 네이버 로그인: 미가입 상태 → 회원가입으로 안내
 - `writer_kim`은 예시 프로젝트 8개(개인 4·팀 4)를 갖고 있고, Google 데모 계정은 프로젝트가 없어 빈 상태를 볼 수 있다
 - 협업 화면용 예시 팀원: `hm_lee`(이형민), `seoyeon`(박서연), `daeun`(정다은) — 비밀번호는 모두 `prolog1234`
+- `writer_kim`에게는 안 읽은 초대 알림 2건(이형민의 팀 "밤의 서재", 박서연의 프로젝트 "푸른 등대")이 있어 알림 화면에서 바로 참가해 볼 수 있다
 
 인증 코드(가입·비밀번호 재설정)는 실제 메일 대신 **브라우저 콘솔**에 `[mock] … 인증 코드` 로 출력된다.
 
@@ -122,6 +125,14 @@ TEAM (`src/api/teams.ts`):
 - 역할 변경은 목업에서 owner만 가능, admin은 member만 내보낼 수 있음 (명세 4.11·4.12에 세부 권한 없음)
 - "작업 중 N"은 최근 7일 안에 수정된 팀 프로젝트 수로 화면에서 계산
 - 팀원이 되어도 팀 프로젝트에 자동으로 참여하지는 않음(프로젝트 멤버 초대가 따로 필요). PRJ 4.1 "개인 + 참여 팀" 범위를 백엔드와 맞출 것
+
+NOTI (`src/api/notifications.ts`):
+
+- 초대 알림의 `related_ref`에 `parent_id`(팀·프로젝트 ID), `status`, `expires_at`을 더해 돌려줌 — 알림에서 바로 "참가"(TEAM 4.9 / PRJ 4.8)하고 "만료까지 6일"을 보여 주려면 필요. 명세의 `{type, id}`만으로는 수락 API 경로를 만들 수 없음
+- `PATCH /notifications/{id}`에 `{ read: false }`도 허용(안 읽음으로 되돌리기) — 명세는 `read: true`만 예시
+- 서비스 알림을 끈 유형은 인앱 목록에 넣지 않음. 이메일은 연동 계정이 있고 설정이 켜져 있을 때만 `channels_sent`에 `email` 기록
+- 실시간 채널이 없어 사이드바의 안 읽은 수는 화면을 옮길 때마다 다시 불러옴
+- 목업 이메일 연동은 OAuth 없이 아이디로 주소를 만든다(`아이디@gmail.com`). `oauth_code`에 "fail"이 들어가면 502 `OAUTH_PROVIDER_ERROR`
 
 FTS (`src/api/foreshadowings.ts`):
 

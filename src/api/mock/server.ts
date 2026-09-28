@@ -5,6 +5,7 @@ import { authRoutes } from './routes/auth'
 import { characterRoutes } from './routes/characters'
 import { foreshadowingRoutes } from './routes/foreshadowings'
 import { manuscriptRoutes } from './routes/manuscripts'
+import { notificationRoutes } from './routes/notifications'
 import { memberRoutes } from './routes/members'
 import { projectRoutes } from './routes/projects'
 import { qaRoutes } from './routes/qa'
@@ -17,7 +18,7 @@ import { worldRoutes } from './routes/world'
 
 const LATENCY_MS = 350
 
-const routes: Route[] = [...authRoutes, ...projectRoutes, ...memberRoutes, ...manuscriptRoutes, ...qaRoutes, ...characterRoutes, ...worldRoutes, ...relationshipRoutes, ...foreshadowingRoutes, ...storyRoutes, ...teamRoutes]
+const routes: Route[] = [...authRoutes, ...projectRoutes, ...memberRoutes, ...manuscriptRoutes, ...qaRoutes, ...characterRoutes, ...worldRoutes, ...relationshipRoutes, ...foreshadowingRoutes, ...storyRoutes, ...teamRoutes, ...notificationRoutes]
 
 function match(pattern: string, path: string): Record<string, string> | null {
   const p = pattern.split('/')

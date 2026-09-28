@@ -1,0 +1,150 @@
+/* Figma 1261:2571 · 30 알림 / 1261:2820 · 31 알림 설정 */
+.noti {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1280px;
+}
+.noti__layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-16);
+  align-items: flex-start;
+}
+.noti__layout > .panel:first-child {
+  flex: 999 1 520px;
+}
+.noti__side {
+  flex: 1 1 320px;
+  max-width: 420px;
+  gap: var(--itda-space-12);
+}
+.noti__filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--itda-space-8);
+}
+
+.noti__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.noti__item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 4px;
+  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+}
+.noti__item:last-child {
+  border-bottom: 0;
+}
+.noti__item.is-unread {
+  background: linear-gradient(90deg, rgba(220, 235, 253, 0.55), transparent 70%);
+}
+.noti__head {
+  display: flex;
+  align-items: center;
+  gap: var(--itda-space-8);
+}
+.noti__dot {
+  width: 8px;
+  height: 8px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--prolog-color-interaction);
+}
+.noti__body {
+  font-size: 16px;
+}
+.noti__item.is-unread .noti__body {
+  font-weight: 500;
+}
+.noti__link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: rgba(56, 73, 89, 0.3);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.noti__link:focus-visible {
+  outline: 2px solid var(--prolog-color-interaction);
+  outline-offset: 2px;
+}
+.noti__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--itda-space-12);
+}
+.noti__actions .text-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.noti__channel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--itda-space-12);
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+}
+.noti__channel > .btn,
+.noti__channel > .badge {
+  flex: none;
+  white-space: nowrap;
+}
+.noti__channel-name {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+.noti__alert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.noti__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.noti__table th,
+.noti__table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+  text-align: left;
+  vertical-align: middle;
+}
+.noti__table thead th {
+  padding-block: 8px;
+  border-bottom-color: var(--input-stroke);
+  color: var(--itda-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.noti__table tbody th {
+  font-weight: 400;
+}
+.noti__table tr:last-child > * {
+  border-bottom: 0;
+}
+
+@media (max-width: 1100px) {
+  .noti__side {
+    max-width: none;
+  }
+}

@@ -3,6 +3,7 @@ import type { MockDb, MockInvitation, MockTeam, MockTeamMember, MockUser } from 
 import { authenticate, fail, isResponse, lower, nextId, noContent, ok, stamp, str, type Body, type Route } from '../http'
 import type { MockRequest } from '../http'
 import type { RawResponse } from '../../client'
+import { displayName, notify } from '../notify'
 import { newInvitation, settleInvitations } from './members'
 import { toProject } from './projects'
 
@@ -162,6 +163,13 @@ export const teamRoutes: Route[] = [
       const inv = newInvitation(db, 'tinv', teamId, email, role, access.user.user_id)
       if (prev) Object.assign(prev, { ...inv, invitation_id: prev.invitation_id })
       else db.teamInvitations.push(inv)
+      if (invitee) {
+        notify(db, invitee.user_id, 'team_invite', '팀 초대', `${displayName(db, access.user.user_id)} 님이 ${access.team.name} 팀에 초대했어요`, {
+          type: 'team_invitation',
+          id: (prev ?? inv).invitation_id,
+          parent_id: teamId,
+        })
+      } else console.info(`[mock] 회원가입 안내 메일 → ${email}`)
       return ok(201, toInvitation(prev ?? inv), { is_registered: Boolean(invitee) })
     },
   ],
@@ -193,6 +201,13 @@ export const teamRoutes: Route[] = [
       if (!m) {
         m = { team_id: teamId, user_id: user.user_id, role: inv.role as TeamRole, joined_at: stamp() }
         db.teamMembers.push(m)
+        // 소유자·관리자에게 합류 소식을 알린다
+        const team = db.teams.find((t) => t.team_id === teamId)!
+        for (const x of teamMembers(db, teamId)) {
+          if (x.role !== 'member' && x.user_id !== user.user_id) {
+            notify(db, x.user_id, 'team_joined', '팀 합류', `${displayName(db, user.user_id)} 님이 ${team.name} 팀에 합류했어요`, { type: 'team', id: teamId })
+          }
+        }
       }
       inv.status = 'accepted'
       return ok(200, toMember(db, m))

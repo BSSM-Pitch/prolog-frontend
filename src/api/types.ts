@@ -122,6 +122,38 @@ export interface ProjectInvitation {
   expires_at: string
 }
 
+// NOTI 2.1 ~ 2.3
+export type NotificationType = 'team_invite' | 'project_invite' | 'team_joined' | 'mention' | 'system'
+
+export interface Notification {
+  notification_id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  body: string
+  /**
+   * 관련 리소스. parent_id(초대가 속한 팀·프로젝트), status·expires_at(초대 상태)은 명세 미정의 —
+   * 알림 화면에서 바로 "참가"하고 "만료까지 6일"을 보여 주려고 추가
+   */
+  related_ref: { type: string; id: string; parent_id?: string; status?: InvitationStatus; expires_at?: string | null } | null
+  channels_sent: Array<'in_app' | 'email'>
+  read_at: string | null
+  created_at: string
+}
+
+export interface NotificationSetting {
+  type: NotificationType
+  in_app_enabled: boolean
+  email_enabled: boolean
+}
+
+export interface EmailIntegration {
+  integration_id: string
+  provider: 'gmail' | 'naver'
+  email_address: string
+  connected_at: string
+}
+
 // MSU 명세 2장
 export type ManuscriptSource = 'file' | 'editor'
 export type ManuscriptStatus = 'processing' | 'ready' | 'extraction_failed'

@@ -1,5 +1,5 @@
 import type { AuthProvider, OwnerType, ProjectRole, UserRole } from '../types'
-import { seedCollaboration } from './collab'
+import { seedCollaboration, seedNotifications } from './collab'
 import {
   DEMO_CHAPTERS,
   DEMO_CHARACTERS,
@@ -119,6 +119,30 @@ export interface MockVersion {
   created_at: string
 }
 
+export type NotificationType = 'team_invite' | 'project_invite' | 'team_joined' | 'mention' | 'system'
+
+/** NOTI 2.1 — related_ref.parent_id는 초대를 수락할 때 쓸 팀·프로젝트 ID (명세 미정의) */
+export interface MockNotification {
+  notification_id: string
+  user_id: string
+  type: NotificationType
+  title: string
+  body: string
+  related_ref: { type: string; id: string; parent_id?: string } | null
+  channels_sent: Array<'in_app' | 'email'>
+  read_at: string | null
+  created_at: string
+}
+
+/** NOTI 2.3 */
+export interface MockEmailIntegration {
+  integration_id: string
+  user_id: string
+  provider: 'gmail' | 'naver'
+  email_address: string
+  connected_at: string
+}
+
 export interface MockQAThread {
   thread_id: string
   project_id: string
@@ -228,6 +252,10 @@ export interface MockDb {
   projectInvitations: MockInvitation[]
   teamMembers: MockTeamMember[]
   teamInvitations: MockInvitation[]
+  notifications: MockNotification[]
+  /** NOTI 2.2 — 사용자별로 바꾼 설정만 둔다. 없으면 모두 켜짐 */
+  notificationSettings: Record<string, Partial<Record<NotificationType, { in_app_enabled: boolean; email_enabled: boolean }>>>
+  emailIntegrations: MockEmailIntegration[]
   manuscripts: MockManuscript[]
   chapters: MockChapter[]
   versions: MockVersion[]
@@ -296,6 +324,9 @@ function seed(): MockDb {
     projectInvitations: [],
     teamMembers: [],
     teamInvitations: [],
+    notifications: [],
+    notificationSettings: {},
+    emailIntegrations: [],
   })
 }
 
@@ -436,6 +467,7 @@ function withDefaults(db: MockDb): MockDb {
   db.versions ??= seedVersions(db.chapters)
   // 협업(멤버·팀·초대) 데이터가 없는 저장본에는 시연용 사람들을 채운다
   if (!db.teamMembers) seedCollaboration(db)
+  else if (!db.notifications) seedNotifications(db)
   db.qaThreads ??= []
   db.qaMessages ??= []
   db.extractions ??= []

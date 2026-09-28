@@ -1,5 +1,5 @@
 import { useState, type ComponentType, type ReactNode } from 'react'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   IconAffiliate,
   IconBell,
@@ -14,11 +14,13 @@ import {
   IconUsersGroup,
   type IconProps,
 } from '@tabler/icons-react'
+import * as notificationsApi from '../../api/notifications'
 import * as teamsApi from '../../api/teams'
 import type { Project } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { ROLE_OPTIONS } from '../../lib/roles'
 import { useResource } from '../../lib/useResource'
+import { useNotificationsChanged } from '../notifications/labels'
 import { useTeamsChanged } from '../teams/teamEvents'
 import { projectPath } from './currentProject'
 
@@ -50,6 +52,10 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const teams = useResource(user ? teamsApi.listTeams : null, [user?.user_id])
   useTeamsChanged(teams.reload)
+  // 최근 알림 3개와 안 읽은 수. 화면을 옮길 때마다 새로 확인한다 (명세에 실시간 채널 없음)
+  const recent = useResource(user ? (t) => notificationsApi.listNotifications(t, { limit: 3 }) : null, [user?.user_id, pathname])
+  useNotificationsChanged(recent.reload)
+  const unread = recent.data?.meta.unread_count ?? 0
   if (!user) return null
 
   const roleTitle = ROLE_OPTIONS.find((r) => r.value === user.role)?.title ?? ''
@@ -93,8 +99,19 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
 
       <nav className="sidebar__nav">
         <NavItem icon={IconHome} label="개요" to={project ? toProject() : null} end disabledReason={disabledReason} />
-        <NavGroup icon={IconBell} label="알림" open={isOpen('noti')} onToggle={() => toggle('noti')} collapsed={collapsed}>
-          <p className="sidebar__empty">새 알림이 없어요</p>
+        <NavGroup icon={IconBell} label="알림" badge={unread} open={isOpen('noti')} onToggle={() => toggle('noti')} collapsed={collapsed} active={pathname === '/notifications'}>
+          {(recent.data?.data ?? []).length === 0 && <p className="sidebar__empty">새 알림이 없어요</p>}
+          {(recent.data?.data ?? []).map((n) => (
+            <Link key={n.notification_id} to="/notifications" className={n.read_at ? 'sidebar__subitem sidebar__noti' : 'sidebar__subitem sidebar__noti is-unread'} title={n.body}>
+              {n.body}
+            </Link>
+          ))}
+          <NavLink to="/notifications" end className="sidebar__subitem">
+            모든 알림 보기
+          </NavLink>
+          <NavLink to="/settings/notifications" className="sidebar__subitem">
+            알림 설정
+          </NavLink>
         </NavGroup>
         <NavItem icon={IconNotebook} label="원고 작성" to={project ? toProject('manuscripts') : null} disabledReason={disabledReason} />
 
@@ -183,10 +200,12 @@ interface NavGroupProps {
   boxed?: boolean
   active?: boolean
   disabledReason?: string
+  /** 안 읽은 알림 수처럼 이름 옆에 붙는 숫자. 0이면 숨긴다 */
+  badge?: number
   children: ReactNode
 }
 
-function NavGroup({ icon: I, label, open, onToggle, collapsed, boxed, active, disabledReason, children }: NavGroupProps) {
+function NavGroup({ icon: I, label, open, onToggle, collapsed, boxed, active, disabledReason, badge, children }: NavGroupProps) {
   const disabled = Boolean(disabledReason)
   const expanded = open && !collapsed && !disabled
   return (
@@ -200,7 +219,10 @@ function NavGroup({ icon: I, label, open, onToggle, collapsed, boxed, active, di
         onClick={disabled ? undefined : onToggle}
       >
         <I size={24} stroke={1.5} aria-hidden="true" />
-        <span className="sidebar__label">{label}</span>
+        <span className="sidebar__label">
+          {label}
+          {badge ? <span className="sidebar__badge" aria-label={`안 읽음 ${badge}개`}>{badge}</span> : null}
+        </span>
         <span className={boxed ? 'sidebar__chevron sidebar__chevron--boxed' : 'sidebar__chevron'} aria-hidden="true">
           <IconChevronDown size={14} />
         </span>

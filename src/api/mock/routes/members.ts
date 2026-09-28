@@ -2,6 +2,7 @@ import type { ProjectInvitation, ProjectMember, ProjectRole } from '../../types'
 import { requireProject, touchProject } from '../access'
 import type { MockDb, MockInvitation, MockProjectMember } from '../db'
 import { authenticate, fail, isResponse, lower, nextId, noContent, ok, stamp, str, type Body, type Route } from '../http'
+import { displayName, notify } from '../notify'
 
 const DAY = 86_400_000
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -78,6 +79,15 @@ export const memberRoutes: Route[] = [
       const inv = newInvitation(db, 'pinv', projectId, email, role, access.user.user_id)
       if (prev) Object.assign(prev, { ...inv, invitation_id: prev.invitation_id })
       else db.projectInvitations.push(inv)
+      // 4.7 비고: 가입한 사람이면 알림(NOTI)을 보낸다. 미가입이면 회원가입 안내 메일로 대체
+      if (invitee) {
+        const label = role === 'editor' ? '편집자' : '보기 전용 멤버'
+        notify(db, invitee.user_id, 'project_invite', '프로젝트 초대', `${displayName(db, access.user.user_id)} 님이 ${access.project.title}에 ${label}로 초대했어요`, {
+          type: 'project_invitation',
+          id: (prev ?? inv).invitation_id,
+          parent_id: projectId,
+        })
+      } else console.info(`[mock] 회원가입 안내 메일 → ${email}`)
       touchProject(db, projectId)
       return ok(201, toInvitation(prev ?? inv), { is_registered: Boolean(invitee) })
     },
