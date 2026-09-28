@@ -10,6 +10,7 @@ import { SignupPage } from './features/auth/SignupPage'
 import { VerifyPage } from './features/auth/VerifyPage'
 import { AppShell } from './features/app/AppShell'
 import { CharactersPage } from './features/characters/CharactersPage'
+import { LandingPage } from './features/landing/LandingPage'
 import { DraftPage } from './features/characters/DraftPage'
 import { NewCharacterPage } from './features/characters/NewCharacterPage'
 import { AskPage } from './features/manuscripts/AskPage'
@@ -49,6 +50,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Navigate to="/auth" replace />} />
+          {/* 임시 랜딩 — 디자인 확정 전이라 시연 흐름에서 링크하지 않는다. 확정되면 "/"를 이 화면으로 */}
+          <Route path="/landing" element={<LandingPage />} />
           <Route
             path="/auth"
             element={

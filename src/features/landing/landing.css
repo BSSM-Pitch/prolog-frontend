@@ -1,0 +1,138 @@
+/* 랜딩 — 디자인 확정 전 임시 레이아웃. 토큰만 기존 것을 쓴다 */
+.landing {
+  min-height: 100vh;
+  background: var(--itda-background);
+  color: var(--itda-ink);
+}
+.landing__draft {
+  padding: 8px 16px;
+  background: #fdf1e7;
+  color: #b54708;
+  font-size: 13px;
+  text-align: center;
+}
+
+.landing__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+.landing__logo {
+  font-size: 24px;
+  font-weight: 700;
+}
+.landing__nav-links {
+  display: flex;
+  align-items: center;
+  gap: var(--itda-space-24);
+  font-size: 15px;
+}
+.landing__nav-links > a:not(.btn) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.landing__hero,
+.landing__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-16);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+.landing__hero {
+  align-items: center;
+  text-align: center;
+}
+.landing__eyebrow {
+  color: var(--prolog-color-interaction);
+  font-size: 15px;
+  font-weight: 600;
+}
+.landing__title {
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 700;
+  line-height: 1.25;
+}
+.landing__lead {
+  color: var(--itda-muted);
+  font-size: 18px;
+}
+.landing__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--itda-space-12);
+  margin-bottom: var(--itda-space-24);
+}
+.landing__heading {
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.landing__features {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--itda-space-16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.landing__feature {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-8);
+  padding: 20px;
+  border: 1px solid var(--input-stroke);
+  border-radius: 16px;
+  background: var(--itda-surface);
+}
+.landing__feature h3 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.landing__feature p {
+  color: var(--itda-muted);
+  font-size: 15px;
+}
+
+.landing__placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 120px;
+  border: 2px dashed var(--input-stroke);
+  border-radius: 16px;
+  background: repeating-linear-gradient(45deg, transparent 0 12px, rgba(106, 137, 167, 0.06) 12px 24px);
+  color: var(--itda-muted);
+  font-size: 14px;
+}
+.landing__placeholder--tall {
+  min-height: 360px;
+}
+
+.landing__final {
+  align-items: center;
+  text-align: center;
+}
+.landing__footer {
+  padding: 32px 24px;
+  border-top: 1px solid var(--input-stroke);
+  color: var(--itda-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .landing__nav-links > a:not(.btn) {
+    display: none;
+  }
+  .landing__hero,
+  .landing__section {
+    padding: 40px 16px;
+  }
+}

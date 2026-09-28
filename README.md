@@ -42,6 +42,7 @@ npm run dev
 | `/teams/:teamId/members` | 1260:2672 · 29 팀원과 초대 |
 | `/notifications` | 1261:2571 · 30 알림 |
 | `/settings/notifications` | 1261:2820 · 31 알림 설정 |
+| `/landing` | 1289:3388 랜딩 — 디자인 확정 전 임시 뼈대. 시연 흐름에서는 링크하지 않음 (`/`는 계속 로그인으로) |
 | `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
 
 ## 목업 테스트 계정
