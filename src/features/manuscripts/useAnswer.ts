@@ -13,12 +13,15 @@ interface Target {
 
 /**
  * AI 답변 메시지를 완료될 때까지 폴링한다 (AIQ 4.5).
- * 대기 중이면 1초마다 다시 묻고, 완료·실패가 되면 멈춘다.
+ * source는 화면이 알고 있는 최신 메시지(예: 스레드를 불러온 값). 폴링·재시도로 받은 값이 같은 메시지면 그쪽을 우선한다.
  */
-export function useAnswer(target: Target | null, initial: QAMessage | null) {
+export function useAnswer(target: Target | null, source: QAMessage | null) {
   const { withAuth } = useSession()
-  const [message, setMessage] = useState<QAMessage | null>(initial)
+  const [latest, setLatest] = useState<QAMessage | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // 다른 메시지로 바뀌었으면 이전에 받은 값은 버린다
+  const message = latest && (!source || latest.message_id === source.message_id) ? latest : source
   const pending = message?.status === 'pending'
   const key = target ? `${target.threadId}/${target.messageId}` : ''
 
@@ -27,7 +30,7 @@ export function useAnswer(target: Target | null, initial: QAMessage | null) {
     let cancelled = false
     const id = window.setInterval(() => {
       withAuth((t) => api.getMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId))
-        .then((m) => !cancelled && setMessage(m))
+        .then((m) => !cancelled && setLatest(m))
         .catch((e) => !cancelled && setError(describeError(e)))
     }, 1000)
     return () => {
@@ -42,12 +45,12 @@ export function useAnswer(target: Target | null, initial: QAMessage | null) {
     if (!target) return
     setError(null)
     try {
-      setMessage(await withAuth((t) => api.retryMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId)))
+      setLatest(await withAuth((t) => api.retryMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId)))
     } catch (e) {
       setError(describeError(e))
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, withAuth])
 
-  return { message, setMessage, error, retry }
+  return { message, setMessage: setLatest, error, retry }
 }

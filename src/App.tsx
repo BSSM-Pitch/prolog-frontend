@@ -9,6 +9,7 @@ import { RolePage } from './features/auth/RolePage'
 import { SignupPage } from './features/auth/SignupPage'
 import { VerifyPage } from './features/auth/VerifyPage'
 import { AppShell } from './features/app/AppShell'
+import { AskPage } from './features/manuscripts/AskPage'
 import { EditorPage } from './features/manuscripts/EditorPage'
 import { ManuscriptsPage } from './features/manuscripts/ManuscriptsPage'
 import { ComingSoon } from './features/app/ComingSoon'
@@ -65,7 +66,7 @@ export default function App() {
               <Route path="manuscripts" element={<ManuscriptsPage />} />
               <Route path="manuscripts/:manuscriptId" element={<EditorPage />} />
               <Route path="manuscripts/:manuscriptId/history" element={<ComingSoon title="편집 이력" figma="Figma 1261:3042 · 32 원고 편집 이력" />} />
-              <Route path="ask" element={<ComingSoon title="AI 질문" figma="Figma 842:579 · 02 AI 질문" />} />
+              <Route path="ask" element={<AskPage />} />
               <Route path="characters" element={<ComingSoon title="등장인물" figma="Figma 842:863 · 20 등장인물" />} />
               <Route path="rules" element={<ComingSoon title="설정 규칙" figma="Figma 843:1659 · 21 설정 규칙" />} />
               <Route path="conflicts" element={<ComingSoon title="설정 충돌 검토" figma="Figma 843:1781 · 05 설정 충돌 검토" />} />

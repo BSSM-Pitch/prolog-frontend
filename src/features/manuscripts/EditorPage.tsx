@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
 import type { Chapter, Citation } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -23,6 +23,7 @@ export function EditorPage() {
   const project = useProject()
   const { manuscriptId = '' } = useParams()
   const [params, setParams] = useSearchParams()
+  const highlight = (useLocation().state as { highlight?: string } | null)?.highlight
   const { withAuth } = useSession()
   const projectId = project?.project_id ?? ''
 
@@ -72,6 +73,22 @@ export function EditorPage() {
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
   }, [])
+
+  // AI 질문 화면의 "원문 보기"로 들어오면 근거 문장을 선택해 보여 준다
+  const chapterId = chapter?.chapter_id
+  useEffect(() => {
+    if (!highlight || !chapterId) return
+    const quote = highlight.replace(/…$/, '')
+    const id = window.setTimeout(() => {
+      const el = textRef.current
+      const at = el?.value.indexOf(quote) ?? -1
+      if (el && at >= 0) {
+        el.focus()
+        el.setSelectionRange(at, at + quote.length)
+      }
+    }, 60)
+    return () => window.clearTimeout(id)
+  }, [highlight, chapterId])
 
   function onType(value: string) {
     if (!chapter) return
