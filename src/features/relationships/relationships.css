@@ -1,0 +1,273 @@
+/* Figma 843:1109 · 13 관계 변화 */
+.relations {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-24);
+  max-width: 1504px;
+}
+.relations__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+  gap: var(--itda-space-16);
+  align-items: start;
+}
+.relations__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-16);
+}
+.relations__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--itda-space-8);
+}
+.relations__toolbar .panel__title {
+  margin-right: auto;
+}
+
+.chapter-slider {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.chapter-slider input {
+  width: 100%;
+  accent-color: var(--prolog-color-interaction);
+}
+
+/* 상태 색 — 신뢰·우호는 파랑, 중립 회색, 긴장 주황, 갈등·적대 빨강 */
+.state--trust {
+  --state: #345e8d;
+  --state-bg: #dcebfd;
+}
+.state--friendly {
+  --state: #4f86c6;
+  --state-bg: #e5f0ff;
+}
+.state--neutral {
+  --state: #6a89a7;
+  --state-bg: #eef2f6;
+}
+.state--tension {
+  --state: #b54708;
+  --state-bg: #fdf1e7;
+}
+.state--conflict {
+  --state: #b42318;
+  --state-bg: #fdecea;
+}
+.state--hostile {
+  --state: #7a1a12;
+  --state-bg: #f9dcd8;
+}
+
+.mindmap {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--input-stroke);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+}
+.mindmap__edge {
+  cursor: pointer;
+}
+.mindmap__edge line {
+  stroke: var(--state);
+  stroke-width: 3;
+}
+.mindmap__edge .mindmap__hit {
+  stroke: transparent;
+  stroke-width: 18;
+}
+.mindmap__edge rect {
+  fill: var(--state-bg);
+  stroke: var(--state);
+}
+.mindmap__edge text {
+  fill: var(--state);
+  font-size: 13px;
+  font-weight: 600;
+}
+.mindmap__edge.is-selected line {
+  stroke-width: 6;
+}
+.mindmap__edge.is-selected rect {
+  stroke-width: 2;
+}
+.mindmap__edge:focus-visible {
+  outline: none;
+}
+.mindmap__edge:focus-visible rect {
+  stroke: var(--prolog-color-interaction);
+  stroke-width: 3;
+}
+.mindmap__node {
+  cursor: pointer;
+}
+.mindmap__node rect {
+  fill: var(--itda-surface);
+  stroke: rgba(106, 137, 167, 0.6);
+}
+.mindmap__node.is-center rect {
+  fill: var(--itda-ink);
+  stroke: var(--itda-ink);
+}
+.mindmap__name {
+  fill: var(--itda-ink);
+  font-size: 16px;
+  font-weight: 500;
+}
+.mindmap__role {
+  fill: var(--itda-muted);
+  font-size: 11px;
+}
+.mindmap__node.is-center .mindmap__name,
+.mindmap__node.is-center .mindmap__role {
+  fill: var(--itda-surface);
+}
+.mindmap__node:focus-visible {
+  outline: none;
+}
+.mindmap__node:focus-visible rect {
+  stroke: var(--prolog-color-interaction);
+  stroke-width: 3;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-12);
+  font-size: 12px;
+}
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--state);
+}
+.legend__item::before {
+  content: '';
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--state);
+}
+
+/* 관계 타임라인 */
+.timeline {
+  position: relative;
+  padding: 8px 40px 0;
+}
+.timeline__track {
+  position: relative;
+  height: 4px;
+  margin-top: 48px;
+  border-radius: 2px;
+  background: rgba(56, 73, 89, 0.12);
+}
+.timeline__now {
+  position: absolute;
+  top: -8px;
+  width: 2px;
+  height: 20px;
+  margin-left: -1px;
+  background: var(--prolog-color-interaction);
+}
+.timeline__points {
+  position: absolute;
+  inset: 0 40px auto;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.timeline__points li {
+  position: absolute;
+  top: 0;
+  translate: -50% 0;
+}
+.timeline__point {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border: 1px solid var(--state);
+  border-radius: var(--prolog-radius-8);
+  background: var(--state-bg);
+  color: var(--state);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.timeline__point.is-current {
+  box-shadow: 0 0 0 2px var(--prolog-color-interaction);
+}
+.timeline__chapter {
+  font-weight: 600;
+}
+.timeline__change {
+  font-size: 10px;
+  font-weight: 600;
+}
+.timeline__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--itda-muted);
+}
+
+.relations__detail {
+  gap: var(--itda-space-12);
+}
+.rel-state {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--itda-space-16);
+  border-radius: 10px;
+  background: var(--state-bg);
+  color: var(--state);
+}
+.rel-state strong {
+  font-size: 24px;
+  font-weight: 600;
+}
+.rel-state__label {
+  font-size: 12px;
+}
+.rel-deleted {
+  margin-left: 8px;
+}
+.record-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-8);
+  padding: var(--itda-space-16);
+  border-radius: 10px;
+  background: var(--itda-background);
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--itda-space-8);
+}
+.compare__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--state-bg);
+  color: var(--state);
+}
+.compare__card strong {
+  font-size: 18px;
+}
+
+@media (max-width: 1100px) {
+  .relations__layout {
+    grid-template-columns: 1fr;
+  }
+}

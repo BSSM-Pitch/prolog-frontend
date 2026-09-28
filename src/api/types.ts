@@ -257,6 +257,48 @@ export interface ConflictCheck {
 }
 export type RuleExtraction = ConflictCheck
 
+// RCV 명세 — 관계 변화
+
+export interface RelationshipHistoryEntry {
+  chapter: number
+  state: string
+  trust: number | null
+  /** (명세 미정의) 원인 사건 이름 — 명세는 event_id만 두지만 사건 리소스가 아직 없어 이름으로 받는다 */
+  event_title: string | null
+  event_deleted: boolean
+}
+
+export interface Relationship {
+  relationship_id: string
+  source_character_id: string
+  target_character_id: string
+  history: RelationshipHistoryEntry[]
+}
+
+export interface RelationshipSnapshot {
+  relationship_id: string
+  requested_chapter: number
+  resolved_chapter: number
+  state: string
+  trust: number | null
+  linked_event: string | null
+  is_carried_forward: boolean
+}
+
+export interface MindmapGraph {
+  chapter: number
+  nodes: Array<{ character_id: string; name: string; role_label: string }>
+  edges: Array<{
+    relationship_id: string
+    source_character_id: string
+    target_character_id: string
+    state: string
+    trust: number | null
+    is_carried_forward: boolean
+    resolved_chapter: number
+  }>
+}
+
 /** (명세 미정의) GET /projects/{id}/overview — Figma 01 개요의 요약 카드 */
 export interface ProjectOverview {
   current_manuscript: { manuscript_id: string; title: string; last_chapter: number } | null

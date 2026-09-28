@@ -83,3 +83,9 @@ REX·SCDS (`src/api/world.ts`):
 - `Conflict.evidence[]`(두 근거) — Figma 05는 원고의 두 장면을 비교하는데, 명세의 Conflict는 입력 사건 하나와 설정 항목 하나만 가짐
 - `POST /projects/{id}/rescan` — 명세의 챕터 단위 재검사(SCDS-007)를 프로젝트 전체로 사용. 사건(Event) 입력 화면이 Figma에 없어 이 경로로 검사를 시작함
 - "직접 수정"(`modified`)이면 원고의 해당 문장을 고친 문장으로 바꿈 (명세는 `modified_content`만 저장)
+
+RCV (`src/api/relationships.ts`):
+
+- 기록의 원인 사건을 `event_id` 대신 `event_title`(이름)로 받음 — 사건(Event) 리소스가 아직 없어서
+- 두 인물 사이에 관계가 이미 있으면 409 `RELATIONSHIP_EXISTS` (명세에 없음)
+- 마인드맵 엣지에 `is_carried_forward`·`resolved_chapter`를 함께 돌려줌

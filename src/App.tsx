@@ -19,6 +19,7 @@ import { ComingSoon } from './features/app/ComingSoon'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
+import { RelationshipsPage } from './features/relationships/RelationshipsPage'
 import { ConflictsPage } from './features/world/ConflictsPage'
 import { RulesPage } from './features/world/RulesPage'
 
@@ -77,7 +78,7 @@ export default function App() {
               <Route path="characters/drafts/:draftId" element={<DraftPage />} />
               <Route path="rules" element={<RulesPage />} />
               <Route path="conflicts" element={<ConflictsPage />} />
-              <Route path="relationships" element={<ComingSoon title="관계 변화" figma="Figma 843:1109 · 13 관계 변화" />} />
+              <Route path="relationships" element={<RelationshipsPage />} />
               <Route path="foreshadowings" element={<ComingSoon title="복선 추적" figma="Figma 843:1394 · 04 복선 추적" />} />
               <Route path="story-map" element={<ComingSoon title="스토리 지도" figma="Figma 843:1243 · 03 스토리 지도" />} />
               <Route path="*" element={<Navigate to="." replace />} />
