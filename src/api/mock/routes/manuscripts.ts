@@ -1,6 +1,6 @@
-import type { Chapter, Manuscript } from '../../types'
+import type { Chapter, Manuscript, ManuscriptVersion, ManuscriptVersionDetail } from '../../types'
 import { requireProject, touchProject } from '../access'
-import type { MockChapter, MockDb, MockManuscript } from '../db'
+import type { MockChapter, MockDb, MockManuscript, MockVersion } from '../db'
 import { fail, isResponse, nextId, noContent, ok, paginate, stamp, str, type Body, type Route } from '../http'
 
 const PROCESSING_MS = 3000
@@ -58,6 +58,44 @@ export function splitChapters(text: string): Array<{ title: string; content: str
     }
   }
   return out.map((c) => ({ title: c.title, content: c.content.join('\n').trim() })).filter((c) => c.content || out.length === 1)
+}
+
+/** 같은 장을 이어서 고치는 동안에는 스냅샷 하나를 갱신하고, 이 시간이 지나면 새 스냅샷을 남긴다 */
+const SNAPSHOT_GAP_MS = 10 * 60_000
+const MAX_VERSIONS = 60
+
+/** (명세 미정의) 편집 이력 스냅샷을 남긴다. 편집을 시작하면 "직접 수정", 오래 이어서 쓰면 "자동 저장" */
+function recordVersion(db: MockDb, c: MockChapter, reason?: MockVersion['reason'], label: string | null = null) {
+  const mine = db.versions.filter((v) => v.manuscript_id === c.manuscript_id)
+  const last = mine.find((v) => v.chapter_id === c.chapter_id)
+  const now = Date.now()
+  const snap = { chapter_no: c.chapter_no, chapter_title: c.title, content: c.content }
+  if (!reason) {
+    const recent = last && (last.reason === 'edit' || last.reason === 'autosave') && mine[0] === last
+    if (recent && now - new Date(last.created_at).getTime() < SNAPSHOT_GAP_MS) {
+      Object.assign(last, snap)
+      return
+    }
+    reason = recent ? 'autosave' : 'edit'
+  }
+  db.versions.unshift({ version_id: nextId(db, 'ver'), manuscript_id: c.manuscript_id, chapter_id: c.chapter_id, reason, label, ...snap, created_at: stamp() })
+  // 저장소가 커지지 않도록 원고마다 오래된 스냅샷은 버린다
+  const old = new Set(db.versions.filter((v) => v.manuscript_id === c.manuscript_id).slice(MAX_VERSIONS).map((v) => v.version_id))
+  if (old.size) db.versions = db.versions.filter((v) => !old.has(v.version_id))
+}
+
+function toVersion(v: MockVersion): ManuscriptVersion {
+  return {
+    version_id: v.version_id,
+    manuscript_id: v.manuscript_id,
+    chapter_id: v.chapter_id,
+    chapter_no: v.chapter_no,
+    chapter_title: v.chapter_title,
+    reason: v.reason,
+    label: v.label,
+    char_count: v.content.length,
+    created_at: v.created_at,
+  }
 }
 
 function findManuscript(db: MockDb, projectId: string, manuscriptId: string) {
@@ -183,6 +221,8 @@ export const manuscriptRoutes: Route[] = [
       parts.forEach((p, i) =>
         db.chapters.push({ chapter_id: `${m.manuscript_id}_ch${i + 1}`, manuscript_id: m.manuscript_id, chapter_no: i + 1, title: p.title, content: p.content, updated_at: t }),
       )
+      const first = db.chapters.find((c) => c.manuscript_id === m.manuscript_id && c.chapter_no === 1)
+      if (first) recordVersion(db, first, 'file_upload', `${m.title} 불러옴`)
       Object.assign(m, {
         file_name: file.name,
         file_format: format,
@@ -249,13 +289,41 @@ export const manuscriptRoutes: Route[] = [
       const c = db.chapters.find((x) => x.manuscript_id === manuscriptId && x.chapter_id === chapterId)
       if (!m || !c) return fail(404, 'CHAPTER_NOT_FOUND', '장을 찾을 수 없어요.')
       const b = (req.body ?? {}) as Body
+      const changed = typeof b.content === 'string' && b.content !== c.content
       if (typeof b.content === 'string') c.content = b.content
       if (b.title !== undefined) c.title = str(b.title) || c.title
       const t = stamp()
       c.updated_at = t
       m.updated_at = t
+      if (changed) recordVersion(db, c)
       touchProject(db, projectId)
       return ok(200, toChapter(c))
+    },
+  ],
+  [
+    // 4.10 편집 이력 조회 (선택) — 자동 저장 스냅샷 목록. 필드는 명세 미정의
+    'GET',
+    '/projects/:projectId/manuscripts/:manuscriptId/versions',
+    (req, db, { projectId, manuscriptId }) => {
+      const access = requireProject(req, db, projectId)
+      if (isResponse(access)) return access
+      if (!findManuscript(db, projectId, manuscriptId)) return fail(404, 'MANUSCRIPT_NOT_FOUND', '원고를 찾을 수 없어요.')
+      const rows = db.versions.filter((v) => v.manuscript_id === manuscriptId).sort((a, b) => b.created_at.localeCompare(a.created_at))
+      const { page, next_cursor } = paginate(req, rows)
+      return ok(200, page.map(toVersion), { next_cursor, total: rows.length })
+    },
+  ],
+  [
+    // (명세 미정의) 스냅샷 본문 조회
+    'GET',
+    '/projects/:projectId/manuscripts/:manuscriptId/versions/:versionId',
+    (req, db, { projectId, manuscriptId, versionId }) => {
+      const access = requireProject(req, db, projectId)
+      if (isResponse(access)) return access
+      const v = db.versions.find((x) => x.manuscript_id === manuscriptId && x.version_id === versionId)
+      if (!v || !findManuscript(db, projectId, manuscriptId)) return fail(404, 'VERSION_NOT_FOUND', '스냅샷을 찾을 수 없어요.')
+      const detail: ManuscriptVersionDetail = { ...toVersion(v), content: v.content }
+      return ok(200, detail)
     },
   ],
 ]

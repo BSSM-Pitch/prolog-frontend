@@ -95,6 +95,29 @@ export interface Chapter {
   updated_at: string
 }
 
+/**
+ * (명세 미정의) MSU 4.10 편집 이력 — 명세에는 "자동저장 스냅샷 이력 목록"만 있고 필드가 없다.
+ * 스냅샷은 장 단위로 남긴다.
+ */
+export type VersionReason = 'edit' | 'autosave' | 'file_upload' | 'import'
+
+export interface ManuscriptVersion {
+  version_id: string
+  manuscript_id: string
+  chapter_id: string
+  chapter_no: number
+  chapter_title: string | null
+  reason: VersionReason
+  /** "3차 원고 불러옴"처럼 목록에 보여 줄 제목. 없으면 reason으로 정한다 */
+  label: string | null
+  char_count: number
+  created_at: string
+}
+
+export interface ManuscriptVersionDetail extends ManuscriptVersion {
+  content: string
+}
+
 // AIQ 명세 2장
 export interface QAThread {
   thread_id: string

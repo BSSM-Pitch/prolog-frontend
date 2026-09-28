@@ -36,7 +36,7 @@ npm run dev
 | `/projects/:id/relationships` | 843:1109 · 13 관계 변화 · 38 덮어쓰기 확인 |
 | `/projects/:id/foreshadowings` | 843:1394 · 04 복선 추적 · 843:1534 · 24 복선 타임라인 |
 | `/projects/:id/story-map` | 843:1243 · 03 스토리 지도 |
-| `/projects/:id/manuscripts/:msId/history` | 32 편집 이력 (준비 중 안내) |
+| `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
 
 ## 목업 테스트 계정
 
@@ -78,6 +78,8 @@ MSU·AIQ (`src/api/manuscripts.ts`):
 - 파일 업로드본 원고도 편집기에서 수정·자동 저장(`PATCH .../chapters/{id}`)할 수 있다고 가정 (Figma 19가 DOCX 원고를 편집)
 - AIQ `selection_range`와 함께 `chapter_id`를 보낸다 — 명세의 범위는 원고 전체 기준 오프셋이라 장 단위 편집기와 맞지 않음
 - `QAThread.selected_text`, `QAThread.cited_chapters`, `QAMessage.citations`(근거 장·인용문) — Figma 02의 "근거 · 17장 / 원문 보기"
+- 편집 이력(4.10 `GET .../versions`)은 명세에 필드가 없어 `ManuscriptVersion`(장 단위 스냅샷: `chapter_no`, `reason`=edit·autosave·file_upload·import, `label`, `char_count`)으로 가정. 목록은 cursor 페이지네이션 + `meta.total`("스냅샷 12개")
+- 스냅샷 본문 조회 `GET .../versions/{versionId}`는 명세에 없음. 스냅샷을 언제 남기는지(목업: 같은 장을 10분 안에 이어 고치면 하나로 합침)도 백엔드와 맞출 것
 
 NLCD·ASS·인물 (`src/api/characters.ts`):
 

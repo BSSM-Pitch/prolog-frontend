@@ -80,6 +80,19 @@ export interface MockChapter {
   updated_at: string
 }
 
+/** (명세 미정의) 편집 이력 스냅샷 — 장 하나의 본문을 그 시점 그대로 보관한다 */
+export interface MockVersion {
+  version_id: string
+  manuscript_id: string
+  chapter_id: string
+  chapter_no: number
+  chapter_title: string | null
+  reason: 'edit' | 'autosave' | 'file_upload' | 'import'
+  label: string | null
+  content: string
+  created_at: string
+}
+
 export interface MockQAThread {
   thread_id: string
   project_id: string
@@ -186,6 +199,7 @@ export interface MockDb {
   projectMembers: MockProjectMember[]
   manuscripts: MockManuscript[]
   chapters: MockChapter[]
+  versions: MockVersion[]
   worlds: Record<string, MockWorld>
   qaThreads: MockQAThread[]
   qaMessages: MockQAMessage[]
@@ -266,7 +280,7 @@ function demoWorld(): MockWorld {
   }
 }
 
-type ProjectSeed = Pick<MockDb, 'teams' | 'projects' | 'projectMembers' | 'manuscripts' | 'chapters' | 'worlds'>
+type ProjectSeed = Pick<MockDb, 'teams' | 'projects' | 'projectMembers' | 'manuscripts' | 'chapters' | 'versions' | 'worlds'>
 
 // Figma 27 · 내 프로젝트의 예시 데이터(writer_kim 기준). 수정 시각은 "2시간 전" 등이 그대로 보이도록 지금 기준으로 만든다.
 function seedProjects(): ProjectSeed {
@@ -321,6 +335,7 @@ function seedProjects(): ProjectSeed {
 
   return {
     teams: [{ team_id: 'team_10', name: '문장 수집소' }],
+    versions: seedVersions(chapters),
     projects: rows.map(([project_id, title, owner_type, team_id, role, , hours]) => ({
       project_id,
       title,
@@ -338,8 +353,51 @@ function seedProjects(): ProjectSeed {
   }
 }
 
+// Figma 32 · 원고 편집 이력의 예시 스냅샷 (3차 원고, 최신이 먼저)
+function seedVersions(chapters: MockChapter[]): MockVersion[] {
+  const ms = 'ms_003'
+  const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
+  const ch = (no: number) => chapters.find((c) => c.manuscript_id === ms && c.chapter_no === no)
+  // 문장을 뒤에서부터 덜어 내 예전 본문처럼 만든다
+  const earlier = (text: string, drop: number) => {
+    const parts = text.match(/[^.!?。]+[.!?。]?/g) ?? [text]
+    return parts.slice(0, Math.max(1, parts.length - drop)).join('').trim()
+  }
+  const rows: Array<[number, MockVersion['reason'], string | null, number, number]> = [
+    // 장, 이유, 제목, 몇 시간 전, 덜어 낼 문장 수
+    [27, 'edit', null, 0.4, 0],
+    [1, 'file_upload', '3차 원고 불러옴', 0.8, 0],
+    [27, 'autosave', null, 17, 1],
+    [26, 'autosave', null, 17.5, 0],
+    [26, 'autosave', null, 26, 1],
+    [25, 'autosave', null, 30, 0],
+    [24, 'autosave', null, 50, 0],
+    [23, 'edit', null, 55, 1],
+    [22, 'autosave', null, 74, 0],
+    [21, 'autosave', null, 76, 1],
+    [20, 'autosave', null, 96, 0],
+    [1, 'import', '2차 원고 불러옴', 99, 0],
+  ]
+  return rows.flatMap(([no, reason, label, hours, drop], i) => {
+    const c = ch(no)
+    if (!c) return []
+    return {
+      version_id: `ver_${String(rows.length - i).padStart(3, '0')}`,
+      manuscript_id: ms,
+      chapter_id: c.chapter_id,
+      chapter_no: no,
+      chapter_title: c.title,
+      reason,
+      label,
+      content: earlier(c.content, drop),
+      created_at: ago(hours),
+    }
+  })
+}
+
 /** 나중에 추가된 테이블이 예전 저장본에 없으면 빈 값으로 채운다 */
 function withDefaults(db: MockDb): MockDb {
+  db.versions ??= seedVersions(db.chapters)
   db.qaThreads ??= []
   db.qaMessages ??= []
   db.extractions ??= []

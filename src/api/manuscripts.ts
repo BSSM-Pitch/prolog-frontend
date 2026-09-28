@@ -1,5 +1,5 @@
-import { request } from './client'
-import type { Chapter, Manuscript, ManuscriptSource, QAMessage, QAThread } from './types'
+import { request, requestWithMeta } from './client'
+import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
 // MSU 명세
 
@@ -40,6 +40,18 @@ export function addChapter(accessToken: string, projectId: string, manuscriptId:
 /** 4.9 장 수정 — 편집기 자동 저장 */
 export function saveChapter(accessToken: string, projectId: string, manuscriptId: string, chapterId: string, input: { content?: string; title?: string }) {
   return request<Chapter>('PATCH', `${base(projectId)}/${manuscriptId}/chapters/${chapterId}`, { body: input, accessToken })
+}
+
+/** 4.10 편집 이력 조회 (선택) — meta.total은 명세 미정의 */
+export function listVersions(accessToken: string, projectId: string, manuscriptId: string, cursor?: string | null) {
+  const query: Record<string, string> = { limit: '6' }
+  if (cursor) query.cursor = cursor
+  return requestWithMeta<ManuscriptVersion[], { next_cursor: string | null; total?: number }>('GET', `${base(projectId)}/${manuscriptId}/versions`, { accessToken, query })
+}
+
+/** (명세 미정의) 스냅샷 본문 */
+export function getVersion(accessToken: string, projectId: string, manuscriptId: string, versionId: string) {
+  return request<ManuscriptVersionDetail>('GET', `${base(projectId)}/${manuscriptId}/versions/${versionId}`, { accessToken })
 }
 
 // AIQ 명세 — 원고 단위 질문 스레드

@@ -14,8 +14,8 @@ import { DraftPage } from './features/characters/DraftPage'
 import { NewCharacterPage } from './features/characters/NewCharacterPage'
 import { AskPage } from './features/manuscripts/AskPage'
 import { EditorPage } from './features/manuscripts/EditorPage'
+import { HistoryPage } from './features/manuscripts/HistoryPage'
 import { ManuscriptsPage } from './features/manuscripts/ManuscriptsPage'
-import { ComingSoon } from './features/app/ComingSoon'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
 import { ForeshadowingsPage } from './features/foreshadowings/ForeshadowingsPage'
@@ -73,7 +73,7 @@ export default function App() {
               <Route index element={<OverviewPage />} />
               <Route path="manuscripts" element={<ManuscriptsPage />} />
               <Route path="manuscripts/:manuscriptId" element={<EditorPage />} />
-              <Route path="manuscripts/:manuscriptId/history" element={<ComingSoon title="편집 이력" figma="Figma 1261:3042 · 32 원고 편집 이력" />} />
+              <Route path="manuscripts/:manuscriptId/history" element={<HistoryPage />} />
               <Route path="ask" element={<AskPage />} />
               <Route path="characters" element={<CharactersPage />} />
               <Route path="characters/new" element={<NewCharacterPage />} />
