@@ -10,7 +10,10 @@
   position: fixed;
   inset: 0;
   z-index: 100;
+  /* hidden이면 스크롤 컨테이너가 되어, 패널이 들어오는 도중 입력칸 자동 포커스가 이 영역을 옆으로 스크롤해
+     패널이 튀었다가 제자리로 돌아간다. clip은 스크롤되지 않는다 */
   overflow: hidden;
+  overflow: clip;
 }
 
 /* ───────── 뒤 페이지를 가리는 막 ───────── */
