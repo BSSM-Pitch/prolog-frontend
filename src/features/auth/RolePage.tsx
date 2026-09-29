@@ -47,17 +47,20 @@ export function RolePage() {
   }
 
   return (
-    <div className="auth-card">
+    // Figma 840:178 — 480 기준 카드를 1.352배로 키운 디자인. 제목 / [설명 + 유형] / 버튼, 묶음 사이 44(확대 후)
+    <div className="auth-card auth-card--role">
       <h1 id="role-title" className="auth-card__title">
         사용자 유형
       </h1>
-      <p className="auth-card__desc">서비스를 사용하시는 목적이 무엇인가요?</p>
-      <RoleGroup value={draft.role} onChange={(role) => update({ role })} labelledBy="role-title" />
-      {error && (
-        <p className="notice notice--error" role="alert">
-          {error}
-        </p>
-      )}
+      <div className="auth-card__group">
+        <p className="auth-card__desc">서비스를 사용하시는 목적이 무엇인가요?</p>
+        <RoleGroup value={draft.role} onChange={(role) => update({ role })} labelledBy="role-title" />
+        {error && (
+          <p className="notice notice--error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
       <div className="auth-card__row">
         <Button tone="outline" onClick={() => navigate('/auth/signup')}>
           이전

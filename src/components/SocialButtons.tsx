@@ -15,7 +15,7 @@ const PROVIDERS: Array<{ id: OAuthProvider; mark: string; name: string }> = [
 export function SocialButtons({ mode, onSelect, disabled }: SocialButtonsProps) {
   const suffix = mode === 'login' ? '로그인' : '회원가입'
   return (
-    <div className={mode === 'signup' ? 'social social--on-blue' : 'social'}>
+    <div className="social">
       {PROVIDERS.map((p) => (
         <button key={p.id} type="button" className="social__btn" disabled={disabled} onClick={() => onSelect(p.id)}>
           <span className={`social__mark social__mark--${p.id}`} aria-hidden="true">

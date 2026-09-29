@@ -106,81 +106,89 @@ export function SignupPage() {
   }
 
   return (
-    <form className="auth-form" onSubmit={onSubmit} noValidate>
+    // Figma 1214:2075 — 제목 / 입력(간격 36) / [버튼+링크(4)] · 소셜(36), 묶음 사이 52
+    <form className="auth-form auth-form--signup" onSubmit={onSubmit} noValidate>
       <h1 className="auth-form__title">회원가입</h1>
-      {notice && (
-        <p className="notice" role="status">
-          {notice}
-        </p>
-      )}
-      <TextField
-        size="lg"
-        label="아이디"
-        value={username}
-        onChange={set('username', setUsername)}
-        error={errors.username}
-        autoComplete="username"
-        placeholder="침착맨"
-        autoFocus
-      />
-      {ticketMode ? (
-        <>
-          {draft.email && <TextField size="lg" label="연결한 계정" value={draft.email} onChange={() => {}} disabled />}
-          <button
-            type="button"
-            className="text-link auth-form__link"
-            onClick={() => {
-              clear()
-              navigate('/auth/signup', { replace: true, state: null })
-            }}
-          >
-            다른 방법으로 가입하기
-          </button>
-        </>
-      ) : (
-        <>
-          <TextField
-            size="lg"
-            type="email"
-            label="이메일"
-            value={email}
-            onChange={set('email', setEmail)}
-            error={errors.email}
-            autoComplete="email"
-            placeholder="writer.kim@example.com"
-          />
-          <TextField
-            size="lg"
-            type="password"
-            label="비밀번호"
-            value={password}
-            onChange={set('password', setPassword)}
-            error={errors.password}
-            autoComplete="new-password"
-          />
-          <TextField
-            size="lg"
-            type="password"
-            label="비밀번호 확인"
-            value={confirm}
-            onChange={set('confirm', setConfirm)}
-            error={errors.confirm}
-            autoComplete="new-password"
-          />
-        </>
-      )}
-      {formError && (
-        <p className="notice notice--error" role="alert">
-          {formError}
-        </p>
-      )}
-      <Button type="submit" size="lg" block busy={busy}>
-        {busy ? '확인 중…' : ticketMode ? '다음' : '회원가입'}
-      </Button>
-      <Link className="text-link auth-form__link" to="/auth/login">
-        이미 계정이 있으신가요?
-      </Link>
-      {!ticketMode && <SocialButtons mode="signup" onSelect={onSocial} disabled={busy} />}
+      <div className="auth-form__fields">
+        {notice && (
+          <p className="notice" role="status">
+            {notice}
+          </p>
+        )}
+        <TextField
+          size="lg"
+          label="아이디"
+          value={username}
+          onChange={set('username', setUsername)}
+          error={errors.username}
+          autoComplete="username"
+          placeholder="침착맨"
+          autoFocus
+        />
+        {ticketMode ? (
+          draft.email && <TextField size="lg" label="연결한 계정" value={draft.email} onChange={() => {}} disabled />
+        ) : (
+          <>
+            <TextField
+              size="lg"
+              type="email"
+              label="이메일"
+              value={email}
+              onChange={set('email', setEmail)}
+              error={errors.email}
+              autoComplete="email"
+              placeholder="writer.kim@example.com"
+            />
+            <TextField
+              size="lg"
+              type="password"
+              label="비밀번호"
+              value={password}
+              onChange={set('password', setPassword)}
+              error={errors.password}
+              autoComplete="new-password"
+            />
+            <TextField
+              size="lg"
+              type="password"
+              label="비밀번호 확인"
+              value={confirm}
+              onChange={set('confirm', setConfirm)}
+              error={errors.confirm}
+              autoComplete="new-password"
+            />
+          </>
+        )}
+        {formError && (
+          <p className="notice notice--error" role="alert">
+            {formError}
+          </p>
+        )}
+      </div>
+      <div className="auth-form__footer">
+        <div className="auth-form__actions auth-form__actions--tight">
+          <Button type="submit" size="lg" block busy={busy}>
+            {busy ? '확인 중…' : ticketMode ? '다음' : '회원가입'}
+          </Button>
+          {ticketMode ? (
+            <button
+              type="button"
+              className="text-link auth-form__link"
+              onClick={() => {
+                clear()
+                navigate('/auth/signup', { replace: true, state: null })
+              }}
+            >
+              다른 방법으로 가입하기
+            </button>
+          ) : (
+            <Link className="text-link auth-form__link" to="/auth/login">
+              이미 계정이 있으신가요?
+            </Link>
+          )}
+        </div>
+        {!ticketMode && <SocialButtons mode="signup" onSelect={onSocial} disabled={busy} />}
+      </div>
     </form>
   )
 }

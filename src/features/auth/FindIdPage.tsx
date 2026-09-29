@@ -42,61 +42,70 @@ export function FindIdPage() {
   }
 
   return (
-    <form className="auth-card auth-card--bordered" onSubmit={onSubmit} noValidate>
+    // Figma 840:435 · 1214:2226 — 제목 / [설명 · 입력(36)] / [버튼 · 결과(28)] / 다음 행동, 묶음 사이 48
+    <form className="auth-card auth-card--find" onSubmit={onSubmit} noValidate>
       <h1 className="auth-card__title">아이디 찾기</h1>
-      <p className="auth-card__desc">가입할 때 사용한 이름과 이메일을 입력하세요.</p>
-      <TextField
-        label="이름"
-        value={name}
-        onChange={(v) => {
-          setName(v)
-          setNameError(null)
-        }}
-        error={nameError}
-        autoComplete="name"
-        placeholder="김유진"
-        autoFocus
-      />
-      <TextField
-        type="email"
-        label="가입 이메일"
-        value={email}
-        onChange={(v) => {
-          setEmail(v)
-          setEmailError(null)
-        }}
-        error={emailError}
-        autoComplete="email"
-        placeholder="writer.kim@example.com"
-      />
-      <Button type="submit" block busy={busy} style={found ? { opacity: 0.75 } : undefined}>
-        {busy ? '찾는 중…' : '아이디 찾기'}
-      </Button>
+      <div className="auth-card__group find__body">
+        <p className="auth-card__desc">가입할 때 사용한 이름과 이메일을 입력하세요.</p>
+        <div className="auth-card__group find__fields">
+          <TextField
+            label="이름"
+            value={name}
+            onChange={(v) => {
+              setName(v)
+              setNameError(null)
+            }}
+            error={nameError}
+            autoComplete="name"
+            placeholder="김유진"
+            autoFocus
+          />
+          <TextField
+            type="email"
+            label="가입 이메일"
+            value={email}
+            onChange={(v) => {
+              setEmail(v)
+              setEmailError(null)
+            }}
+            error={emailError}
+            autoComplete="email"
+            placeholder="writer.kim@example.com"
+          />
+        </div>
+      </div>
 
-      {found ? (
-        <>
+      <div className="auth-card__group find__result">
+        <Button type="submit" block busy={busy}>
+          {busy ? '찾는 중…' : '아이디 찾기'}
+        </Button>
+        {found ? (
           <p className="result-box" role="status">
             가입된 아이디 : {found}
           </p>
-          <div className="auth-card__row">
-            <Button onClick={() => navigate('/auth/login', { state: { loginId: found } })}>로그인으로 돌아가기</Button>
-            <Button tone="outline" onClick={() => navigate('/auth/reset-password', { state: { loginId: found } })}>
-              비밀번호 재설정
-            </Button>
-          </div>
-        </>
-      ) : (
-        <>
-          {error && (
+        ) : (
+          error && (
             <p className="notice notice--error" role="alert">
               {error}
             </p>
-          )}
+          )
+        )}
+      </div>
+
+      {found ? (
+        <div className="auth-card__row">
+          <Button onClick={() => navigate('/auth/login', { state: { loginId: found } })}>로그인으로 돌아가기</Button>
+          <Button tone="outline" onClick={() => navigate('/auth/reset-password', { state: { loginId: found } })}>
+            비밀번호 재설정
+          </Button>
+        </div>
+      ) : (
+        <div className="auth-card__group find__help">
           <p className="auth-card__caption">Google·Naver로 가입했다면 소셜 로그인을 이용해주세요.</p>
           <Link className="text-link auth-form__link" to="/auth/login">
             로그인으로 돌아가기
           </Link>
-        </>
+        </div>
       )}
     </form>
   )

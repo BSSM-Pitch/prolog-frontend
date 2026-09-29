@@ -79,46 +79,55 @@ export function VerifyPage() {
   const hasError = Boolean(message)
 
   return (
-    <form className="auth-card" onSubmit={onSubmit} noValidate>
+    // Figma 840:362 — 480 기준 카드를 1.2667배로 키운 디자인. 제목 / [설명 · 이메일 · 인증 코드] / 버튼, 묶음 사이 40
+    <form className="auth-card auth-card--verify" onSubmit={onSubmit} noValidate>
       <h1 className="auth-card__title">계정 인증</h1>
-      <p className="auth-card__desc">이메일로 전송된 인증 코드를 입력하세요.</p>
-      <TextField
-        type="email"
-        label="이메일"
-        value={draft.email}
-        onChange={(email) => {
-          update({ email })
-          setEmailError(null)
-        }}
-        error={emailError}
-        autoComplete="email"
-      />
-      <Button tone={hasError ? 'error' : 'outline-strong'} block onClick={onSend} busy={sending}>
-        {sending ? '보내는 중…' : timer.started ? '인증코드 재전송' : '인증코드 전송'}
-      </Button>
-      <TextField
-        variant="code"
-        label="인증 코드"
-        value={code}
-        onChange={(v) => {
-          setCode(v)
-          setCodeError(null)
-        }}
-        disabled={!timer.started}
-        invalid={hasError}
-        placeholder={timer.started ? '6자리 숫자' : '먼저 인증코드를 받아 주세요'}
-      />
-      {hasError ? (
-        <p className="notice notice--error notice--block" role="alert">
-          {message}
-        </p>
-      ) : (
-        timer.started && (
-          <p className="auth-card__meta" aria-live="polite">
-            남은 시간 {timer.label}
-          </p>
-        )
-      )}
+      <div className="auth-card__group verify__body">
+        <p className="auth-card__desc">이메일로 전송된 인증 코드를 입력하세요.</p>
+        <div className="auth-card__group verify__fields">
+          <div className="auth-card__group verify__block verify__email">
+            <TextField
+              type="email"
+              label="이메일"
+              value={draft.email}
+              onChange={(email) => {
+                update({ email })
+                setEmailError(null)
+              }}
+              error={emailError}
+              autoComplete="email"
+            />
+            <Button tone={hasError ? 'error' : 'outline-strong'} block onClick={onSend} busy={sending}>
+              {sending ? '보내는 중…' : timer.started ? '인증코드 재전송' : '인증코드 전송'}
+            </Button>
+          </div>
+          <div className="auth-card__group verify__block verify__code">
+            <TextField
+              variant="code"
+              label="인증 코드"
+              value={code}
+              onChange={(v) => {
+                setCode(v)
+                setCodeError(null)
+              }}
+              disabled={!timer.started}
+              invalid={hasError}
+              placeholder={timer.started ? '6자리 숫자' : '먼저 인증코드를 받아 주세요'}
+            />
+            {hasError ? (
+              <p className="notice notice--error notice--block" role="alert">
+                {message}
+              </p>
+            ) : (
+              timer.started && (
+                <p className="auth-card__meta" aria-live="polite">
+                  남은 시간 {timer.label}
+                </p>
+              )
+            )}
+          </div>
+        </div>
+      </div>
       <Button type="submit" block disabled={!canSubmit} busy={submitting}>
         {submitting ? '가입 중…' : '인증하고 가입 완료'}
       </Button>

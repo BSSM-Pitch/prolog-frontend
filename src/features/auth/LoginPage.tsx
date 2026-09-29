@@ -63,48 +63,53 @@ export function LoginPage() {
   }
 
   return (
-    <form className="auth-form" onSubmit={onSubmit} noValidate>
+    // Figma 1175:2053 — 제목 / 입력(간격 36) / 버튼+계정 복구(16) / 소셜, 묶음 사이 52
+    <form className="auth-form auth-form--login" onSubmit={onSubmit} noValidate>
       <h1 className="auth-form__title">로그인</h1>
-      {IS_REAL && !state.notice && !error && (
-        <p className="notice" role="status">
-          지금은 Google 로그인만 쓸 수 있어요. 아이디·비밀번호와 네이버 로그인은 준비 중이에요.
-        </p>
-      )}
-      {state.notice && !error && (
-        <p className="notice notice--success" role="status">
-          {state.notice}
-        </p>
-      )}
-      <TextField
-        size="lg"
-        label="아이디 또는 이메일"
-        value={loginId}
-        onChange={(v) => {
-          setLoginId(v)
-          clearError()
-        }}
-        autoComplete="username"
-        placeholder="writer.kim@example.com"
-        autoFocus
-      />
-      <TextField
-        size="lg"
-        type="password"
-        label="비밀번호"
-        value={password}
-        onChange={(v) => {
-          setPassword(v)
-          clearError()
-        }}
-        autoComplete="current-password"
-        error={error}
-      />
-      <Button type="submit" size="lg" block tone={error ? 'error' : 'primary'} busy={busy}>
-        {busy ? '로그인 중…' : '로그인'}
-      </Button>
-      <Link className="text-link auth-form__link" to="/auth/find-id">
-        계정 복구
-      </Link>
+      <div className="auth-form__fields">
+        {IS_REAL && !state.notice && !error && (
+          <p className="notice" role="status">
+            지금은 Google 로그인만 쓸 수 있어요. 아이디·비밀번호와 네이버 로그인은 준비 중이에요.
+          </p>
+        )}
+        {state.notice && !error && (
+          <p className="notice notice--success" role="status">
+            {state.notice}
+          </p>
+        )}
+        <TextField
+          size="lg"
+          label="아이디 또는 이메일"
+          value={loginId}
+          onChange={(v) => {
+            setLoginId(v)
+            clearError()
+          }}
+          autoComplete="username"
+          placeholder="writer.kim@example.com"
+          autoFocus
+        />
+        <TextField
+          size="lg"
+          type="password"
+          label="비밀번호"
+          value={password}
+          onChange={(v) => {
+            setPassword(v)
+            clearError()
+          }}
+          autoComplete="current-password"
+          error={error}
+        />
+      </div>
+      <div className="auth-form__actions">
+        <Button type="submit" size="lg" block tone={error ? 'error' : 'primary'} busy={busy}>
+          {busy ? '로그인 중…' : '로그인'}
+        </Button>
+        <Link className="text-link auth-form__link" to="/auth/find-id">
+          계정 복구
+        </Link>
+      </div>
       <SocialButtons mode="login" onSelect={onSocial} disabled={busy} />
     </form>
   )

@@ -29,8 +29,7 @@
 
   /* 로그인 섹션 배경 */
   --auth-page-bg: linear-gradient(180deg, #e9f3ff 0%, #c9dff7 100%);
-  --auth-panel-light: linear-gradient(180deg, #ffffff 0%, #ecf4ff 100%);
-  --auth-panel-blue: linear-gradient(180deg, #bdddfc 0%, #88bdf1 100%);
+  --auth-panel-light: linear-gradient(180deg, #ffffff 0%, #e9f4ff 100%);
 
   --font-sans: 'Paperlogy', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
   --transition-state: 150ms ease;
