@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { SignupDraftProvider } from '../../auth/signupDraft'
 import './AuthShell.css'
@@ -16,18 +16,16 @@ function modeFor(pathname: string): AuthMode | null {
 
 const CLOSE_MS = 380
 
-// Figma 1215:2403 로그인 및 회원가입 — 랜딩의 로그인·회원가입을 누르면 오른쪽에서 패널이 밀려 나온다.
-// 패널은 로그인·회원가입이 같은 흰 패널이고, 손잡이 색만 다르다.
+// Figma 1215:2403 로그인 및 회원가입 — 지금 보고 있는 페이지(랜딩) 위에 모달처럼 오른쪽에서 패널이 밀려 나온다.
+// 패널은 로그인·회원가입이 같은 흰 패널이고, 손잡이 색만 다르다. 바깥(뒤 페이지)이나 손잡이를 누르면 닫힌다.
 export function AuthShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [closing, setClosing] = useState(false)
   const mode = modeFor(pathname)
-  if (!mode) return <Navigate to="/" replace />
-
-  const kind = mode.startsWith('signup') ? 'signup' : 'login'
-  // 로그인·회원가입 첫 단계에서는 브랜드 영역이나 패널 손잡이를 눌러 패널을 닫고 랜딩으로 돌아간다
+  // 로그인·회원가입 첫 단계에서만 닫을 수 있다 (사용자 유형·계정 인증 등 이어지는 단계는 패널이 화면을 채운다)
   const closable = mode === 'login' || mode === 'signup'
+
   const close = () => {
     if (closing) return
     setClosing(true)
@@ -35,27 +33,24 @@ export function AuthShell() {
     window.setTimeout(() => navigate('/'), reduce ? 0 : CLOSE_MS)
   }
 
-  const brand = (
-    <>
-      <span className="brand__title">Prolog</span>
-      <span className="brand__tagline">이야기의 시작부터 완성까지</span>
-    </>
-  )
+  // Esc로 닫기
+  useEffect(() => {
+    if (!closable) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
+  if (!mode) return <Navigate to="/" replace />
+  const kind = mode.startsWith('signup') ? 'signup' : 'login'
 
   return (
     <SignupDraftProvider>
       <div className="auth" data-mode={mode} data-closing={closing || undefined}>
-        {closable ? (
-          <button type="button" className="auth__brand auth__brand--button" onClick={close} aria-label="패널 닫고 처음 화면으로">
-            {brand}
-          </button>
-        ) : (
-          <div className="auth__brand" aria-hidden="true">
-            {brand}
-          </div>
-        )}
+        {/* 뒤 페이지를 살짝 가리는 막. 누르면 패널이 닫힌다 */}
+        <div className="auth__scrim" onClick={closable ? close : undefined} aria-hidden="true" />
 
-        <section className="auth__panel" data-kind={kind} aria-label={kind === 'login' ? '로그인' : '회원가입'}>
+        <section className="auth__panel" data-kind={kind} role="dialog" aria-modal="true" aria-label={kind === 'login' ? '로그인' : '회원가입'}>
           {closable && (
             <button type="button" className="auth__handle" onClick={close}>
               <span className="visually-hidden">패널 닫기</span>

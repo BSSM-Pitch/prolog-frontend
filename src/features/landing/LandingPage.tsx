@@ -37,12 +37,13 @@ function useLandingHead() {
   }, [])
 }
 
-// 랜딩 페이지 (디자인 팀 Prolog-landing). 스크롤에 따라 영상 프레임을 넘기는 섹션들로 이뤄져 있다
-export function LandingPage() {
-  useLenis()
+// 랜딩 페이지 (디자인 팀 Prolog-landing). 스크롤에 따라 영상 프레임을 넘기는 섹션들로 이뤄져 있다.
+// behind: 로그인·회원가입 패널이 위에 모달로 떠 있다 — 스크롤과 포커스를 막는다
+export function LandingPage({ behind = false }: { behind?: boolean }) {
+  useLenis(behind)
   useLandingHead()
   return (
-    <div className="lp">
+    <div className="lp" inert={behind} aria-hidden={behind || undefined}>
       <Nav />
       <main>
         <Hero />

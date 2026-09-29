@@ -13,7 +13,7 @@ import { AppShell } from './features/app/AppShell'
 import { AcceptInvitePage } from './features/invite/AcceptInvitePage'
 import { saveReturnTo } from './lib/returnTo'
 import { CharactersPage } from './features/characters/CharactersPage'
-import { LandingPage } from './features/landing/LandingPage'
+import { LandingLayout } from './features/landing/LandingLayout'
 import { DraftPage } from './features/characters/DraftPage'
 import { NewCharacterPage } from './features/characters/NewCharacterPage'
 import { AskPage } from './features/manuscripts/AskPage'
@@ -56,27 +56,29 @@ export default function App() {
     <SessionProvider>
       <BrowserRouter>
         <Routes>
-          {/* 랜딩 — 로그인 여부와 상관없이 보여 주고, 버튼만 로그인 상태에 맞게 바뀐다 */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/landing" element={<Navigate to="/" replace />} />
-          <Route
-            path="/auth"
-            element={
-              <GuestOnly>
-                <AuthShell />
-              </GuestOnly>
-            }
-          >
-            {/* 시작 화면(Figma 1173:2377)은 패널 셸만 보인다 */}
-            <Route index element={null} />
-            <Route path="login" element={<LoginPage />} />
-            <Route path="callback" element={<AuthCallbackPage />} />
-            <Route path="signup" element={<SignupPage />} />
-            <Route path="signup/role" element={<RolePage />} />
-            <Route path="signup/verify" element={<VerifyPage />} />
-            <Route path="find-id" element={<FindIdPage />} />
-            <Route path="reset-password" element={<ResetPasswordPage />} />
+          {/* 랜딩 — 로그인 여부와 상관없이 보여 주고, 버튼만 로그인 상태에 맞게 바뀐다.
+              로그인·회원가입(/auth/*)은 랜딩 위에 모달처럼 옆에서 나오는 패널이다 */}
+          <Route element={<LandingLayout />}>
+            <Route path="/" element={null} />
+            <Route
+              path="/auth"
+              element={
+                <GuestOnly>
+                  <AuthShell />
+                </GuestOnly>
+              }
+            >
+              <Route index element={null} />
+              <Route path="login" element={<LoginPage />} />
+              <Route path="callback" element={<AuthCallbackPage />} />
+              <Route path="signup" element={<SignupPage />} />
+              <Route path="signup/role" element={<RolePage />} />
+              <Route path="signup/verify" element={<VerifyPage />} />
+              <Route path="find-id" element={<FindIdPage />} />
+              <Route path="reset-password" element={<ResetPasswordPage />} />
+            </Route>
           </Route>
+          <Route path="/landing" element={<Navigate to="/" replace />} />
           <Route
             element={
               <RequireAuth>
