@@ -7,7 +7,11 @@ export function splitChapters(text: string): Array<{ title: string; content: str
   const heading = /^\s*(?:제\s*)?\d+\s*장(?:\s.*)?$|^\s*chapter\s+\d+(?:\s.*)?$/i
   const out: Array<{ title: string; content: string[] }> = []
   for (const line of lines) {
-    if (heading.test(line)) out.push({ title: line.trim(), content: [] })
+    if (heading.test(line)) {
+      // "1장 첫 만남" → 제목은 "첫 만남" (편집기가 "1장 · 첫 만남"으로 보여 준다). 제목 없이 "1장"만 있으면 그대로
+      const rest = line.trim().replace(/^(?:제\s*)?\d+\s*장\s*[·:.-]?\s*|^chapter\s+\d+\s*[·:.-]?\s*/i, '')
+      out.push({ title: rest || line.trim(), content: [] })
+    }
     else {
       if (out.length === 0) out.push({ title: '1장', content: [] })
       out[out.length - 1].content.push(line)

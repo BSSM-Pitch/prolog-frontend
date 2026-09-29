@@ -86,7 +86,9 @@ function statusOf(m: BackendManuscript): ManuscriptStatus {
 
 /** charCount: 편집기 원고는 본문이 장에 있어 따로 세어 넘긴다 */
 export function toManuscript(m: BackendManuscript, charCount?: number): Manuscript {
-  const fileName = m.file_key ? m.file_key.split('/').pop() ?? null : null
+  // 백엔드는 원래 파일 이름을 두지 않고 저장 키(manuscripts/{p}/{m}.txt)만 준다 → "원고 제목.확장자"로 보여 준다
+  const ext = m.file_key?.split('.').pop() ?? null
+  const fileName = ext ? `${m.title}.${ext}` : null
   const status = statusOf(m)
   return {
     manuscript_id: m.manuscript_id,
@@ -94,7 +96,7 @@ export function toManuscript(m: BackendManuscript, charCount?: number): Manuscri
     title: m.title,
     source_type: m.source_type === 'upload' ? 'file' : 'editor',
     file_name: fileName,
-    file_format: fileName?.split('.').pop() ?? null,
+    file_format: ext,
     file_size: null,
     chapter_count: m.chapter_count,
     char_count: charCount ?? m.content?.length ?? 0,

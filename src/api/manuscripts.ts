@@ -68,15 +68,27 @@ function uploadUrlOf(url: string) {
   return u.hostname === 'localhost' || u.hostname === '127.0.0.1' ? `/__s3${u.pathname}${u.search}` : url
 }
 
+/** 원고별로 진행 중인 장 나누기 — 동시에 두 번 나누지 않게 */
+const splitting = new Map<string, Promise<Chapter[]>>()
+
 const chaptersOf = (token: string, projectId: string, manuscriptId?: string) =>
   request<BackendChapter[]>('GET', `/projects/${projectId}/chapters`, { accessToken: token, query: manuscriptId ? { manuscript_id: manuscriptId } : undefined })
 
 const real = {
   async listManuscripts(token: string, projectId: string) {
-    const [rows, chapters] = await Promise.all([
+    let [rows, chapters] = await Promise.all([
       request<BackendManuscript[]>('GET', base(projectId), { accessToken: token, query: { limit: '100' } }),
       chaptersOf(token, projectId),
     ])
+    // 추출이 끝났는데 장이 없는 업로드 원고는 여기서 장으로 나눠 목록의 "N장"이 바로 맞게 한다
+    const unsplit = rows.filter((m) => m.status === 'ready' && m.chapter_count === 0 && m.content?.trim())
+    if (unsplit.length) {
+      await Promise.all(unsplit.map((m) => real.listChapters(token, projectId, m.manuscript_id).catch(() => [])))
+      ;[rows, chapters] = await Promise.all([
+        request<BackendManuscript[]>('GET', base(projectId), { accessToken: token, query: { limit: '100' } }),
+        chaptersOf(token, projectId),
+      ])
+    }
     // "82,420자" — 편집기 원고는 본문이 장에 있어 장 길이를 더한다
     const chars = new Map<string, number>()
     for (const c of chapters) chars.set(c.manuscript_id, (chars.get(c.manuscript_id) ?? 0) + c.content.length)
@@ -102,23 +114,34 @@ const real = {
   /**
    * 백엔드 추출 워커는 원고 본문(content)만 채우고 장을 만들지 않는다.
    * 장이 없는데 본문이 있으면 "1장" 같은 줄로 나눠 장을 만든다 (보기 전용이면 저장하지 않고 보여만 준다).
+   * 같은 원고를 동시에 여러 번 불러도(StrictMode·여러 화면) 한 번만 나눈다.
    */
   async listChapters(token: string, projectId: string, manuscriptId: string): Promise<Chapter[]> {
     const rows = await chaptersOf(token, projectId, manuscriptId)
     if (rows.length) return rows.map(toChapter)
+    let job = splitting.get(manuscriptId)
+    if (!job) {
+      job = real.splitIntoChapters(token, projectId, manuscriptId).finally(() => splitting.delete(manuscriptId))
+      splitting.set(manuscriptId, job)
+    }
+    return job
+  },
+
+  async splitIntoChapters(token: string, projectId: string, manuscriptId: string): Promise<Chapter[]> {
     const m = await request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken: token })
     if (m.status !== 'ready' || !m.content?.trim()) return []
     const parts = splitChapters(m.content)
     try {
-      const created: Chapter[] = []
       for (const [i, p] of parts.entries()) {
-        const c = await request<BackendChapter>('POST', `/projects/${projectId}/chapters`, { body: { manuscript_id: manuscriptId, chapter_no: i + 1, title: p.title, content: p.content }, accessToken: token })
-        created.push(toChapter(c))
+        await request<BackendChapter>('POST', `/projects/${projectId}/chapters`, { body: { manuscript_id: manuscriptId, chapter_no: i + 1, title: p.title, content: p.content }, accessToken: token })
       }
-      return created
     } catch {
-      return parts.map((p, i) => ({ chapter_id: `preview-${i + 1}`, manuscript_id: manuscriptId, chapter_no: i + 1, title: p.title, content: p.content, updated_at: null }))
+      // 다른 탭이 먼저 나눴거나(장 번호 충돌) 권한이 없으면 아래에서 다시 확인한다
     }
+    const rows = await chaptersOf(token, projectId, manuscriptId)
+    if (rows.length) return rows.map(toChapter)
+    // 보기 전용 등으로 만들지 못했으면 저장하지 않은 채 보여만 준다
+    return parts.map((p, i) => ({ chapter_id: `preview-${i + 1}`, manuscript_id: manuscriptId, chapter_no: i + 1, title: p.title, content: p.content, updated_at: null }))
   },
 
   async addChapter(token: string, projectId: string, manuscriptId: string, input: { title?: string }) {
