@@ -47,7 +47,6 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
 
   return (
     <div className="answer">
-      <p className="answer__speaker">Prolog</p>
       <p className="answer__text">{message.content}</p>
       {message.citations.length > 0 && (
         <ul className="answer__citations">

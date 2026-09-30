@@ -2,7 +2,7 @@
 .answer {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
 }
 .answer--pending {
   flex-direction: row;
@@ -32,12 +32,7 @@
 }
 .answer__actions {
   display: flex;
-  gap: var(--itda-space-8);
-}
-.answer__speaker {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--prolog-color-interaction);
+  gap: var(--itda-space-12);
 }
 .answer__text {
   font-size: 16px;
@@ -46,7 +41,7 @@
 .answer__citations {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -54,7 +49,7 @@
 .citation {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   padding: 12px 14px;
   border-left: 3px solid #88bdf2;
   border-radius: 0 var(--prolog-radius-8) var(--prolog-radius-8) 0;
@@ -83,7 +78,7 @@
   flex: none;
   width: 18px;
   height: 18px;
-  margin-top: 2px;
+  margin-top: 4px;
   border: 2px solid #b5d5f9;
   border-top-color: var(--prolog-color-interaction);
   border-radius: 50%;

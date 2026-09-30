@@ -300,9 +300,6 @@ export function ManuscriptsPage() {
               )
             })}
           </ul>
-          <Link className="btn btn--secondary btn--block" to={projectPath(projectId, 'story-map')}>
-            완료된 원고 구조화 보기
-          </Link>
         </section>
       </div>
 

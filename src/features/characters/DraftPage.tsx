@@ -239,7 +239,6 @@ export function DraftPage() {
                 확정 전 확인
               </h2>
               <p className="page-desc">AI는 초안을 임의로 확정하지 않습니다.</p>
-              <p className="check-note">인물 이름은 필수예요. 같은 이름의 확정 인물이 있으면 병합할지 새로 만들지 먼저 고르게 돼요.</p>
               {confirmError && (
                 <div className="check-note check-note--error" role="alert">
                   <strong>확정하지 못했어요</strong>

@@ -166,7 +166,6 @@ export function NewProjectPage() {
             setTitleError(null)
           }}
           error={titleError}
-          placeholder="해리포터"
           maxLength={100}
           autoFocus
         />

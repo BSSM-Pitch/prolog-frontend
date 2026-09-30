@@ -2,13 +2,13 @@
 .members {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
   max-width: 1504px;
 }
 .members__layout {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
   align-items: flex-start;
 }
 .members__layout > .panel:first-child {
@@ -18,13 +18,13 @@
   display: flex;
   flex: 1 1 380px;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
   max-width: 460px;
 }
 .members__alert {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .members__table {
@@ -68,12 +68,12 @@
 .members__form {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
 }
 .members__roles {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   margin: 0;
   padding: 0;
   border: 0;
@@ -89,7 +89,7 @@
 .members__invite {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
   padding: 10px 0;
   border-bottom: 1px solid rgba(106, 137, 167, 0.18);
 }

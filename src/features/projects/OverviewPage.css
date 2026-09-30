@@ -2,23 +2,23 @@
 .overview {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
   max-width: 1504px;
 }
 
 .overview__section {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
 }
 
 .overview__metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 .overview__metric {
-  gap: 4px;
+  gap: 8px;
 }
 .overview__metric-value {
   font-size: 20px;
@@ -29,23 +29,23 @@
 .overview__tasks {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 .overview__task {
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
 }
 .overview__task .btn {
-  margin-top: var(--itda-space-12);
+  margin-top: var(--itda-space-16);
 }
 
 .overview__review {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
   background: rgba(255, 255, 255, 0.7);
 }
 .overview__relations {
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 .overview__relations-open {
   align-self: flex-start;
@@ -55,7 +55,7 @@
 }
 
 .overview__priority {
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
   align-self: start;
 }
 .overview__priority-title {
@@ -65,7 +65,7 @@
 }
 .overview__badges {
   display: flex;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
 }
 .overview__priority-ref {
   font-size: 16px;

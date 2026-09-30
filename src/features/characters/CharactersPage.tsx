@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
 import { ApiError } from '../../api/client'
 import type { Character } from '../../api/types'
@@ -24,7 +24,6 @@ interface Dependent {
 // Figma 842:863 · 20 등장인물
 export function CharactersPage() {
   const project = useProject()
-  const navigate = useNavigate()
   const notice = (useLocation().state as { notice?: string } | null)?.notice
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
@@ -175,9 +174,6 @@ export function CharactersPage() {
                   인물 수정
                 </Link>
               )}
-              <Link className="btn btn--outline" to={`${projectPath(projectId, 'relationships')}?character=${selected.character_id}`}>
-                관계 보기
-              </Link>
               {canEdit && (
                 <Button tone="error" onClick={() => setConfirm(selected)}>
                   인물 삭제
@@ -224,7 +220,6 @@ export function CharactersPage() {
               <Button tone="outline" onClick={() => setBlocked(null)} autoFocus>
                 닫기
               </Button>
-              <Button onClick={() => navigate(`${projectPath(projectId, 'relationships')}?character=${selected?.character_id ?? ''}`)}>관계 변화로 이동</Button>
             </div>
           </div>
         </div>

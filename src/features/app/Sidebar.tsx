@@ -33,15 +33,17 @@ interface SidebarProps {
   onToggle: () => void
 }
 
-const REVIEW_ITEMS = [
+type SubItem = { label: string; sub: string; /** 아직 열지 않은 화면 — 메뉴에는 보이지만 들어갈 수 없다 */ disabled?: boolean }
+
+const REVIEW_ITEMS: SubItem[] = [
   { label: '세계관 설정', sub: 'rules' },
   { label: '설정 충돌', sub: 'conflicts' },
 ]
-const DESIGN_ITEMS = [
+const DESIGN_ITEMS: SubItem[] = [
   { label: '캐릭터 분석', sub: 'characters' },
-  { label: '관계 변화 그래프', sub: 'relationships' },
-  { label: '복선 추적', sub: 'foreshadowings' },
-  { label: '스토리 맵', sub: 'story-map' },
+  { label: '관계 변화 그래프', sub: 'relationships', disabled: true },
+  { label: '복선 추적', sub: 'foreshadowings', disabled: true },
+  { label: '스토리 맵', sub: 'story-map', disabled: true },
 ]
 
 // Figma 915:2343 Sidebar (Default / Close)
@@ -114,9 +116,6 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
           </NavLink>
         </NavGroup>
         <NavItem icon={IconNotebook} label="원고 작성" to={project ? toProject('manuscripts') : null} disabledReason={disabledReason} />
-
-        <div className="sidebar__divider" />
-
         {[
           { key: 'review', icon: IconFileCheck, label: '검토', items: REVIEW_ITEMS },
           { key: 'design', icon: IconAffiliate, label: '설계', items: DESIGN_ITEMS },
@@ -125,23 +124,25 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             key={g.key}
             icon={g.icon}
             label={g.label}
-            boxed
             open={isOpen(g.key, g.items)}
             onToggle={() => toggle(g.key, g.items)}
             collapsed={collapsed}
             disabledReason={disabledReason}
             active={inGroup(g.items)}
           >
-            {g.items.map((i) => (
-              <NavLink key={i.sub} to={toProject(i.sub)} className="sidebar__subitem">
-                {i.label}
-              </NavLink>
-            ))}
+            {g.items.map((i) =>
+              i.disabled ? (
+                <span key={i.sub} className="sidebar__subitem" aria-disabled="true" title="아직 준비 중이에요">
+                  {i.label}
+                </span>
+              ) : (
+                <NavLink key={i.sub} to={toProject(i.sub)} className="sidebar__subitem">
+                  {i.label}
+                </NavLink>
+              ),
+            )}
           </NavGroup>
         ))}
-      </nav>
-
-      <div className="sidebar__bottom">
         <NavGroup icon={IconUsersGroup} label="팀" open={open.teams ?? pathname.startsWith('/teams')} onToggle={() => setOpen((o) => ({ ...o, teams: !(o.teams ?? pathname.startsWith('/teams')) }))} collapsed={collapsed} active={pathname.startsWith('/teams')}>
           {(teams.data ?? []).map((t) => (
             <NavLink key={t.team_id} to={`/teams/${t.team_id}`} className="sidebar__subitem">
@@ -152,6 +153,9 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             + 새 팀 만들기
           </NavLink>
         </NavGroup>
+      </nav>
+
+      <div className="sidebar__bottom">
         <NavItem icon={IconSettings} label="프로젝트 멤버" to={project ? toProject('members') : null} disabledReason={disabledReason} />
         <button type="button" className="sidebar__item" onClick={onLogout} title={collapsed ? '로그아웃' : undefined}>
           <IconLogout size={24} stroke={1.5} aria-hidden="true" />
@@ -197,7 +201,6 @@ interface NavGroupProps {
   open: boolean
   onToggle: () => void
   collapsed: boolean
-  boxed?: boolean
   active?: boolean
   disabledReason?: string
   /** 안 읽은 알림 수처럼 이름 옆에 붙는 숫자. 0이면 숨긴다 */
@@ -205,7 +208,7 @@ interface NavGroupProps {
   children: ReactNode
 }
 
-function NavGroup({ icon: I, label, open, onToggle, collapsed, boxed, active, disabledReason, badge, children }: NavGroupProps) {
+function NavGroup({ icon: I, label, open, onToggle, collapsed, active, disabledReason, badge, children }: NavGroupProps) {
   const disabled = Boolean(disabledReason)
   const expanded = open && !collapsed && !disabled
   return (
@@ -223,7 +226,7 @@ function NavGroup({ icon: I, label, open, onToggle, collapsed, boxed, active, di
           {label}
           {badge ? <span className="sidebar__badge" aria-label={`안 읽음 ${badge}개`}>{badge}</span> : null}
         </span>
-        <span className={boxed ? 'sidebar__chevron sidebar__chevron--boxed' : 'sidebar__chevron'} aria-hidden="true">
+        <span className="sidebar__chevron" aria-hidden="true">
           <IconChevronDown size={14} />
         </span>
       </button>
