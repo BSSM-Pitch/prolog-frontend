@@ -114,9 +114,9 @@ export function OverviewPage() {
                 title="복선 회수"
                 detail={ov.tasks.foreshadowing_unscheduled > 0 ? `시점 미정 ${ov.tasks.foreshadowing_unscheduled}건` : '남은 복선이 없어요'}
                 action={
-                  <Link className="btn btn--secondary btn--block" to={to('foreshadowings')}>
+                  <Button tone="secondary" block disabled title="아직 준비 중이에요">
                     {ov.tasks.foreshadowing_unscheduled > 0 ? '회수 장면 지정' : '복선 추적 열기'}
-                  </Link>
+                  </Button>
                 }
               />
             </div>
@@ -136,12 +136,12 @@ export function OverviewPage() {
                 ) : (
                   <>
                     <p className="panel__title">최근 관계 변화</p>
-                    <p className="page-desc overview__empty">아직 기록된 관계 변화가 없어요. 관계 화면에서 인물 사이의 첫 상태를 기록해 보세요.</p>
+                    <p className="page-desc overview__empty">아직 기록된 관계 변화가 없어요.</p>
                   </>
                 )}
-                <Link className="btn btn--secondary overview__relations-open" to={to('relationships')}>
+                <Button tone="secondary" className="overview__relations-open" disabled title="아직 준비 중이에요">
                   관계 화면 열기
-                </Link>
+                </Button>
               </div>
 
               <div className="panel overview__priority">

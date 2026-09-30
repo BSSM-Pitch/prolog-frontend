@@ -15,6 +15,7 @@ import '../manuscripts/answer.css'
 import '../relationships/relationships.css'
 import '../world/world.css'
 import './story.css'
+import { TextArea } from '../../components/TextArea'
 
 const TYPE_LABEL = { event: '사건', turning_point: '전환점', climax: '절정' } as const
 
@@ -405,7 +406,7 @@ function NodeForm({ node, onCancel, onSubmit }: { node: StructureNode; onCancel:
       </label>
       <label className="field">
         <span className="field__label">요약</span>
-        <textarea className="nl-textarea" style={{ minHeight: 80 }} value={summary} onChange={(e) => setSummary(e.target.value)} />
+        <TextArea className="nl-textarea" style={{ minHeight: 80 }} value={summary} onChange={(e) => setSummary(e.target.value)} />
       </label>
       <p className="panel__label">AI 분석 결과를 직접 고치면 다시 분석해도 유지돼요.</p>
       {error && <p className="notice notice--error">{error}</p>}

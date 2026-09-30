@@ -7,8 +7,6 @@ import {
   useTransform,
 } from 'motion/react'
 import { useSectionProgress } from '../hooks/useSectionProgress'
-import { SequenceCanvas } from '../components/SequenceCanvas'
-import { FRAMES } from '../frames'
 
 /**
  * 레퍼런스: Apple AirPods 페이지의 sticky 캔버스 시퀀스 + 좌측 챕터 내비게이션.
@@ -66,10 +64,10 @@ export function Story() {
 
         <div className="tale__stage">
           <motion.div className="stage__layer" style={{ opacity: talkOpacity }}>
-            <SequenceCanvas {...FRAMES.talk} progress={s0} className="seq" focusX={0.4} />
+            <StageVideo name="talk" focusX={0.4} />
           </motion.div>
           <motion.div className="stage__layer" style={{ opacity: handOpacity }}>
-            <SequenceCanvas {...FRAMES.hand} progress={s1} className="seq" focusX={0.35} />
+            <StageVideo name="hand" focusX={0.35} />
           </motion.div>
           <motion.div className="stage__layer stage__layer--mock" style={{ opacity: mockOpacity }}>
             <motion.div style={{ y: mockY }} className="mock-wrap">
@@ -79,6 +77,23 @@ export function Story() {
         </div>
       </div>
     </section>
+  )
+}
+
+/** public/landing/videos 의 원본 영상을 스크롤과 상관없이 반복 재생한다 */
+function StageVideo({ name, focusX }: { name: string; focusX: number }) {
+  return (
+    <video
+      className="stage__video"
+      src={`${import.meta.env.BASE_URL}landing/videos/${name}.mp4`}
+      style={{ objectPosition: `${focusX * 100}% 50%` }}
+      autoPlay
+      muted
+      loop
+      playsInline
+      preload="auto"
+      aria-hidden="true"
+    />
   )
 }
 

@@ -12,6 +12,7 @@ import { AnswerCard } from './AnswerCard'
 import { useAnswer } from './useAnswer'
 import './AskPage.css'
 import './answer.css'
+import { TextArea } from '../../components/TextArea'
 
 const PAGE = 5
 
@@ -306,7 +307,7 @@ function Composer({ projectId, manuscriptId, thread, disabled, onSent }: Compose
     <form className="composer" onSubmit={onSubmit} noValidate>
       <label className="field">
         <span className="field__label">질문</span>
-        <textarea
+        <TextArea
           className="composer__input"
           value={question}
           onChange={(e) => {
@@ -330,7 +331,7 @@ function Composer({ projectId, manuscriptId, thread, disabled, onSent }: Compose
               </option>
             ))}
           </select>
-          <textarea
+          <TextArea
             readOnly
             className="composer__source"
             value={chapter?.content ?? ''}

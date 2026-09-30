@@ -445,6 +445,12 @@
   mix-blend-mode: normal;
   pointer-events: none;
 }
+.lp .stage__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 .lp .stage__layer--mock {
   display: grid;
   place-items: center;

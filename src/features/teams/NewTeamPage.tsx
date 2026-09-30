@@ -10,6 +10,7 @@ import { TEAM_ROLE_LABEL } from '../../lib/roles'
 import { TeamInviteForm } from './TeamInviteForm'
 import { notifyTeamsChanged } from './teamEvents'
 import './teams.css'
+import { TextArea } from '../../components/TextArea'
 
 // Figma 843:2082 · 25 새 팀 만들기 — 팀을 만들면 02 초대, 03 팀 프로젝트 단계가 열린다
 export function NewTeamPage() {
@@ -72,7 +73,7 @@ export function NewTeamPage() {
             />
             <label className="field">
               <span className="field__label">팀 설명 · 선택</span>
-              <textarea className="nl-textarea team-step__desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="미스터리 장편을 함께 기획하고 집필하는 창작팀" maxLength={200} />
+              <TextArea className="nl-textarea team-step__desc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="미스터리 장편을 함께 기획하고 집필하는 창작팀" maxLength={200} />
             </label>
             {error && (
               <p className="notice notice--error" role="alert">

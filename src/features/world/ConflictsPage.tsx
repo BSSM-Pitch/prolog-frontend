@@ -12,6 +12,7 @@ import { projectPath, useProject } from '../app/currentProject'
 import '../characters/characters.css'
 import '../manuscripts/answer.css'
 import './world.css'
+import { TextArea } from '../../components/TextArea'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
 const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
@@ -222,7 +223,7 @@ export function ConflictsPage() {
             {editing !== null && (
               <label className="field">
                 <span className="field__label">{selected.evidence[selected.evidence.length - 1].chapter}장 문장 고치기</span>
-                <textarea className="nl-textarea" style={{ minHeight: 90 }} value={editing} onChange={(e) => setEditing(e.target.value)} autoFocus />
+                <TextArea className="nl-textarea" style={{ minHeight: 90 }} value={editing} onChange={(e) => setEditing(e.target.value)} autoFocus />
                 <span className="panel__label">저장하면 원고의 해당 문장이 이 내용으로 바뀌어요.</span>
               </label>
             )}

@@ -112,6 +112,23 @@
 }
 
 /* ───────── 임시/Button (Figma 837:86) ───────── */
+/* 여러 줄 입력 (TextArea) — 모양은 .textbox에 붙는 클래스가 정한다 */
+.textbox {
+  display: flex;
+  flex-direction: column;
+  cursor: text;
+}
+.textbox__input {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  resize: vertical;
+  outline: none;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -146,11 +163,11 @@
 }
 
 .btn--primary {
-  background: linear-gradient(180deg, #475c70 0%, #384959 100%);
+  background: var(--itda-ink);
   color: var(--itda-surface);
 }
 .btn--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #7c94a9 0%, #6a89a7 100%);
+  background: #6a89a7;
 }
 .btn--primary:active:not(:disabled) {
   background: var(--itda-ink);
@@ -158,11 +175,11 @@
 
 /* Soft (Figma 837:82 / Hover 999:2252 / Focus 999:2254) */
 .btn--soft {
-  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+  background: #e5f0ff;
   color: var(--itda-ink);
 }
 .btn--soft:hover:not(:disabled) {
-  background: linear-gradient(180deg, #9cc6f5 0%, #6fa8e8 100%);
+  background: #9cc6f5;
 }
 .btn--soft[aria-pressed='true'] {
   background: var(--itda-soft);
@@ -170,14 +187,14 @@
 
 /* Secondary (Figma 837:80 / Hover 999:2248 / Focus 999:2250) */
 .btn--secondary {
-  background: linear-gradient(180deg, #c7e3fd 0%, #b5d5f9 100%);
+  background: var(--itda-soft);
   color: var(--itda-ink);
 }
 .btn--secondary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+  background: #e5f0ff;
 }
 .btn--secondary:active:not(:disabled) {
-  background: var(--itda-soft);
+  background: #b5d5f9;
 }
 
 .btn--ink {
@@ -185,7 +202,7 @@
   color: var(--itda-surface);
 }
 .btn--ink:hover:not(:disabled) {
-  background: linear-gradient(180deg, #7c94a9 0%, #6a89a7 100%);
+  background: #6a89a7;
 }
 
 .btn--outline {
@@ -195,7 +212,7 @@
   font-weight: 400;
 }
 .btn--outline:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+  background: #e5f0ff;
 }
 
 .btn--outline-strong {
@@ -206,7 +223,7 @@
   font-weight: 400;
 }
 .btn--outline-strong:hover:not(:disabled) {
-  background: linear-gradient(180deg, #ffffff 0%, #e5f0ff 100%);
+  background: #e5f0ff;
 }
 
 /* 오류 상태 (Figma 1214:2186, 1214:2151) */
@@ -218,6 +235,7 @@
 
 /* 비활성 (Figma 1214:2158) */
 .btn--primary:disabled,
+.btn--secondary:disabled,
 .btn--ink:disabled {
   background: var(--itda-surface);
   border-color: rgba(56, 73, 89, 0.5);
@@ -243,7 +261,7 @@
   background: var(--itda-ink);
 }
 .btn--lg.btn--primary:hover:not(:disabled) {
-  background: linear-gradient(180deg, #7c94a9 0%, #6a89a7 100%);
+  background: #6a89a7;
 }
 .btn--lg.btn--error {
   opacity: 0.75;

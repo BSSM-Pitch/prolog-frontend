@@ -20,35 +20,35 @@ const CARDS = [
     hex: '#384959',
     tone: 'dark',
     title: '자연어 캐릭터 설계',
-    body: '캐릭터를 문장으로 설명하세요. 성격 태그와 핵심 가치, 영향 관계로 자동 정리되고, 언제든 직접 고칠 수 있어요.',
+    body: '캐릭터를 문장으로 설명하세요. 캐릭터의 정보는 자동으로 정리되고, 언제든 고칠 수 있어요.',
     Visual: Character,
   },
   {
     hex: '#BDDDFC',
     tone: 'light',
     title: '설정 충돌 감지',
-    body: '새 사건이 기존 설정과 어긋나면 조용히 알려드려요. 경고가 아닌 조언으로요.',
+    body: '설정에 어긋나는 글을 쓰면 AI가 짚어줘요.',
     Visual: Conflict,
   },
   {
     hex: '#88BDF2',
     tone: 'light',
     title: '관계 변화 시각화',
-    body: '관계는 멈춰 있지 않아요. 챕터마다 달라지는 신뢰와 갈등을 타임라인으로 따라가세요.',
+    body: '캐릭터 간의 관계 변화를 한눈에 볼 수 있게 도와줘요.',
     Visual: Relation,
   },
   {
     hex: '#6A89A7',
     tone: 'dark',
     title: '복선 추적',
-    body: '어디서 심었고, 어디서 거둘지. 복선의 설치와 회수 여부를 챕터 단위로 관리해요.',
+    body: '어디서 복선을 심고, 거두었는지 간단히 정리해줘요.',
     Visual: Foreshadow,
   },
   {
     hex: '#E5F0FF',
     tone: 'light',
     title: '함께 쓰기',
-    body: '팀을 만들어 같은 원고를 함께 편집하고, 장면마다 피드백을 주고받으세요.',
+    body: '팀을 만들어 함께 작업하고, 피드백을 주고받으세요.',
     Visual: Collab,
   },
 ] as const
@@ -106,9 +106,7 @@ export function Features() {
       <div className="features__sticky">
         <header className="fx-head">
           <div>
-            <h2>
-              Prolog가 제공하는 기능들
-            </h2>
+            <h2>Prolog가 할 수 있는 것들</h2>
           </div>
           <div className="fx-meta">
             <div className="fx-count" aria-live="polite">

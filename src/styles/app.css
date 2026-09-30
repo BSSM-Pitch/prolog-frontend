@@ -10,21 +10,21 @@
   line-height: 36px;
 }
 .page-crumb + .page-title {
-  margin-top: var(--itda-space-8);
+  margin-top: var(--itda-space-12);
 }
 .page-desc {
   font-size: 16px;
   line-height: 24px;
 }
 .page-title + .page-desc {
-  margin-top: var(--itda-space-8);
+  margin-top: var(--itda-space-12);
 }
 
 /* 정적 영역은 여백으로 구분하고, 카드는 얇은 테두리만 쓴다 */
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
   padding: var(--itda-space-24);
   border: 1px solid var(--input-stroke);
   border-radius: 12px;
@@ -57,7 +57,7 @@ a.btn {
 .badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   height: 28px;
   padding: 0 12px;
   border-radius: 999px;
