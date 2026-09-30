@@ -2,18 +2,18 @@
 .new-project {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
   max-width: 1504px;
 }
 
 .new-project__form {
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 
 .new-project__fieldset {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
   margin: 0;
   padding: 0;
   border: 0;
@@ -21,7 +21,7 @@
 .new-project__options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 .new-project__option {
   min-height: 88px;
@@ -30,7 +30,7 @@
 .new-project__team {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
   max-width: 400px;
 }
 .new-project__team select {
@@ -45,7 +45,7 @@
 .new-project__start {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 .new-project__start-title {
   font-size: 20px;
@@ -59,7 +59,7 @@
 .new-project__starts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 
 .dropzone {
@@ -67,7 +67,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 152px;
   padding: var(--itda-space-24);
   border: 1px solid var(--input-stroke);
@@ -93,14 +93,14 @@
   word-break: break-all;
 }
 .dropzone__hint {
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-size: 14px;
   line-height: 20px;
   color: var(--prolog-color-interaction);
 }
 .dropzone__actions {
   display: flex;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
 }
 
 @media (max-width: 900px) {

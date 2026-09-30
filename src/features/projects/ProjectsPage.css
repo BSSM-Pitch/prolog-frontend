@@ -2,7 +2,7 @@
 .projects {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
   max-width: 1504px;
 }
 
@@ -10,7 +10,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
 }
 .projects__crumb {
   font-size: 12px;
@@ -18,30 +18,30 @@
   color: var(--itda-muted);
 }
 .projects__title {
-  margin-top: var(--itda-space-8);
+  margin-top: var(--itda-space-12);
   font-size: 28px;
   font-weight: 500;
   line-height: 36px;
 }
 .projects__desc {
-  margin-top: var(--itda-space-8);
+  margin-top: var(--itda-space-12);
   font-size: 16px;
   line-height: 24px;
 }
 .projects__new {
   flex: none;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
 }
 
 .projects__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
 }
 .projects__filters {
   display: flex;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
 }
 .projects__filter {
   height: var(--prolog-control-height);
@@ -58,7 +58,7 @@
   background: rgba(255, 255, 255, 0.6);
 }
 .projects__filter[aria-pressed='true'] {
-  background: linear-gradient(180deg, #475c70 0%, #384959 100%);
+  background: var(--itda-ink);
   color: var(--itda-surface);
 }
 .projects__filter:focus-visible,
@@ -97,7 +97,7 @@
 .projects__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -106,7 +106,7 @@
 .project-card {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
   height: 100%;
   padding: var(--itda-space-24);
   border: 1px solid var(--input-stroke);
@@ -116,10 +116,10 @@
 .project-card__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
 }
 .project-card__title {
-  margin-top: var(--itda-space-4);
+  margin-top: var(--itda-space-8);
   overflow: hidden;
   font-size: 20px;
   font-weight: 500;
@@ -133,7 +133,7 @@
   color: var(--itda-muted);
 }
 .project-card__open {
-  margin-top: var(--itda-space-8);
+  margin-top: var(--itda-space-12);
   text-decoration: none;
 }
 
@@ -165,7 +165,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
   padding: 64px 24px;
   border: 1px dashed var(--input-stroke);
   border-radius: 12px;

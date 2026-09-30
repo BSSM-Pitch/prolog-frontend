@@ -162,10 +162,6 @@
   height: 20px;
   transition: transform var(--transition-state);
 }
-.sidebar__chevron--boxed {
-  border: 1px solid var(--stroke);
-  border-radius: 4px;
-}
 .sidebar__item[aria-expanded='true'] .sidebar__chevron {
   transform: rotate(180deg);
 }
@@ -186,8 +182,12 @@
   text-decoration: none;
   transition: background var(--transition-state);
 }
-.sidebar__subitem:hover {
+.sidebar__subitem:hover:not([aria-disabled]) {
   background: var(--itda-background);
+}
+.sidebar__subitem[aria-disabled] {
+  color: rgba(56, 73, 89, 0.4);
+  cursor: not-allowed;
 }
 
 /* 현재 화면 (선택·링크 — Interaction) */
@@ -239,12 +239,6 @@
   padding: 8px 0 12px 52px;
   font-size: 14px;
   color: var(--itda-muted);
-}
-
-.sidebar__divider {
-  height: 1px;
-  margin: 8px 0;
-  background: var(--stroke);
 }
 
 .sidebar__bottom {

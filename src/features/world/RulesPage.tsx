@@ -12,6 +12,7 @@ import { projectPath, useProject } from '../app/currentProject'
 import '../characters/characters.css'
 import '../manuscripts/answer.css'
 import './world.css'
+import { TextArea } from '../../components/TextArea'
 
 type Draft = { title: string; description: string; keywords: string }
 const toKeywords = (s: string) => s.split(/[,\n]/).map((k) => k.trim()).filter(Boolean)
@@ -232,7 +233,6 @@ export function RulesPage() {
                     <p className="panel__label">아직 없어요. 키워드를 넣어야 설정 충돌 검토에서 이 규칙으로 위반 여부를 판정해요.</p>
                   )}
                 </div>
-                <p className="check-note">설정 충돌 검토에서 이 키워드로 규칙 위반 여부를 판정해요.</p>
                 {selected.evidence && (
                   <div className="evidence-box">
                     원문 근거{selected.source_chapter ? ` · ${selected.source_chapter}장` : ''} “{selected.evidence}”
@@ -290,7 +290,7 @@ function RuleFields({ draft, onChange }: { draft: Draft; onChange: (d: Draft) =>
       </label>
       <label className="field">
         <span className="field__label">규칙 내용</span>
-        <textarea className="nl-textarea" style={{ minHeight: 90 }} value={draft.description} onChange={(e) => onChange({ ...draft, description: e.target.value })} placeholder="붉은 문은 비가 그친 뒤에만 열린다" />
+        <TextArea className="nl-textarea" style={{ minHeight: 90 }} value={draft.description} onChange={(e) => onChange({ ...draft, description: e.target.value })} placeholder="붉은 문은 비가 그친 뒤에만 열린다" />
       </label>
       <label className="field">
         <span className="field__label">위반 판정 키워드 · 쉼표로 구분</span>

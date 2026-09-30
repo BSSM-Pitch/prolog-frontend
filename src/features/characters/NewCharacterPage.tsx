@@ -11,6 +11,7 @@ import { projectPath, useProject } from '../app/currentProject'
 import { CATEGORIES, Stepper } from './shared'
 import '../manuscripts/answer.css'
 import './characters.css'
+import { TextArea } from '../../components/TextArea'
 
 const EXAMPLE = '윤서는 신중하지만 집요하고, 약속을 무엇보다 중요하게 여긴다. 재현의 선택에 영향을 받았으며 붉은 문 앞에서 불안을 느낀다.'
 
@@ -157,7 +158,7 @@ export function NewCharacterPage() {
           )}
           <label className="field">
             <span className="field__label">인물 설명</span>
-            <textarea
+            <TextArea
               className="nl-textarea"
               value={text}
               onChange={(e) => {

@@ -12,10 +12,10 @@ import { AnswerCard } from './AnswerCard'
 import { useAnswer } from './useAnswer'
 import './EditorPage.css'
 import './answer.css'
+import { TextArea } from '../../components/TextArea'
 
 type SaveState = { kind: 'saved'; at: string } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'error'; message: string }
 
-const SOURCE_LABEL = { file: '파일 업로드본', editor: '편집기 작성본' } as const
 const AUTOSAVE_MS = 900
 
 // Figma 841:662 · 19 원고 편집기
@@ -192,16 +192,12 @@ export function EditorPage() {
                 )}
               </div>
               <div className="editor__badges">
-                <span className="badge badge--filled">
-                  {SOURCE_LABEL[ms.source_type]}
-                  {ms.file_format ? ` · ${ms.file_format.toUpperCase()}` : ''}
-                </span>
-                <SaveBadge state={save} fallbackAt={chapter?.updated_at ?? null} onRetry={flush} />
+                <SaveStatus state={save} fallbackAt={chapter?.updated_at ?? null} onRetry={flush} />
               </div>
             </div>
 
             {chapter ? (
-              <textarea
+              <TextArea
                 ref={textRef}
                 className="editor__text"
                 value={text}
@@ -238,8 +234,8 @@ export function EditorPage() {
   )
 }
 
-function SaveBadge({ state, fallbackAt, onRetry }: { state: SaveState | null; fallbackAt: string | null; onRetry: () => void }) {
-  if (state?.kind === 'saving' || state?.kind === 'dirty') return <span className="badge badge--filled">저장 중…</span>
+function SaveStatus({ state, fallbackAt, onRetry }: { state: SaveState | null; fallbackAt: string | null; onRetry: () => void }) {
+  if (state?.kind === 'saving' || state?.kind === 'dirty') return <span className="page-crumb">저장 중…</span>
   if (state?.kind === 'error') {
     return (
       <button type="button" className="badge badge--error editor__retry" onClick={onRetry} title={state.message}>
@@ -248,7 +244,7 @@ function SaveBadge({ state, fallbackAt, onRetry }: { state: SaveState | null; fa
     )
   }
   const at = state?.kind === 'saved' ? state.at : fallbackAt
-  return <span className="badge badge--success">자동 저장됨{at ? ` · ${relativeTime(at)}` : ''}</span>
+  return <span className="page-crumb">자동 저장됨{at ? ` · ${relativeTime(at)}` : ''}</span>
 }
 
 interface AskPanelProps {
@@ -338,7 +334,7 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
         )}
         <label className="field">
           <span className="field__label">질문</span>
-          <textarea
+          <TextArea
             className="editor__question"
             value={question}
             onChange={(e) => {

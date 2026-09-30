@@ -2,13 +2,13 @@
 .history {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
+  gap: var(--itda-space-32);
   max-width: 1504px;
 }
 .history__layout {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--itda-space-16);
+  gap: var(--itda-space-20);
   align-items: flex-start;
 }
 .history__layout > :first-child {
@@ -21,18 +21,18 @@
 .history__item-title {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-8);
+  gap: var(--itda-space-12);
   font-size: 16px;
   font-weight: 500;
 }
 .history__detail {
   flex: 999 1 440px;
-  gap: var(--itda-space-12);
+  gap: var(--itda-space-16);
 }
 .history__meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 .history__text {
   max-height: 560px;
