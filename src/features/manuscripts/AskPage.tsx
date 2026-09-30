@@ -96,8 +96,8 @@ export function AskPage() {
                   >
                     <span className="thread-item__title">{t.title}</span>
                     <span className="thread-item__meta">
-                      {t.scope === 'selection' ? '선택 문장 · ' : ''}
-                      {t.cited_chapters.length ? t.cited_chapters.map((c) => `${c}장`).join(' · ') : '근거 없음'}
+                      {/* 백엔드 AIQ는 근거 장을 주지 않는다 — 없으면 범위만 보여 준다 */}
+                      {[t.scope === 'selection' ? '선택 문장' : '원고 전체', ...t.cited_chapters.map((c) => `${c}장`)].join(' · ')}
                     </span>
                   </button>
                 </li>
@@ -189,12 +189,16 @@ function Conversation({ projectId, manuscriptId, thread, onThreadCreated, onAnsw
     thread && lastAssistant ? { projectId, manuscriptId, threadId: thread.thread_id, messageId: lastAssistant.message_id } : null,
     lastAssistant,
   )
+  // 폴링으로 받은 답변은 기억해 둔다 — 이어 묻기로 폴링 대상이 바뀌어도 앞 답변이 "찾는 중"으로 돌아가지 않게
+  const [answered, setAnswered] = useState<Record<string, QAMessage>>({})
   // 폴링 중인 마지막 답변을 최신 값으로 바꿔 보여 준다
-  const shownMessages = messages.map((m) => (polled.message && m.message_id === polled.message.message_id ? polled.message : m))
+  const shownMessages = messages.map((m) => (polled.message && m.message_id === polled.message.message_id ? polled.message : (answered[m.message_id] ?? m)))
   const waiting = polled.message?.status === 'pending'
 
   useEffect(() => {
-    if (polled.message?.status === 'completed') onAnswered()
+    const m = polled.message
+    if (m && m.status !== 'pending') setAnswered((prev) => ({ ...prev, [m.message_id]: m }))
+    if (m?.status === 'completed') onAnswered()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [polled.message?.status])
 

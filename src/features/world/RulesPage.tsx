@@ -156,7 +156,7 @@ export function RulesPage() {
                   <span className="char-item__meta">
                     {r.description}
                     {' / '}
-                    {r.status === 'pending' ? `${r.origin === 'ai_extracted' ? 'AI 추출 · ' : ''}${r.source_chapter ? `${r.source_chapter}장 근거` : '직접 추가'}` : '확정'}
+                    {r.status === 'pending' ? `${r.origin === 'ai_extracted' ? 'AI 추출 · ' : ''}${r.source_chapter ? `${r.source_chapter}장 근거` : r.origin === 'ai_extracted' ? '원고 근거' : '직접 추가'}` : '확정'}
                   </span>
                 </button>
               </li>

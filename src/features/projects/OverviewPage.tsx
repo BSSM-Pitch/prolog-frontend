@@ -154,7 +154,7 @@ export function OverviewPage() {
                       <span className="badge badge--done">AI 분석 완료</span>
                     </div>
                     <p className="overview__priority-ref">
-                      설정 충돌 {String(ov.priority.index).padStart(2, '0')} · {ov.priority.chapters.map((c) => `${c}장`).join(' ↔ ')}
+                      설정 충돌 {String(ov.priority.index).padStart(2, '0')} · {ov.priority.chapters.map((c) => (c ? `${c}장` : '규칙')).join(' ↔ ')}
                     </p>
                     <p className="overview__note">서로 다른 두 장면의 기록을 비교해 보세요.</p>
                     <Link className="btn btn--secondary btn--block" to={`${to('conflicts')}?focus=${ov.priority.conflict_id}`}>

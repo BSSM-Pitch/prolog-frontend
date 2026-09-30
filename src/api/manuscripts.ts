@@ -1,7 +1,7 @@
 import { splitChapters } from '../lib/chapters'
-import { joinChapters, toChapter, toManuscript, toVersion, type BackendChapter, type BackendManuscript, type BackendVersion } from './backendShapes'
+import { chapterHeading, joinChapters, toChapter, toManuscript, toMessage, toThread, toThreadDetail, toVersion, type BackendChapter, type BackendManuscript, type BackendMessage, type BackendThread, type BackendThreadDetail, type BackendVersion } from './backendShapes'
 import { ApiError, request, requestAll, requestWithMeta } from './client'
-import { IS_REAL } from './config'
+import { AI_REAL, IS_REAL } from './config'
 import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
 // MSU 명세
@@ -54,6 +54,19 @@ export async function saveChapter(accessToken: string, projectId: string, manusc
   const saved = toChapter(await request<BackendChapter>('PATCH', `/projects/${projectId}/chapters/${chapterId}`, { body: input, accessToken }))
   real.syncContent(accessToken, projectId, manuscriptId)
   return saved
+}
+
+/**
+ * AI 요청 전에 원고 본문(content)을 지금 장들로 맞춘다. 백엔드 AI는 장이 아니라 본문을 읽고,
+ * 본문의 "N장" 줄로 장을 나눈다. 자동 저장의 지연 동기화를 기다리지 않고 바로 보낸다
+ */
+export async function syncManuscriptContent(accessToken: string, projectId: string, manuscriptId: string) {
+  if (!IS_REAL) return
+  clearTimeout(syncTimers.get(manuscriptId))
+  syncTimers.delete(manuscriptId)
+  const [m, chapters] = await Promise.all([request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken }), chaptersOf(accessToken, projectId, manuscriptId)])
+  const joined = joinChapters(chapters)
+  if (chapters.length && joined !== m.content) await request<BackendManuscript>('PATCH', `${base(projectId)}/${manuscriptId}`, { body: { content: joined }, accessToken })
 }
 
 // --- real 모드 (prolog-backend MSU) ----------------------------------------------------------------
@@ -215,14 +228,17 @@ export interface AskInput {
 }
 
 export function listThreads(accessToken: string, projectId: string, manuscriptId: string) {
+  if (AI_REAL) return aiq.listThreads(accessToken, projectId, manuscriptId)
   return request<QAThread[]>('GET', qa(projectId, manuscriptId), { accessToken })
 }
 
 export function createThread(accessToken: string, projectId: string, manuscriptId: string, input: AskInput) {
+  if (AI_REAL) return aiq.createThread(accessToken, projectId, manuscriptId, input)
   return request<{ thread: QAThread; messages: QAMessage[] }>('POST', qa(projectId, manuscriptId), { body: input, accessToken })
 }
 
-export function getThread(accessToken: string, projectId: string, manuscriptId: string, threadId: string) {
+export async function getThread(accessToken: string, projectId: string, manuscriptId: string, threadId: string) {
+  if (AI_REAL) return toThreadDetail(await request<BackendThreadDetail>('GET', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken }))
   return request<{ thread: QAThread; messages: QAMessage[] }>('GET', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken })
 }
 
@@ -230,14 +246,65 @@ export function deleteThread(accessToken: string, projectId: string, manuscriptI
   return request<null>('DELETE', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken })
 }
 
-export function askFollowUp(accessToken: string, projectId: string, manuscriptId: string, threadId: string, content: string) {
+export async function askFollowUp(accessToken: string, projectId: string, manuscriptId: string, threadId: string, content: string) {
+  if (AI_REAL) await syncManuscriptContent(accessToken, projectId, manuscriptId)
+  if (AI_REAL) return (await request<BackendMessage[]>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages`, { body: { content }, accessToken })).map(toMessage)
   return request<QAMessage[]>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages`, { body: { content }, accessToken })
 }
 
-export function getMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
+export async function getMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
+  if (AI_REAL) return toMessage(await request<BackendMessage>('GET', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}`, { accessToken }))
   return request<QAMessage>('GET', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}`, { accessToken })
 }
 
-export function retryMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
+export async function retryMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
+  if (AI_REAL) return toMessage(await request<BackendMessage>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/retry`, { accessToken }))
   return request<QAMessage>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/retry`, { accessToken })
+}
+
+// --- real 모드 AIQ (prolog-backend 06b8928) --------------------------------------------------------
+// 백엔드 스레드에는 근거 장(citations·cited_chapters)과 장 ID가 없다. 선택 범위는 원고 본문(content) 기준 위치다.
+
+const aiq = {
+  async listThreads(token: string, projectId: string, manuscriptId: string) {
+    return (await requestAll<BackendThread>(qa(projectId, manuscriptId), { accessToken: token })).map(toThread)
+  },
+
+  async createThread(token: string, projectId: string, manuscriptId: string, input: AskInput) {
+    await syncManuscriptContent(token, projectId, manuscriptId)
+    const body: Record<string, unknown> = { question: input.question, scope: input.scope }
+    if (input.scope === 'selection' && input.chapter_id && input.selection_range) {
+      body.selection_range = await aiq.manuscriptRange(token, projectId, manuscriptId, input.chapter_id, input.selection_range)
+    }
+    return toThreadDetail(await request<BackendThreadDetail>('POST', qa(projectId, manuscriptId), { body, accessToken: token }))
+  },
+
+  /**
+   * 편집기의 선택 범위는 장 본문 기준이다. 백엔드는 원고 본문(content) 기준 위치를 받으므로 옮긴다.
+   * 본문은 장을 이어 붙인 것(joinChapters)이지만, 업로드 원고는 원문 그대로일 수 있어 장 본문을 찾아 맞춘다.
+   */
+  async manuscriptRange(token: string, projectId: string, manuscriptId: string, chapterId: string, range: { start: number; end: number }) {
+    const [m, chapters] = await Promise.all([request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken: token }), chaptersOf(token, projectId, manuscriptId)])
+    const chapter = chapters.find((c) => c.chapter_id === chapterId)
+    if (!chapter) return range
+    const text = m.content ?? ''
+    const selected = chapter.content.slice(range.start, range.end)
+    const offset = text.indexOf(chapter.content)
+    if (offset < 0) {
+      // 본문 동기화 전이면 이어 붙인 모양에서의 위치로 가장 가까운 같은 문장을 찾는다
+      const before = joinChapters(chapters.filter((c) => c.chapter_no < chapter.chapter_no))
+      const guess = (before ? before.length + 2 : 0) + chapterHeading(chapter).length + 1 + range.start
+      const found = nearestIndex(text, selected, guess)
+      return found < 0 ? range : { start: found, end: found + selected.length }
+    }
+    return { start: offset + range.start, end: offset + range.end }
+  },
+}
+
+function nearestIndex(text: string, needle: string, near: number) {
+  let best = -1
+  for (let i = text.indexOf(needle); i >= 0; i = text.indexOf(needle, i + 1)) {
+    if (best < 0 || Math.abs(i - near) < Math.abs(best - near)) best = i
+  }
+  return best
 }

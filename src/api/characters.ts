@@ -1,13 +1,13 @@
 import { influenceText, isBackendId, toDraft, toDraftItem, type BackendCharacter, type BackendDraft, type BackendDraftItem } from './backendShapes'
-import { request, requestMock } from './client'
-import { IS_REAL } from './config'
+import { request, requestLenient, requestMock } from './client'
+import { AI_REAL, IS_REAL } from './config'
 import { markDraftConfirmed } from './mock/bridge'
 import type { Character, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
 
 // NLCD · ASS 명세 — 인물
 //
-// real 모드: 확정 인물과 백엔드 초안(UUID)은 백엔드가 받는다. AI 추출(NLCD)은 백엔드에 없어 목업이 하고,
-// 그 결과로 생긴 초안(draft_301 등)은 검토하는 동안 목업에 있다가 확정하는 순간 백엔드에 옮겨 쓴다.
+// real 모드: 확정 인물과 백엔드 초안(UUID)은 백엔드가 받는다. AI 추출(NLCD)도 백엔드가 하고 초안을 백엔드에 만든다.
+// VITE_AI_MODE=mock이면 추출은 목업이 하고, 그 초안(draft_301 등)은 확정하는 순간 백엔드에 옮겨 쓴다.
 
 const p = (projectId: string) => `/projects/${projectId}`
 const realDraft = (draftId: string) => IS_REAL && isBackendId(draftId)
@@ -28,21 +28,32 @@ export async function deleteCharacter(token: string, projectId: string, characte
   return request<null>('DELETE', `${p(projectId)}/characters/${characterId}`, { accessToken: token })
 }
 
+/** 백엔드 NLCD 추출 — 인물 이름 필드가 name이다. 실패는 200 + data(status=failed) + error */
+type BackendExtraction = Omit<NLExtraction, 'character_name'> & { name: string | null }
+const toExtraction = ({ name, ...e }: BackendExtraction): NLExtraction => ({ ...e, character_name: name })
+const realExtraction = async (method: string, path: string, options: Parameters<typeof request>[2]) => toExtraction((await requestLenient<BackendExtraction>(method, path, options)).data)
+
 /** NLCD 4.1 자연어 입력 제출 */
 export function createExtraction(token: string, projectId: string, input: { source_text: string; character_name?: string; target_character_id?: string | null }) {
+  if (AI_REAL) {
+    const { character_name, ...rest } = input
+    return realExtraction('POST', `${p(projectId)}/nl-extractions`, { body: { ...rest, name: character_name || undefined }, accessToken: token })
+  }
   return request<NLExtraction>('POST', `${p(projectId)}/nl-extractions`, { body: input, accessToken: token })
 }
 
 /** NLCD 4.2 결과 폴링 */
 export function getExtraction(token: string, projectId: string, extractionId: string) {
+  if (AI_REAL) return realExtraction('GET', `${p(projectId)}/nl-extractions/${extractionId}`, { accessToken: token })
   return request<NLExtraction>('GET', `${p(projectId)}/nl-extractions/${extractionId}`, { accessToken: token })
 }
 
 export function retryExtraction(token: string, projectId: string, extractionId: string) {
+  if (AI_REAL) return realExtraction('POST', `${p(projectId)}/nl-extractions/${extractionId}/retry`, { accessToken: token })
   return request<NLExtraction>('POST', `${p(projectId)}/nl-extractions/${extractionId}/retry`, { accessToken: token })
 }
 
-/** NLCD 4.5 추출 결과를 ASS 초안으로 전달 */
+/** NLCD 4.5 추출 결과를 ASS 초안으로 전달 (백엔드면 백엔드 초안 UUID가 온다) */
 export function forwardExtraction(token: string, projectId: string, extractionId: string) {
   return request<{ extraction_id: string; forwarded_draft_id: string }>('POST', `${p(projectId)}/nl-extractions/${extractionId}/forward`, { accessToken: token })
 }

@@ -1,4 +1,4 @@
-import type { Chapter, CharacterCategory, CharacterDraft, DraftItem, Manuscript, ManuscriptStatus, ManuscriptVersionDetail, Project, ProjectRole } from './types'
+import type { Chapter, CharacterCategory, CharacterDraft, DraftItem, Manuscript, ManuscriptStatus, ManuscriptVersionDetail, Project, ProjectRole, QAMessage, QAThread } from './types'
 
 // prolog-backend 응답 모양(openapi.json · app/**/schemas.py)과 프론트 타입 사이의 변환.
 // 백엔드가 명세와 다르게 정한 이름(source_type upload, status draft·failed 등)을 여기서만 흡수한다.
@@ -250,10 +250,63 @@ export function toVersion(v: BackendVersion): ManuscriptVersionDetail {
   }
 }
 
-/** 장들을 원고 본문 한 덩어리로 — 백엔드 seed와 같은 모양("제목\n본문"을 빈 줄로 잇는다) */
+/**
+ * 장 제목 줄 — "3장 등대지기". 백엔드 AI(prolog-ai SSM)는 "N장"으로 시작하는 줄만 장 경계로 보고,
+ * 다시 불러올 때(splitChapters)도 이 줄로 나눈다
+ */
+export const chapterHeading = (c: { chapter_no: number; title: string | null }) =>
+  c.title && c.title !== `${c.chapter_no}장` ? `${c.chapter_no}장 ${c.title}` : `${c.chapter_no}장`
+
+/** 장들을 원고 본문 한 덩어리로 — "N장 제목\n본문"을 빈 줄로 잇는다 */
 export function joinChapters(chapters: Array<{ chapter_no: number; title: string | null; content: string }>) {
   return [...chapters]
     .sort((a, b) => a.chapter_no - b.chapter_no)
-    .map((c) => (c.title ? `${c.title}\n${c.content}` : c.content))
+    .map((c) => `${chapterHeading(c)}\n${c.content}`)
     .join('\n\n')
 }
+
+// --- AIQ 원고 질문 --------------------------------------------------------------------------------
+
+export interface BackendMessage {
+  message_id: string
+  thread_id: string
+  role: 'user' | 'assistant'
+  content: string | null
+  status: 'pending' | 'completed' | 'failed'
+  error: { code: string; message: string } | null
+  created_at: string
+}
+
+export interface BackendThread {
+  thread_id: string
+  manuscript_id: string
+  scope: 'whole' | 'selection'
+  selection_range: { start: number; end: number } | null
+  selected_text: string | null
+  title: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BackendThreadDetail {
+  thread: BackendThread
+  messages: BackendMessage[]
+}
+
+/** 백엔드 답변에는 근거 장면(citations)이 없다 */
+export const toMessage = (m: BackendMessage): QAMessage => ({ ...m, citations: [] })
+
+export const toThread = (t: BackendThread): QAThread => ({
+  thread_id: t.thread_id,
+  manuscript_id: t.manuscript_id,
+  scope: t.scope,
+  selection_range: t.selection_range,
+  chapter_id: null,
+  selected_text: t.selected_text,
+  title: t.title ?? '질문',
+  cited_chapters: [],
+  created_at: t.created_at,
+  updated_at: t.updated_at,
+})
+
+export const toThreadDetail = (d: BackendThreadDetail) => ({ thread: toThread(d.thread), messages: d.messages.map(toMessage) })

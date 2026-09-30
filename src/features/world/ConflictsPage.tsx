@@ -175,7 +175,7 @@ export function ConflictsPage() {
                     {pad(c.index)} {c.title}
                   </span>
                   <span className="char-item__meta">
-                    <span className={`severity severity--${c.severity}`}>{SEVERITY[c.severity]}</span> · {c.evidence.map((e) => `${e.chapter}장`).join(' ↔ ')}
+                    <span className={`severity severity--${c.severity}`}>{SEVERITY[c.severity]}</span> · {c.evidence.map((e) => (e.chapter ? `${e.chapter}장` : '규칙')).join(' ↔ ')}
                     {c.status !== 'pending' && ` · ${STATUS[c.status]}`}
                   </span>
                 </button>

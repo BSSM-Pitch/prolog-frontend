@@ -13,11 +13,12 @@ npm run dev
 
 ### 실제 백엔드(prolog-backend)에 붙이기 — 혼합 모드
 
-[prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)(`559f0af`)에는 AUTH·TEAM·PRJ·원고/챕터·편집 이력·인앱 알림·알림 설정, 그리고 AI를 뺀 수동 경로(인물 초안·확정 인물·세계관 규칙 직접 입력·복선 추적)가 있다.
-`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(AI 질문·자연어 인물 추출·규칙 추출·설정 충돌·관계·스토리 지도·개요 요약·이메일 연동)는 목업으로** 보낸다 (경로 목록은 `src/api/config.ts`).
+[prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)(`06b8928`)에는 AUTH·TEAM·PRJ·원고/챕터·편집 이력·인앱 알림·알림 설정, 수동 경로(인물 초안·확정 인물·세계관 규칙 직접 입력·복선 추적), 그리고 AI 기능(자연어 인물 추출 NLCD·규칙 추출 REX·원고 질문 AIQ·설정 충돌 SCDS·스토리 지도 SSM)이 있다.
+`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(관계·개요 요약·이메일 연동)는 목업으로** 보낸다 (경로 목록은 `src/api/config.ts`).
+백엔드에 LLM 키(`OPENROUTER_API_KEY`)가 없으면 AI가 빈 결과만 준다(`USE_FAKE_LLM=1`). 그럴 때 시연은 `.env.local`에 `VITE_AI_MODE=mock`을 넣어 **AI만 목업**으로 돌린다(이전 동작).
 목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장·인물·규칙·복선)를 목업 DB로 옮기므로 AI 기능도 실제 원고와 인물로 시연할 수 있다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
 
-1. 백엔드 README대로 서버를 띄운다 (`docker compose up -d` → `uv run alembic upgrade head` → `uv run uvicorn app.main:app`). 초대 알림·업로드 추출은 워커(`worker.outbox_relay`·`worker.notifier`·`worker.extractor`)가 있어야 한다
+1. 백엔드 README대로 서버를 띄운다 (`docker compose up -d` → `uv run alembic upgrade head` → `uv run uvicorn app.main:app`). 초대 알림·업로드 추출·AI 작업은 워커(`worker.outbox_relay`·`worker.notifier`·`worker.extractor`·`worker.sweeper`·`worker.ai_worker`)가 있어야 한다. LLM 키가 없으면 `USE_FAKE_LLM=1 uv run python -m worker.ai_worker`
 2. 백엔드 `.env`의 `GOOGLE_REDIRECT_URI`를 이 앱의 `http://localhost:5173/auth/callback`으로 맞춘다
 3. 이 앱의 `.env.example`을 `.env`로 복사하고 `VITE_API_MODE=real`, `VITE_GOOGLE_CLIENT_ID`(백엔드와 같은 값)를 채운다
 4. `npm run dev` — 백엔드에 CORS 설정이 없어 개발 서버가 `/v1`을 백엔드로, `/__s3`를 s3mock으로 프록시한다 (`vite.config.ts`)
@@ -34,8 +35,13 @@ real 모드에서 달라지는 것:
 - 처음 Google로 들어온 사람은 가입 티켓(10분)을 받고 아이디 → 사용자 유형을 정해 가입을 마친다 (`/auth/callback` → `/auth/signup` → `/auth/signup/role`)
 - 초대 수락에는 초대 생성 응답의 토큰이 필요하고 초대 메일은 아직 없다. 초대하면 **초대 링크**(`/invite/:kind/:id/:invitationId?token=…`)를 보여 주고, 받은 사람이 열어서 참가한다
 - 원고 업로드는 presigned URL로 직접 올린 뒤 완료를 알린다(txt·docx만). 백엔드는 본문만 추출하므로 장이 없으면 편집기가 "1장" 같은 줄로 나눠 장을 만든다
-- 자연어 인물 설계(NLCD)는 목업 AI가 추출하고, 초안(`draft_…`)은 검토하는 동안 목업에 있다. **확정하는 순간** 백엔드에 초안을 만들고 항목을 옮겨 확정한다. 백엔드에서 온 초안(UUID)은 처음부터 백엔드가 받는다
-- 규칙 추출 후보(pending·ignored)는 목업에 있고, 후보를 확정하면 백엔드 규칙이 된다. 직접 추가·수정·삭제는 백엔드
+- AI 작업(인물 추출·규칙 추출·답변·충돌 검사·구조 분석)은 백엔드 워커가 하고 화면은 1초마다 상태를 확인한다. 실패는 200 + `data(status=failed)` + `error`로 온다(`requestLenient`)
+- 자연어 인물 설계(NLCD)는 추출 → "구조화 초안 검토로 계속"(forward)하면 백엔드 초안이 생긴다. (`VITE_AI_MODE=mock`이면 목업 초안 `draft_…`을 확정하는 순간 백엔드에 옮긴다)
+- 규칙 추출(REX) 후보는 추출 작업 결과 안에만 있고 목록 API가 없다. 이 브라우저에서 요청한 추출 ID를 기억해(`localStorage prolog.rule-extractions.v1`) 규칙 목록 뒤에 후보를 붙인다. 후보 수정은 확정할 때 `edits`로 보낸다. 삭제는 무시로 남긴다. 근거 장은 백엔드가 비워 두어 근거 문장이 든 장을 찾아 채운다
+- 설정 충돌(SCDS)은 "사건 저장 → 그 사건 검사"뿐이라, "원고 다시 검사"는 최신 원고의 장 본문을 5,000자 단위 사건으로 저장해 검사 여러 개를 하나로 묶어 보여 준다. 참여 인물은 본문에 이름이 나오는 인물(없으면 첫 인물). 같은 규칙·인물로 이미 검사한 본문은 다시 보내지 않는다(`prolog.scanned-chunks.v1`). "직접 수정"은 원고의 그 문장도 고쳐 저장한다
+- 원고 질문(AIQ)의 선택 범위는 원고 본문(content) 기준 위치로 바꿔 보낸다. 답변에 근거 장면(citations)이 없다
+- AI는 장이 아니라 **원고 본문**을 읽고 "N장"으로 시작하는 줄로 장을 나눈다. 그래서 장을 이어 붙일 때 "N장 제목" 줄을 쓰고, AI 요청 직전에 본문을 장들과 맞춘다(`syncManuscriptContent`)
+- 개요의 충돌 수·우선 항목·스토리 요약은 백엔드 충돌·구조 지도로 바꾼다
 - 편집기는 장을 저장한 뒤 1.5초 뒤에 장들을 이어 붙여 원고 본문(`PATCH manuscripts content`)도 저장한다. 백엔드 편집 이력이 원고 본문이 바뀔 때만 스냅샷을 남기기 때문이다
 
 ## 화면과 경로

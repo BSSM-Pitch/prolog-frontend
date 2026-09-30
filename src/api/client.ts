@@ -66,6 +66,24 @@ async function realData<T>(path: string, token: string, query?: Record<string, s
   return body?.data as T
 }
 
+/**
+ * AI 잡 폴링처럼 "실패"를 200 + data(status=failed) + error로 주는 응답 (NLCD·REX·SCDS·SSM).
+ * 오류로 던지지 않고 data와 error를 함께 돌려준다. 4xx·5xx는 평소처럼 던진다.
+ */
+export async function requestLenient<T>(method: string, path: string, options: RequestOptions = {}): Promise<{ data: T; error: ApiErrorBody | null }> {
+  let raw: RawResponse
+  try {
+    raw = await send(method, path, options)
+  } catch {
+    throw new ApiError(0, { code: 'NETWORK_ERROR', message: '서버에 연결하지 못했어요. 네트워크 상태를 확인해 주세요.', details: {} })
+  }
+  const body = raw.body as { data?: T; error?: ApiErrorBody } | null
+  if (raw.status >= 400 || !body?.data) {
+    throw new ApiError(raw.status, body?.error ?? { code: 'UNKNOWN_ERROR', message: '알 수 없는 오류가 발생했어요.', details: {} })
+  }
+  return { data: body.data, error: body.error ?? null }
+}
+
 /** 커서 목록을 끝까지 받는다 (백엔드 기본 20개 · 최대 100개) */
 async function realAll<T>(path: string, token: string, query: Record<string, string> = {}): Promise<T[]> {
   const out: T[] = []
