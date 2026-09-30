@@ -7,6 +7,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      // 미리보기 도구가 PORT를 정해 주면 그 포트를 쓴다 (5173이 다른 프로그램에 잡혀 있을 때)
+      port: Number(env.PORT) || 5173,
       // 백엔드에 CORS 설정이 없어 개발 서버가 대신 전달한다 (real 모드)
       proxy: {
         '/v1': { target: env.VITE_BACKEND_URL ?? 'http://localhost:8000', changeOrigin: true },
