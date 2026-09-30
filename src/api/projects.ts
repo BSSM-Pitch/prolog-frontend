@@ -1,5 +1,5 @@
 import { roleOf, toProject, type BackendMember, type BackendProject } from './backendShapes'
-import { request, requestWithMeta } from './client'
+import { request, requestAll, requestWithMeta } from './client'
 import { IS_REAL } from './config'
 import { getCurrentUserId } from './identity'
 import type { OwnerType, Project, ProjectListMeta, ProjectOverview, ProjectSort } from './types'
@@ -50,12 +50,12 @@ const SORTERS: Record<ProjectSort, (a: Project, b: Project) => number> = {
 
 const real = {
   async teamNames(token: string) {
-    const teams = await request<Array<{ team_id: string; name: string }>>('GET', '/teams', { accessToken: token, query: { limit: '100' } })
+    const teams = await requestAll<{ team_id: string; name: string }>('/teams', { accessToken: token })
     return new Map(teams.map((t) => [t.team_id, t.name]))
   },
 
   async role(token: string, p: BackendProject) {
-    const members = await request<BackendMember[]>('GET', `/projects/${p.project_id}/members`, { accessToken: token }).catch(() => null)
+    const members = await requestAll<BackendMember>(`/projects/${p.project_id}/members`, { accessToken: token }).catch(() => null)
     return roleOf(p, members, getCurrentUserId())
   },
 
@@ -67,7 +67,7 @@ const real = {
       requestWithMeta<BackendProject[], { next_cursor: string | null }>('GET', '/projects', { query, accessToken: token }),
       real.teamNames(token),
       // (명세 미정의) 탭 숫자 — 백엔드에 counts가 없어 한 번 더 받아 센다 (최대 100개)
-      request<BackendProject[]>('GET', '/projects', { query: { limit: '100' }, accessToken: token }),
+      requestAll<BackendProject>('/projects', { accessToken: token }),
     ])
     const roles = await Promise.all(page.data.map((p) => real.role(token, p)))
     const data = page.data.map((p, i) => toProject(p, roles[i], p.team_id ? (names.get(p.team_id) ?? null) : null))

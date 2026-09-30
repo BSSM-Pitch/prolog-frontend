@@ -66,16 +66,34 @@ async function realData<T>(path: string, token: string, query?: Record<string, s
   return body?.data as T
 }
 
+/** 커서 목록을 끝까지 받는다 (백엔드 기본 20개 · 최대 100개) */
+async function realAll<T>(path: string, token: string, query: Record<string, string> = {}): Promise<T[]> {
+  const out: T[] = []
+  let cursor: string | null = null
+  do {
+    const res = await sendReal('GET', path, { accessToken: token, query: { ...query, limit: '100', ...(cursor ? { cursor } : {}) } })
+    const body = res.body as { data?: T[]; meta?: { next_cursor?: string | null }; error?: ApiErrorBody } | null
+    if (res.status >= 400) throw new ApiError(res.status, body?.error ?? { code: 'UNKNOWN_ERROR', message: '실제 서버에서 데이터를 가져오지 못했어요.', details: {} })
+    out.push(...(body?.data ?? []))
+    cursor = body?.meta?.next_cursor ?? null
+  } while (cursor)
+  return out
+}
+
 async function ensureMirror(projectId: string, token: string) {
   const at = mirroredAt.get(projectId)
   if (at && Date.now() - at < MIRROR_TTL_MS) return
-  const [project, members, manuscripts, chapters] = await Promise.all([
+  const list = <T>(sub: string) => realAll<T>(`/projects/${projectId}/${sub}`, token)
+  const [project, members, manuscripts, chapters, characters, rules, foreshadowings] = await Promise.all([
     realData<Record<string, unknown>>(`/projects/${projectId}`, token),
-    realData<Array<Record<string, unknown>>>(`/projects/${projectId}/members`, token),
-    realData<Array<Record<string, unknown>>>(`/projects/${projectId}/manuscripts`, token, { limit: '100' }),
-    realData<Array<Record<string, unknown>>>(`/projects/${projectId}/chapters`, token),
+    list<Record<string, unknown>>('members'),
+    list<Record<string, unknown>>('manuscripts'),
+    list<Record<string, unknown>>('chapters'),
+    list<Record<string, unknown>>('characters'),
+    list<Record<string, unknown>>('world-rules'),
+    list<Record<string, unknown>>('foreshadowings'),
   ])
-  mirrorProject({ project, members, manuscripts, chapters })
+  mirrorProject({ project, members, manuscripts, chapters, characters, rules, foreshadowings })
   mirroredAt.set(projectId, Date.now())
 }
 
@@ -95,8 +113,8 @@ function rememberUser(path: string, body: unknown) {
   bridgeUser(user)
 }
 
-async function send(method: string, path: string, options: RequestOptions): Promise<RawResponse> {
-  if (servedByBackend(method, path)) {
+async function send(method: string, path: string, options: RequestOptions, forceMock = false): Promise<RawResponse> {
+  if (!forceMock && servedByBackend(method, path)) {
     const res = await sendReal(method, path, options)
     if (res.status < 400) {
       if (method !== 'GET') invalidateMirror(path)
@@ -106,6 +124,7 @@ async function send(method: string, path: string, options: RequestOptions): Prom
   }
   if (IS_REAL) {
     const projectId = projectIdOf(path)
+    if (projectId && forceMock) mirroredAt.delete(projectId)
     if (projectId && options.accessToken) await ensureMirror(projectId, options.accessToken)
   }
   return handleMockRequest({ method, path, query: options.query ?? {}, headers: headersOf(options), body: options.body })
@@ -121,10 +140,11 @@ export async function requestWithMeta<T, M>(
   method: string,
   path: string,
   options: RequestOptions = {},
+  forceMock = false,
 ): Promise<{ data: T; meta: M }> {
   let raw: RawResponse
   try {
-    raw = await send(method, path, options)
+    raw = await send(method, path, options, forceMock)
   } catch (e) {
     if (e instanceof ApiError) throw e
     throw new ApiError(0, {
@@ -139,6 +159,27 @@ export async function requestWithMeta<T, M>(
     throw new ApiError(raw.status, body?.error ?? { code: 'UNKNOWN_ERROR', message: '알 수 없는 오류가 발생했어요.', details: {} })
   }
   return { data: (body?.data ?? null) as T, meta: (body?.meta ?? {}) as M }
+}
+
+/** 커서 목록을 끝까지 받는다 (real 모드 백엔드 목록은 기본 20개씩 온다) */
+export async function requestAll<T>(path: string, options: Omit<RequestOptions, 'body'> = {}): Promise<T[]> {
+  const out: T[] = []
+  let cursor: string | null = null
+  do {
+    const query: Record<string, string> = { ...options.query, limit: '100', ...(cursor ? { cursor } : {}) }
+    const res: { data: T[]; meta: { next_cursor?: string | null } } = await requestWithMeta<T[], { next_cursor?: string | null }>('GET', path, { ...options, query })
+    out.push(...(res.data ?? []))
+    cursor = res.meta.next_cursor ?? null
+  } while (cursor)
+  return out
+}
+
+/**
+ * real 모드에서도 목업이 받게 한다. 먼저 그 프로젝트의 실제 데이터를 새로 옮겨 둔다.
+ * 실제 데이터(인물·규칙)에 목업만 아는 것(관계 수·AI 후보)을 붙여 보여 줄 때 쓴다.
+ */
+export function requestMock<T>(method: string, path: string, options: RequestOptions = {}) {
+  return requestWithMeta<T, unknown>(method, path, options, true).then((r) => r.data)
 }
 
 /** 백엔드에 아직 없는 기능 (real 모드) */

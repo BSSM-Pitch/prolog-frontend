@@ -1,6 +1,6 @@
 import { splitChapters } from '../lib/chapters'
-import { toChapter, toManuscript, type BackendChapter, type BackendManuscript } from './backendShapes'
-import { ApiError, request, requestWithMeta } from './client'
+import { joinChapters, toChapter, toManuscript, toVersion, type BackendChapter, type BackendManuscript, type BackendVersion } from './backendShapes'
+import { ApiError, request, requestAll, requestWithMeta } from './client'
 import { IS_REAL } from './config'
 import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
@@ -51,7 +51,9 @@ export function addChapter(accessToken: string, projectId: string, manuscriptId:
 /** 4.9 장 수정 — 편집기 자동 저장. 백엔드는 챕터가 프로젝트 직속 경로다 */
 export async function saveChapter(accessToken: string, projectId: string, manuscriptId: string, chapterId: string, input: { content?: string; title?: string }) {
   if (!IS_REAL) return request<Chapter>('PATCH', `${base(projectId)}/${manuscriptId}/chapters/${chapterId}`, { body: input, accessToken })
-  return toChapter(await request<BackendChapter>('PATCH', `/projects/${projectId}/chapters/${chapterId}`, { body: input, accessToken }))
+  const saved = toChapter(await request<BackendChapter>('PATCH', `/projects/${projectId}/chapters/${chapterId}`, { body: input, accessToken }))
+  real.syncContent(accessToken, projectId, manuscriptId)
+  return saved
 }
 
 // --- real 모드 (prolog-backend MSU) ----------------------------------------------------------------
@@ -72,22 +74,42 @@ function uploadUrlOf(url: string) {
 const splitting = new Map<string, Promise<Chapter[]>>()
 
 const chaptersOf = (token: string, projectId: string, manuscriptId?: string) =>
-  request<BackendChapter[]>('GET', `/projects/${projectId}/chapters`, { accessToken: token, query: manuscriptId ? { manuscript_id: manuscriptId } : undefined })
+  requestAll<BackendChapter>(`/projects/${projectId}/chapters`, { accessToken: token, query: manuscriptId ? { manuscript_id: manuscriptId } : undefined })
+
+const manuscriptsOf = (token: string, projectId: string) => requestAll<BackendManuscript>(base(projectId), { accessToken: token })
+
+/** 원고별 본문 동기화 예약 — 자동 저장이 이어지는 동안은 한 번만 보낸다 */
+const SYNC_DELAY_MS = 1500
+const syncTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 const real = {
+  /**
+   * 편집기는 장(PATCH chapters)을 저장하지만 백엔드 편집 이력은 원고 본문(PATCH manuscripts content)이
+   * 바뀔 때 스냅샷을 남긴다. 장을 저장하면 잠시 뒤 장들을 이어 붙여 원고 본문도 저장한다.
+   * 스냅샷을 합치는 기준(5분 · 1,000자)은 백엔드가 정한다.
+   */
+  syncContent(token: string, projectId: string, manuscriptId: string) {
+    clearTimeout(syncTimers.get(manuscriptId))
+    syncTimers.set(
+      manuscriptId,
+      setTimeout(() => {
+        syncTimers.delete(manuscriptId)
+        chaptersOf(token, projectId, manuscriptId)
+          .then((chapters) => request<BackendManuscript>('PATCH', `${base(projectId)}/${manuscriptId}`, { body: { content: joinChapters(chapters) }, accessToken: token }))
+          .catch(() => {
+            // 이력만 늦어진다. 다음 저장 때 다시 보낸다
+          })
+      }, SYNC_DELAY_MS),
+    )
+  },
+
   async listManuscripts(token: string, projectId: string) {
-    let [rows, chapters] = await Promise.all([
-      request<BackendManuscript[]>('GET', base(projectId), { accessToken: token, query: { limit: '100' } }),
-      chaptersOf(token, projectId),
-    ])
+    let [rows, chapters] = await Promise.all([manuscriptsOf(token, projectId), chaptersOf(token, projectId)])
     // 추출이 끝났는데 장이 없는 업로드 원고는 여기서 장으로 나눠 목록의 "N장"이 바로 맞게 한다
     const unsplit = rows.filter((m) => m.status === 'ready' && m.chapter_count === 0 && m.content?.trim())
     if (unsplit.length) {
       await Promise.all(unsplit.map((m) => real.listChapters(token, projectId, m.manuscript_id).catch(() => [])))
-      ;[rows, chapters] = await Promise.all([
-        request<BackendManuscript[]>('GET', base(projectId), { accessToken: token, query: { limit: '100' } }),
-        chaptersOf(token, projectId),
-      ])
+      ;[rows, chapters] = await Promise.all([manuscriptsOf(token, projectId), chaptersOf(token, projectId)])
     }
     // "82,420자" — 편집기 원고는 본문이 장에 있어 장 길이를 더한다
     const chars = new Map<string, number>()
@@ -152,16 +174,33 @@ const real = {
   },
 }
 
-/** 4.10 편집 이력 조회 (선택) — meta.total은 명세 미정의 */
-export function listVersions(accessToken: string, projectId: string, manuscriptId: string, cursor?: string | null) {
+/** 백엔드 목록은 본문을 함께 준다. 본문 보기(getVersion)는 여기서 꺼낸다 */
+const versionCache = new Map<string, ManuscriptVersionDetail>()
+
+/** 4.10 편집 이력 조회 (선택) — meta.total은 명세 미정의(백엔드에는 없다) */
+export async function listVersions(accessToken: string, projectId: string, manuscriptId: string, cursor?: string | null) {
   const query: Record<string, string> = { limit: '6' }
   if (cursor) query.cursor = cursor
-  return requestWithMeta<ManuscriptVersion[], { next_cursor: string | null; total?: number }>('GET', `${base(projectId)}/${manuscriptId}/versions`, { accessToken, query })
+  if (!IS_REAL) return requestWithMeta<ManuscriptVersion[], { next_cursor: string | null; total?: number }>('GET', `${base(projectId)}/${manuscriptId}/versions`, { accessToken, query })
+  const res = await requestWithMeta<BackendVersion[], { next_cursor: string | null }>('GET', `${base(projectId)}/${manuscriptId}/versions`, { accessToken, query })
+  const rows = res.data.map(toVersion)
+  for (const v of rows) versionCache.set(v.version_id, v)
+  return { data: rows as ManuscriptVersion[], meta: { next_cursor: res.meta.next_cursor, total: undefined as number | undefined } }
 }
 
-/** (명세 미정의) 스냅샷 본문 */
-export function getVersion(accessToken: string, projectId: string, manuscriptId: string, versionId: string) {
-  return request<ManuscriptVersionDetail>('GET', `${base(projectId)}/${manuscriptId}/versions/${versionId}`, { accessToken })
+/** (명세 미정의) 스냅샷 본문. 백엔드에는 단건 조회가 없어 목록에서 받은 본문을 쓴다 */
+export async function getVersion(accessToken: string, projectId: string, manuscriptId: string, versionId: string) {
+  if (!IS_REAL) return request<ManuscriptVersionDetail>('GET', `${base(projectId)}/${manuscriptId}/versions/${versionId}`, { accessToken })
+  const cached = versionCache.get(versionId)
+  if (cached) return cached
+  let cursor: string | null = null
+  do {
+    const page: Awaited<ReturnType<typeof listVersions>> = await listVersions(accessToken, projectId, manuscriptId, cursor)
+    cursor = page.meta.next_cursor
+  } while (!versionCache.has(versionId) && cursor)
+  const found = versionCache.get(versionId)
+  if (!found) throw new ApiError(404, { code: 'VERSION_NOT_FOUND', message: '스냅샷을 찾을 수 없어요.', details: {} })
+  return found
 }
 
 // AIQ 명세 — 원고 단위 질문 스레드

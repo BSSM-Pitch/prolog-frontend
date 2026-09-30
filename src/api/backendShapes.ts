@@ -1,4 +1,4 @@
-import type { Chapter, Manuscript, ManuscriptStatus, Project, ProjectRole } from './types'
+import type { Chapter, CharacterCategory, CharacterDraft, DraftItem, Manuscript, ManuscriptStatus, ManuscriptVersionDetail, Project, ProjectRole } from './types'
 
 // prolog-backend 응답 모양(openapi.json · app/**/schemas.py)과 프론트 타입 사이의 변환.
 // 백엔드가 명세와 다르게 정한 이름(source_type upload, status draft·failed 등)을 여기서만 흡수한다.
@@ -20,6 +20,8 @@ export interface BackendMember {
   role: string
   joined_at: string
   username: string
+  /** 프로젝트 멤버 목록에만 있다. team이면 팀 프로젝트의 팀원(역할 변경·내보내기는 팀에서 한다) */
+  source?: 'project' | 'team'
 }
 
 export interface BackendManuscript {
@@ -115,4 +117,143 @@ export function toManuscript(m: BackendManuscript, charCount?: number): Manuscri
 export function toChapter(c: BackendChapter): Chapter {
   // 백엔드 챕터 응답에는 updated_at이 없다
   return { chapter_id: c.chapter_id, manuscript_id: c.manuscript_id, chapter_no: c.chapter_no, title: c.title, content: c.content, updated_at: null }
+}
+
+// --- ASS 캐릭터 · 초안 (수동 경로) --------------------------------------------------------------------
+
+export const CATEGORIES = ['personality_tags', 'core_values', 'influence_relations', 'emotion_keywords'] as const
+
+export interface BackendAttribute {
+  attribute_id: string
+  field: CharacterCategory
+  value: string
+  evidence: string | null
+  origin: 'ai_extracted' | 'user_added'
+}
+
+export type BackendCharacter = { character_id: string; project_id: string; name: string; created_from_draft_id: string | null; confirmed_at: string; updated_at: string } & Record<CharacterCategory, BackendAttribute[]>
+
+export interface BackendDraftItem {
+  item_id: string
+  field: CharacterCategory
+  value: string
+  evidence: string | null
+  origin: 'ai_extracted' | 'user_added'
+}
+
+export type BackendDraft = {
+  draft_id: string
+  project_id: string
+  character_name: string | null
+  status: CharacterDraft['status']
+  source_job_id: string | null
+  confirmed_character_id: string | null
+  confirmed_at: string | null
+  created_at: string
+  updated_at: string
+} & Record<CharacterCategory, BackendDraftItem[]>
+
+/** 백엔드는 영향 관계를 value 하나로 둔다(화면 23). 목업의 대상·유형·상태는 한 줄로 합친다 */
+export function influenceText(i: { value?: string; target?: string; type?: string; status?: string | null }) {
+  return [i.target ?? i.value, i.type && i.type !== '영향' ? i.type : null, i.status ? `상태: ${i.status}` : null].filter(Boolean).join(' · ')
+}
+
+export function toDraftItem(i: BackendDraftItem): DraftItem {
+  return { item_id: i.item_id, field: i.field, value: i.value, origin: i.origin, evidence: i.evidence, target: i.field === 'influence_relations' ? i.value : undefined }
+}
+
+/** 백엔드 초안은 카테고리별 배열이다. 화면은 items[] 한 줄로 받는다 */
+export function toDraft(d: BackendDraft): CharacterDraft {
+  return {
+    draft_id: d.draft_id,
+    character_name: d.character_name,
+    items: CATEGORIES.flatMap((f) => d[f].map(toDraftItem)),
+    status: d.status,
+    target_character_id: null,
+    confirmed_character_id: d.confirmed_character_id,
+    created_at: d.created_at,
+  }
+}
+
+// --- REX 세계관 규칙 -------------------------------------------------------------------------------
+
+export interface BackendWorldRule {
+  rule_id: string
+  project_id: string
+  title: string
+  description: string
+  violation_keywords: string[]
+  origin: 'ai_extracted' | 'user_added'
+  extraction_id: string | null
+  evidence: string | null
+  source_chapter_no: number | null
+  created_at: string
+  updated_at: string
+}
+
+// --- FTS 복선 ------------------------------------------------------------------------------------
+
+export interface BackendForeshadowing {
+  foreshadowing_id: string
+  project_id: string
+  title: string
+  description: string | null
+  /** orphaned(설치 챕터가 지워짐)면 null */
+  setup_chapter: number | null
+  linked_chapters: number[]
+  payoff_chapter: number | null
+  status: 'unresolved' | 'resolved' | 'orphaned'
+  linked_event_ids: string[]
+  linked_character_ids: string[]
+  chapters: Array<{ chapter_id: string; chapter_no: number | null; role: 'setup' | 'linked' | 'payoff' }>
+  created_at: string
+  updated_at: string
+}
+
+/** 백엔드 ID는 UUID다. 목업이 만든 ID(rule_301 등)와 구분할 때 쓴다 */
+export const isBackendId = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)
+
+/** "F01"·"R01" 같은 표시 번호 — 백엔드에 없어 만든 순서로 매긴다 */
+export function codesByCreation<T extends { created_at: string }>(rows: T[], idOf: (r: T) => string, prefix: string) {
+  const codes = new Map<string, string>()
+  ;[...rows].sort((a, b) => a.created_at.localeCompare(b.created_at) || idOf(a).localeCompare(idOf(b))).forEach((r, i) => codes.set(idOf(r), `${prefix}${String(i + 1).padStart(2, '0')}`))
+  return codes
+}
+
+// --- MSU 편집 이력 ---------------------------------------------------------------------------------
+
+export interface BackendVersion {
+  version_id: string
+  manuscript_id: string
+  version_no: number
+  source: 'editor' | 'upload'
+  char_count: number
+  content: string
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** 백엔드 스냅샷은 원고 전체 본문이다(장 단위가 아니다). 창 안의 저장은 덮어써서 updated_at이 마지막 저장 시각이다 */
+export function toVersion(v: BackendVersion): ManuscriptVersionDetail {
+  return {
+    version_id: v.version_id,
+    manuscript_id: v.manuscript_id,
+    chapter_id: null,
+    chapter_no: null,
+    chapter_title: null,
+    reason: v.source === 'upload' ? 'file_upload' : 'edit',
+    label: v.source === 'upload' ? '원고 파일 불러옴' : null,
+    char_count: v.char_count,
+    created_at: v.updated_at,
+    content: v.content,
+  }
+}
+
+/** 장들을 원고 본문 한 덩어리로 — 백엔드 seed와 같은 모양("제목\n본문"을 빈 줄로 잇는다) */
+export function joinChapters(chapters: Array<{ chapter_no: number; title: string | null; content: string }>) {
+  return [...chapters]
+    .sort((a, b) => a.chapter_no - b.chapter_no)
+    .map((c) => (c.title ? `${c.title}\n${c.content}` : c.content))
+    .join('\n\n')
 }

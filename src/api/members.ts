@@ -1,5 +1,5 @@
 import type { BackendMember } from './backendShapes'
-import { request, requestWithMeta } from './client'
+import { request, requestAll, requestWithMeta } from './client'
 import { IS_REAL } from './config'
 import { forgetInvitation, rememberInvitation, sentInvitations } from './sentInvitations'
 import type { ProjectInvitation, ProjectMember, ProjectRole } from './types'
@@ -16,11 +16,12 @@ const toMember = (projectId: string, m: BackendMember): ProjectMember => ({
   joined_at: m.joined_at,
   name: m.username,
   email: null,
+  source: m.source,
 })
 
 export async function listMembers(accessToken: string, projectId: string) {
   if (!IS_REAL) return request<ProjectMember[]>('GET', `${base(projectId)}/members`, { accessToken })
-  const rows = await request<BackendMember[]>('GET', `${base(projectId)}/members`, { accessToken })
+  const rows = await requestAll<BackendMember>(`${base(projectId)}/members`, { accessToken })
   return rows.map((m) => toMember(projectId, m))
 }
 

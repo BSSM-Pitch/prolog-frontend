@@ -125,6 +125,8 @@ export function MembersPage() {
             <tbody>
               {list.map((m) => {
                 const me = m.user_id === user?.user_id
+                // 팀 프로젝트의 팀원은 팀에서 관리한다 (백엔드는 여기서 바꾸면 MEMBER_NOT_FOUND)
+                const viaTeam = m.source === 'team'
                 return (
                   <tr key={m.user_id}>
                     <td>
@@ -132,10 +134,11 @@ export function MembersPage() {
                         {m.name}
                         {me && ' (나)'}
                       </span>
+                      {viaTeam && <span className="members__email">팀원으로 참여</span>}
                       {m.email && <span className="members__email">{m.email}</span>}
                     </td>
                     <td>
-                      {isOwner && !me ? (
+                      {isOwner && !me && !viaTeam ? (
                         <select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as ProjectRole)} aria-label={`${m.name}의 역할`}>
                           {(Object.keys(PROJECT_ROLE_LABEL) as ProjectRole[]).map((r) => (
                             <option key={r} value={r}>
@@ -149,7 +152,7 @@ export function MembersPage() {
                     </td>
                     <td>{shortDate(m.joined_at)}</td>
                     <td className="members__action">
-                      {me ? (
+                      {viaTeam ? null : me ? (
                         <Button tone="outline" onClick={() => setPending({ kind: 'leave', member: m })}>
                           나가기
                         </Button>

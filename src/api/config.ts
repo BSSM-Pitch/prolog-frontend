@@ -2,8 +2,13 @@
 export const IS_REAL = import.meta.env.VITE_API_MODE === 'real'
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/v1'
 
+// 백엔드 ID는 UUID다. 목업이 만든 AI 초안·규칙 후보(draft_301, rule_302 등)는 목업이 받는다
+const ID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+const P = '^\\/projects\\/[^/]+'
+const r = (source: string) => new RegExp(source.replaceAll('{P}', P).replaceAll('{ID}', ID))
+
 /**
- * prolog-backend(Phase 1)에 있는 API. 경로는 /v1을 뺀 형태.
+ * prolog-backend(559f0af)에 있는 API. 경로는 /v1을 뺀 형태.
  * 여기에 없는 요청은 real 모드에서도 목업이 받는다.
  */
 const BACKEND_ROUTES: Array<[string, RegExp]> = [
@@ -24,6 +29,28 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['POST', /^\/projects\/[^/]+\/manuscripts\/[^/]+\/file(\/complete)?$/],
   ['GET|POST', /^\/projects\/[^/]+\/chapters$/],
   ['GET|PATCH|DELETE', /^\/projects\/[^/]+\/chapters\/[^/]+$/],
+  ['GET', /^\/projects\/[^/]+\/manuscripts\/[^/]+\/versions$/],
+  // ASS 수동 경로 (AI 추출 NLCD는 목업)
+  ['GET|POST', r('{P}\\/character-drafts$')],
+  ['GET|PATCH', r('{P}\\/character-drafts\\/{ID}$')],
+  ['POST', r('{P}\\/character-drafts\\/{ID}\\/(confirm|discard|items)$')],
+  ['GET', r('{P}\\/character-drafts\\/{ID}\\/edit-history$')],
+  ['PATCH|DELETE', r('{P}\\/character-drafts\\/{ID}\\/items\\/[^/]+$')],
+  ['GET', r('{P}\\/characters$')],
+  ['GET|PATCH|DELETE', r('{P}\\/characters\\/{ID}$')],
+  ['GET', r('{P}\\/characters\\/{ID}\\/edit-history$')],
+  // REX 직접 입력 (AI 규칙 추출·후보 확정/무시는 목업)
+  ['GET|POST', r('{P}\\/world-rules$')],
+  ['PATCH|DELETE', r('{P}\\/world-rules\\/{ID}$')],
+  // FTS (사건 연결 제외 전부)
+  ['GET|POST', /^\/projects\/[^/]+\/foreshadowings$/],
+  ['GET', /^\/projects\/[^/]+\/foreshadowings\/unresolved(\/advisories)?$/],
+  ['GET|PATCH|DELETE', /^\/projects\/[^/]+\/foreshadowings\/[^/]+$/],
+  ['POST', /^\/projects\/[^/]+\/foreshadowings\/[^/]+\/(linked-chapters|links)$/],
+  ['DELETE', /^\/projects\/[^/]+\/foreshadowings\/[^/]+\/(linked-chapters\/[^/]+|links\/character\/[^/]+)$/],
+  ['PUT|DELETE', /^\/projects\/[^/]+\/foreshadowings\/[^/]+\/payoff$/],
+  ['GET', /^\/projects\/[^/]+\/foreshadowing-timeline$/],
+  ['GET', /^\/projects\/[^/]+\/chapters\/[^/]+\/foreshadowings$/],
   // TEAM
   ['GET|POST', /^\/teams$/],
   ['GET|PATCH|DELETE', /^\/teams\/[^/]+$/],
@@ -32,7 +59,8 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['GET|POST', /^\/teams\/[^/]+\/invitations$/],
   ['DELETE', /^\/teams\/[^/]+\/invitations\/[^/]+$/],
   ['POST', /^\/teams\/[^/]+\/invitations\/[^/]+\/accept$/],
-  // NOTI (인앱 알림만 — 설정·이메일 연동은 아직 없다)
+  // NOTI (이메일 연동은 백엔드가 만들지 않기로 했다)
+  ['GET|PATCH', /^\/users\/me\/notification-settings$/],
   ['GET', /^\/notifications$/],
   ['PATCH', /^\/notifications\/read-all$/],
   ['GET|PATCH|DELETE', /^\/notifications\/[^/]+$/],

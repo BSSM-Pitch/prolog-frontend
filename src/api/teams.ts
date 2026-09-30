@@ -1,5 +1,5 @@
 import { roleOf, toProject, type BackendMember, type BackendProject } from './backendShapes'
-import { request, requestWithMeta } from './client'
+import { request, requestAll, requestWithMeta } from './client'
 import { IS_REAL } from './config'
 import { getCurrentUserId } from './identity'
 import { rememberInvitation, sentInvitations } from './sentInvitations'
@@ -32,8 +32,8 @@ const toMember = (teamId: string, m: BackendMember): TeamMember => ({
 async function enrich(token: string, t: BackendTeam): Promise<Team> {
   const me = getCurrentUserId()
   const [members, projects] = await Promise.all([
-    request<BackendMember[]>('GET', `${base(t.team_id)}/members`, { accessToken: token }),
-    request<BackendProject[]>('GET', `${base(t.team_id)}/projects`, { accessToken: token, query: { limit: '100' } }),
+    requestAll<BackendMember>(`${base(t.team_id)}/members`, { accessToken: token }),
+    requestAll<BackendProject>(`${base(t.team_id)}/projects`, { accessToken: token }),
   ])
   const my_role = (members.find((m) => m.user_id === me)?.role ?? 'member') as TeamRole
   const invites = my_role === 'member' ? null : await request<TeamInvitation[]>('GET', `${base(t.team_id)}/invitations`, { accessToken: token }).catch(() => null)
@@ -53,7 +53,7 @@ async function enrich(token: string, t: BackendTeam): Promise<Team> {
 /** 4.1 내가 속한 팀 목록 */
 export async function listTeams(accessToken: string) {
   if (!IS_REAL) return request<Team[]>('GET', '/teams', { accessToken })
-  const rows = await request<BackendTeam[]>('GET', '/teams', { accessToken, query: { limit: '100' } })
+  const rows = await requestAll<BackendTeam>('/teams', { accessToken })
   return Promise.all(rows.map((t) => enrich(accessToken, t)))
 }
 
@@ -75,7 +75,7 @@ export function deleteTeam(accessToken: string, teamId: string) {
 
 export async function listTeamMembers(accessToken: string, teamId: string) {
   if (!IS_REAL) return request<TeamMember[]>('GET', `${base(teamId)}/members`, { accessToken })
-  return (await request<BackendMember[]>('GET', `${base(teamId)}/members`, { accessToken })).map((m) => toMember(teamId, m))
+  return (await requestAll<BackendMember>(`${base(teamId)}/members`, { accessToken })).map((m) => toMember(teamId, m))
 }
 
 /** 4.7 팀원 초대 — 응답의 token으로 초대 링크를 만든다 */
@@ -119,7 +119,7 @@ export function removeTeamMember(accessToken: string, teamId: string, userId: st
 /** 4.13 팀 소속 프로젝트 */
 export async function listTeamProjects(accessToken: string, teamId: string) {
   if (!IS_REAL) return request<Project[]>('GET', `${base(teamId)}/projects`, { accessToken })
-  const rows = await request<BackendProject[]>('GET', `${base(teamId)}/projects`, { accessToken, query: { limit: '100' } })
+  const rows = await requestAll<BackendProject>(`${base(teamId)}/projects`, { accessToken })
   // 팀 프로젝트는 팀원에게 editor 이상 — 목록에서는 멤버 조회를 생략하고 그 규칙으로 표시한다
   return rows.map((p) => toProject(p, roleOf(p, null, getCurrentUserId()), null))
 }

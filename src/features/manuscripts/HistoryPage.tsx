@@ -127,7 +127,7 @@ function History() {
                         )}
                       </span>
                       <span className="char-item__meta">
-                        {v.chapter_no}장{v.chapter_title && v.chapter_title !== `${v.chapter_no}장` ? ` · ${v.chapter_title}` : ''}
+                        {v.chapter_no !== null ? `${v.chapter_no}장${v.chapter_title && v.chapter_title !== `${v.chapter_no}장` ? ` · ${v.chapter_title}` : ''}` : '원고 전체'}
                       </span>
                     </button>
                   </li>
@@ -148,20 +148,26 @@ function History() {
                 <h2 id="snapshot-title" className="panel__title">
                   {formatStamp(selected.created_at)} 스냅샷
                 </h2>
-                <Link className="btn btn--secondary" to={`${editorPath}?chapter=${selected.chapter_no}`}>
-                  편집기에서 {selected.chapter_no}장 열기
-                </Link>
+                {selected.chapter_no !== null ? (
+                  <Link className="btn btn--secondary" to={`${editorPath}?chapter=${selected.chapter_no}`}>
+                    편집기에서 {selected.chapter_no}장 열기
+                  </Link>
+                ) : (
+                  <Link className="btn btn--secondary" to={editorPath}>
+                    편집기에서 열기
+                  </Link>
+                )}
               </div>
               <div className="history__meta">
                 <span className="badge badge--filled">{formatCount(selected.char_count)}자</span>
-                <span className="badge badge--filled">{selected.chapter_no}장</span>
+                <span className="badge badge--filled">{selected.chapter_no !== null ? `${selected.chapter_no}장` : '원고 전체'}</span>
                 <span className="badge badge--filled">{SOURCE[selected.reason]}</span>
               </div>
               {detail.error && !shown ? (
                 <p className="notice notice--error">{detail.error}</p>
               ) : (
                 <div className="history__text" aria-busy={!shown}>
-                  {shown ? shown.content || <span className="panel__label">비어 있는 장이에요.</span> : <span className="panel__label">본문을 불러오고 있어요</span>}
+                  {shown ? shown.content || <span className="panel__label">{shown.chapter_no !== null ? '비어 있는 장이에요.' : '비어 있는 원고예요.'}</span> : <span className="panel__label">본문을 불러오고 있어요</span>}
                 </div>
               )}
               <p className="panel__label">스냅샷은 읽기 전용이에요. 지금 원고는 바뀌지 않아요.</p>

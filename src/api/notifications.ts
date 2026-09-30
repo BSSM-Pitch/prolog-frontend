@@ -1,4 +1,5 @@
-import { request, requestWithMeta } from './client'
+import { notSupported, request, requestWithMeta } from './client'
+import { IS_REAL } from './config'
 import type { EmailIntegration, Notification, NotificationSetting, NotificationType } from './types'
 
 // NOTI 명세
@@ -44,13 +45,18 @@ export function updateSetting(accessToken: string, input: Partial<NotificationSe
   return request<NotificationSetting>('PATCH', '/users/me/notification-settings', { body: input, accessToken })
 }
 
-/** 4.8 연동된 이메일 계정 */
-export function listEmailIntegrations(accessToken: string) {
+/**
+ * 4.8 연동된 이메일 계정. 백엔드는 이메일 연동을 만들지 않기로 했다(CLAUDE.md §12) —
+ * real 모드는 연동 계정이 없고, 이메일 설정은 저장만 된다.
+ */
+export async function listEmailIntegrations(accessToken: string) {
+  if (IS_REAL) return [] as EmailIntegration[]
   return request<EmailIntegration[]>('GET', '/users/me/email-integrations', { accessToken })
 }
 
 /** 4.9 이메일 계정 연동 (OAuth 인가 코드) */
 export function connectEmail(accessToken: string, provider: EmailIntegration['provider'], oauthCode: string) {
+  if (IS_REAL) notSupported('이메일 연동은 아직 지원하지 않아요.')
   return request<EmailIntegration>('POST', '/users/me/email-integrations', { body: { provider, oauth_code: oauthCode }, accessToken })
 }
 

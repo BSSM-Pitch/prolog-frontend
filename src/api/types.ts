@@ -109,6 +109,8 @@ export interface ProjectMember {
   name: string
   /** (명세 미정의) Figma 28의 이메일 표시 */
   email: string | null
+  /** 백엔드: team이면 팀 프로젝트의 팀원이라 여기서 역할을 바꾸거나 내보낼 수 없다 */
+  source?: 'project' | 'team'
 }
 
 export type InvitationStatus = 'pending' | 'accepted' | 'expired' | 'revoked'
@@ -199,8 +201,9 @@ export type VersionReason = 'edit' | 'autosave' | 'file_upload' | 'import'
 export interface ManuscriptVersion {
   version_id: string
   manuscript_id: string
-  chapter_id: string
-  chapter_no: number
+  /** 장 단위 스냅샷(목업)만 있다. 백엔드 스냅샷은 원고 전체라 null */
+  chapter_id: string | null
+  chapter_no: number | null
   chapter_title: string | null
   reason: VersionReason
   /** "3차 원고 불러옴"처럼 목록에 보여 줄 제목. 없으면 reason으로 정한다 */
@@ -428,7 +431,8 @@ export interface Foreshadowing {
   setup_chapter: number
   linked_chapters: number[]
   payoff_chapter: number | null
-  status: 'resolved' | 'unresolved'
+  /** orphaned: 설치 장이 지워졌다(백엔드). setup_chapter는 0 */
+  status: 'resolved' | 'unresolved' | 'orphaned'
   /** (명세 미정의) 명세는 linked_character_ids·linked_event_ids — 목업은 이름으로 보관 */
   linked_characters: string[]
   linked_events: string[]

@@ -95,7 +95,7 @@ export function ForeshadowingsPage() {
         </button>
         <button type="button" className="panel fs__metric" onClick={() => set({ status: 'resolved' })}>
           <span className="panel__label">회수 완료</span>
-          <strong>{all.length - unresolved}건</strong>
+          <strong>{all.filter((f) => f.status === 'resolved').length}건</strong>
           <span className="panel__label">완성된 연결</span>
         </button>
         <button type="button" className="panel fs__metric" onClick={() => setShowAdvice((v) => !v)} aria-expanded={showAdvice}>
@@ -140,6 +140,7 @@ export function ForeshadowingsPage() {
               <option value="">상태 · 전체</option>
               <option value="unresolved">미회수</option>
               <option value="resolved">회수 완료</option>
+              {all.some((f) => f.status === 'orphaned') && <option value="orphaned">설치 장 삭제됨</option>}
             </select>
             <select className="nl-select" value={charFilter} onChange={(e) => set({ character: e.target.value })} aria-label="인물 필터">
               <option value="">연결 대상 · 전체</option>
@@ -165,11 +166,11 @@ export function ForeshadowingsPage() {
                 <li key={f.foreshadowing_id}>
                   <button type="button" className="char-item" aria-current={selected?.foreshadowing_id === f.foreshadowing_id || undefined} onClick={() => (setPanel(null), set({ selected: f.foreshadowing_id }))}>
                     <span className="char-item__name">
-                      {f.code} · {f.title} {f.status === 'unresolved' ? <span className="badge badge--waiting">미회수</span> : <span className="badge badge--success">회수</span>}
+                      {f.code} · {f.title} <StatusBadge status={f.status} resolved="회수" />
                     </span>
                     <span className="char-item__meta">{f.description}</span>
                     <span className="fs__chips">
-                      <span className="fs-chip fs-chip--setup">설치 {f.setup_chapter}장</span>
+                      <span className="fs-chip fs-chip--setup">{f.status === 'orphaned' ? '설치 장 없음' : `설치 ${f.setup_chapter}장`}</span>
                       {f.linked_chapters.map((c) => (
                         <span key={c} className="fs-chip fs-chip--linked">
                           연결 {c}장
@@ -203,14 +204,14 @@ export function ForeshadowingsPage() {
               <h2 id="fs-title" className="page-title">
                 {selected.title}
               </h2>
-              {selected.status === 'unresolved' ? <span className="badge badge--waiting">미회수</span> : <span className="badge badge--success">회수 완료</span>}
+              <StatusBadge status={selected.status} resolved="회수 완료" />
             </div>
             {selected.description && <p className="page-desc">{selected.description}</p>}
 
             <ol className="fs-steps">
               <li className="fs-steps__item fs-steps__item--setup">
-                <span>설치</span> {selected.setup_chapter}장
-                {editorLink(selected.setup_chapter) && (
+                <span>설치</span> {selected.status === 'orphaned' ? '설치 장이 지워졌어요. 수정에서 다시 골라 주세요.' : `${selected.setup_chapter}장`}
+                {selected.status !== 'orphaned' && editorLink(selected.setup_chapter) && (
                   <Link className="text-link" to={editorLink(selected.setup_chapter)!}>
                     원문 보기
                   </Link>
@@ -294,7 +295,7 @@ export function ForeshadowingsPage() {
 
             {canEdit && panel === null && (
               <div className="fs__actions">
-                {selected.status === 'unresolved' ? (
+                {selected.status === 'orphaned' ? null : selected.status === 'unresolved' ? (
                   <Button onClick={() => setPanel('payoff')}>회수 장면 지정</Button>
                 ) : (
                   <Button tone="outline" onClick={() => act((t) => api.cancelPayoff(t, projectId, selected.foreshadowing_id))} disabled={busy}>
@@ -395,6 +396,13 @@ export function ForeshadowingsPage() {
 }
 
 /** 복선마다 한 줄 트랙: 설치(●) · 연결(◆) · 회수(■), 회수 전이면 현재 장까지 열린 트랙 */
+/** orphaned: 백엔드가 설치 장 삭제를 받아 표시한다(FTS 명세 12항) */
+function StatusBadge({ status, resolved }: { status: Foreshadowing['status']; resolved: string }) {
+  if (status === 'unresolved') return <span className="badge badge--waiting">미회수</span>
+  if (status === 'orphaned') return <span className="badge badge--filled">설치 장 삭제됨</span>
+  return <span className="badge badge--success">{resolved}</span>
+}
+
 function TrackView({ rows, max, current, selectedId, onSelect }: { rows: Foreshadowing[]; max: number; current: number; selectedId: string | null; onSelect: (id: string) => void }) {
   const pct = (c: number) => ((c - 1) / Math.max(max - 1, 1)) * 100
   const ticks = Array.from({ length: Math.floor(max / 5) + 1 }, (_, i) => Math.max(1, i * 5))

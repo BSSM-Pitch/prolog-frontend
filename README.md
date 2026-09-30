@@ -13,14 +13,20 @@ npm run dev
 
 ### 실제 백엔드(prolog-backend)에 붙이기 — 혼합 모드
 
-[prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)는 Phase 1(AUTH·TEAM·PRJ·원고/챕터·인앱 알림)까지 있다.
-`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(AI 질문·캐릭터·설정 규칙/충돌·관계·복선·스토리 지도·편집 이력·개요 요약·알림 설정)는 목업으로** 보낸다.
-목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장)를 목업 DB로 옮기므로 AI 기능도 실제 원고로 시연할 수 있다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
+[prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)(`559f0af`)에는 AUTH·TEAM·PRJ·원고/챕터·편집 이력·인앱 알림·알림 설정, 그리고 AI를 뺀 수동 경로(인물 초안·확정 인물·세계관 규칙 직접 입력·복선 추적)가 있다.
+`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(AI 질문·자연어 인물 추출·규칙 추출·설정 충돌·관계·스토리 지도·개요 요약·이메일 연동)는 목업으로** 보낸다 (경로 목록은 `src/api/config.ts`).
+목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장·인물·규칙·복선)를 목업 DB로 옮기므로 AI 기능도 실제 원고와 인물로 시연할 수 있다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
 
 1. 백엔드 README대로 서버를 띄운다 (`docker compose up -d` → `uv run alembic upgrade head` → `uv run uvicorn app.main:app`). 초대 알림·업로드 추출은 워커(`worker.outbox_relay`·`worker.notifier`·`worker.extractor`)가 있어야 한다
 2. 백엔드 `.env`의 `GOOGLE_REDIRECT_URI`를 이 앱의 `http://localhost:5173/auth/callback`으로 맞춘다
 3. 이 앱의 `.env.example`을 `.env`로 복사하고 `VITE_API_MODE=real`, `VITE_GOOGLE_CLIENT_ID`(백엔드와 같은 값)를 채운다
 4. `npm run dev` — 백엔드에 CORS 설정이 없어 개발 서버가 `/v1`을 백엔드로, `/__s3`를 s3mock으로 프록시한다 (`vite.config.ts`)
+
+Google 키 없이 확인하려면 백엔드의 검증용 서버를 쓴다. Google만 fake이고 나머지는 실물이다(로컬 전용).
+
+1. 백엔드에서 `uv run python -m scripts.verify.seed`(사용자 `dev` · 팀 · 프로젝트 2 · 원고 · 인물 · 규칙 · 복선)와 `uv run python -m scripts.verify.serve`(8001)를 띄운다
+2. 이 앱의 `.env.local`에 `VITE_BACKEND_URL=http://localhost:8001`
+3. 브라우저 콘솔에서 `sessionStorage.setItem('prolog.google-oauth-state','dev')` 후 `/auth/callback?code=seed-dev%7Cdev%40example.com&state=dev`로 가면 `dev`로 로그인된다 (`seed-이름|메일`을 바꾸면 새 사용자로 가입 흐름을 탄다)
 
 real 모드에서 달라지는 것:
 
@@ -28,6 +34,9 @@ real 모드에서 달라지는 것:
 - 처음 Google로 들어온 사람은 가입 티켓(10분)을 받고 아이디 → 사용자 유형을 정해 가입을 마친다 (`/auth/callback` → `/auth/signup` → `/auth/signup/role`)
 - 초대 수락에는 초대 생성 응답의 토큰이 필요하고 초대 메일은 아직 없다. 초대하면 **초대 링크**(`/invite/:kind/:id/:invitationId?token=…`)를 보여 주고, 받은 사람이 열어서 참가한다
 - 원고 업로드는 presigned URL로 직접 올린 뒤 완료를 알린다(txt·docx만). 백엔드는 본문만 추출하므로 장이 없으면 편집기가 "1장" 같은 줄로 나눠 장을 만든다
+- 자연어 인물 설계(NLCD)는 목업 AI가 추출하고, 초안(`draft_…`)은 검토하는 동안 목업에 있다. **확정하는 순간** 백엔드에 초안을 만들고 항목을 옮겨 확정한다. 백엔드에서 온 초안(UUID)은 처음부터 백엔드가 받는다
+- 규칙 추출 후보(pending·ignored)는 목업에 있고, 후보를 확정하면 백엔드 규칙이 된다. 직접 추가·수정·삭제는 백엔드
+- 편집기는 장을 저장한 뒤 1.5초 뒤에 장들을 이어 붙여 원고 본문(`PATCH manuscripts content`)도 저장한다. 백엔드 편집 이력이 원고 본문이 바뀔 때만 스냅샷을 남기기 때문이다
 
 ## 화면과 경로
 
@@ -89,6 +98,18 @@ real 모드에서 달라지는 것:
 시연용 작품 **"붉은 문 너머"**(`proj_1`)에는 원고 3개(27장), 인물, 관계, 설정 충돌, 복선, 스토리 지도, 설정 규칙 예시가 들어 있다(`src/api/mock/demo.ts`). 원고 파일 업로드는 3초 뒤 완료되며, 파일 이름에 "실패"나 "fail"이 들어가면 추출 실패를 흉내 낸다. txt 파일은 "1장", "제2장" 같은 줄을 기준으로 장을 나눈다. AI 질문·인물 추출은 문장에 `[실패]`를 넣으면 실패 화면을 시연할 수 있다. 설정 충돌 검사는 확정된 규칙의 위반 판정 키워드로 원고 문장을 찾는다(예: 27장에 "윤서는 비가 오는 중에 붉은 문을 열었다."를 쓰고 R11을 확정한 뒤 다시 검사).
 
 ## prolog-backend와 다른 점 (real 모드에서 화면 쪽에서 채우는 것)
+
+- 목록 API는 커서 페이지(기본 20 · 최대 100)라 끝까지 받아 쓴다 (`requestAll`)
+- 팀 프로젝트 멤버 목록의 팀원(`source: team`)은 "팀원으로 참여"로 보이고 역할 변경·내보내기가 없다(백엔드가 `MEMBER_NOT_FOUND`로 막는다 — 팀에서 처리)
+- 인물의 역할·상태 표시("인물 · 활동 중")와 관계 수·주요 변화는 백엔드에 없어 목업(관계)에서 채운다. 마지막 등장 장은 장 본문에 이름이 나오는 가장 뒤의 장
+- 백엔드 초안·인물 항목은 카테고리별 배열이고, 영향 관계는 `value` 한 줄이다. 대상·유형·상태 입력은 "재현 · 신뢰 · 상태: 실종"처럼 합쳐 보낸다
+- 목업 AI 초안을 백엔드로 옮기면 항목의 `origin`이 `user_added`가 되고 원문 근거(`evidence`)가 빠진다 — API로는 둘 다 넣을 수 없다. 규칙 후보도 같다(`origin`·`evidence`·`source_chapter_no`)
+- 규칙 "R01"·복선 "F01" 번호는 백엔드에 없어 만든 순서로 매긴다. 백엔드 규칙은 `title`이 필수라 비워 두면 설명 앞 30자를 쓴다
+- 복선은 백엔드가 챕터 **ID**로 받는다. 화면의 장 번호는 복선 화면의 "현재 원고"(가장 최근에 만든 ready 원고)의 장으로 바꾼다. 관련 인물은 이름 ↔ 인물 ID로 바꾸고 연결/해제(`links`)로 맞춘다. 사건 연결은 백엔드에 없다. 설치 장이 지워진 복선(`orphaned`)은 "설치 장 삭제됨"
+- 비슷한 복선 후보(`meta.similar_candidates`)는 ID·제목만 와서 번호·장은 목록에서 채운다. 미회수 안내에 경과 장 수가 없어 현재 장 − 설치 장으로 계산한다
+- 편집 이력은 원고 전체 스냅샷이다(장 단위 아님). 단건 조회가 없어 목록에 딸려 오는 본문을 쓴다. `meta.total`이 없어 "스냅샷 N개"는 불러온 개수
+- 원고 본문은 편집기가 장을 이어 붙인 것으로 덮어쓴다. 장에 없는 본문(예: seed의 "(작가 메모)")은 첫 저장 때 사라진다 — 원고 본문과 장 본문의 관계를 백엔드 팀과 맞출 것
+- 이메일 연동은 백엔드가 만들지 않기로 했다. 이메일 스위치는 설정만 저장되고 연동 영역은 "아직 지원하지 않아요"
 
 - `Project`에 `my_role`·`team_name`이 없어 멤버 목록·팀 목록으로 계산한다(팀 프로젝트는 팀원에게 editor — 백엔드 `TEAM_MEMBER_PROJECT_ROLE`과 같은 규칙). 목록의 탭 숫자(`meta.counts`)와 정렬(`sort`)도 없어 한 번 더 받아 세고 받은 페이지 안에서만 정렬한다
 - 멤버 목록은 `username`만 있고 이메일이 없다

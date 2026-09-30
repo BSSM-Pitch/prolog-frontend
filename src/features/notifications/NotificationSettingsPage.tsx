@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { ApiError } from '../../api/client'
+import { IS_REAL } from '../../api/config'
 import * as api from '../../api/notifications'
 import type { EmailIntegration, NotificationSetting } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -25,7 +26,8 @@ export function NotificationSettingsPage() {
   const [busy, setBusy] = useState(false)
   const [conflict, setConflict] = useState<string | null>(null)
 
-  const hasEmail = (integrations.data ?? []).length > 0
+  // real 모드: 백엔드에 이메일 연동이 없다. 이메일 설정은 저장만 되므로 스위치는 그대로 쓰게 둔다
+  const hasEmail = IS_REAL || (integrations.data ?? []).length > 0
 
   // 바꾼 설정은 바로 저장한다 (낙관적 갱신 후 실패하면 되돌림)
   async function change(s: NotificationSetting, field: 'in_app_enabled' | 'email_enabled', value: boolean) {
@@ -125,14 +127,17 @@ export function NotificationSettingsPage() {
               ))}
             </tbody>
           </table>
-          <p className="panel__label">바꾼 설정은 바로 저장돼요. 이메일 계정이 연동되어 있지 않으면 이메일 알림은 보내지 않아요.</p>
+          <p className="panel__label">
+            {IS_REAL ? '바꾼 설정은 바로 저장돼요. 이메일 알림은 아직 보내지 않고 설정만 저장해 둬요.' : '바꾼 설정은 바로 저장돼요. 이메일 계정이 연동되어 있지 않으면 이메일 알림은 보내지 않아요.'}
+          </p>
         </section>
 
         <aside className="panel noti__side" aria-labelledby="email-title">
           <h2 id="email-title" className="panel__title">
             이메일 연동
           </h2>
-          {PROVIDERS.map(({ provider, name }) => {
+          {IS_REAL && <p className="page-desc">이메일 계정 연동은 아직 지원하지 않아요.</p>}
+          {!IS_REAL && PROVIDERS.map(({ provider, name }) => {
             const linked = integrations.data?.find((i) => i.provider === provider)
             return (
               <div key={provider} className="noti__channel">
@@ -160,7 +165,7 @@ export function NotificationSettingsPage() {
               <span>다른 {PROVIDERS.find((p) => p.provider === conflict)?.name} 계정으로 바꾸려면 먼저 연동을 해제해 주세요.</span>
             </div>
           )}
-          <p className="panel__label">서비스마다 계정은 하나만 연동할 수 있어요. 다른 계정으로 바꾸려면 먼저 연동을 해제해 주세요.</p>
+          {!IS_REAL && <p className="panel__label">서비스마다 계정은 하나만 연동할 수 있어요. 다른 계정으로 바꾸려면 먼저 연동을 해제해 주세요.</p>}
         </aside>
       </div>
 
