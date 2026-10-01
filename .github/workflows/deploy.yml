@@ -91,7 +91,7 @@ jobs:
               ("mv " + $staging + " /opt/prolog/frontend-dist"),
               "cd /opt/prolog",
               "if ! docker compose -p prolog -f compose.prod.yml up -d --no-deps --force-recreate caddy; then rm -rf /opt/prolog/frontend-dist; mv /opt/prolog/frontend-dist.previous /opt/prolog/frontend-dist; docker compose -p prolog -f compose.prod.yml up -d --no-deps --force-recreate caddy; exit 1; fi",
-              "curl --fail --silent --show-error --retry 20 --retry-delay 2 --retry-connrefused http://127.0.0.1/ >/dev/null",
+              "curl --fail --silent --show-error --retry 20 --retry-delay 2 --retry-all-errors http://127.0.0.1/ >/dev/null",
               ("rm -f " + $archive),
               "rm -rf /opt/prolog/frontend-dist.previous"
             ]}')"
