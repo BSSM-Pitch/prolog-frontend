@@ -1,0 +1,132 @@
+name: Deploy frontend
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: prolog-frontend-production
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ap-northeast-2
+  AWS_ACCOUNT_ID: "030464389728"
+  AWS_ROLE_ARN: arn:aws:iam::030464389728:role/prolog-github-frontend-deploy
+  EC2_INSTANCE_ID: i-064d924fb7a6eb9e8
+  DEPLOY_BUCKET: prolog-manuscripts-030464389728-ap-northeast-2
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check source
+        run: npm run lint
+
+      - name: Build production frontend
+        run: npm run build
+        env:
+          VITE_API_MODE: real
+          VITE_AI_MODE: mock
+          VITE_API_BASE_URL: /v1
+
+      - name: Package build
+        run: tar -C dist -czf frontend-dist.tgz .
+
+      - name: Authenticate to AWS with GitHub OIDC
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: ${{ env.AWS_ACCOUNT_ID }}
+
+      - name: Upload immutable build artifact
+        id: artifact
+        shell: bash
+        run: |
+          artifact_key="deploy/frontend/${GITHUB_SHA}.tgz"
+          aws s3 cp frontend-dist.tgz "s3://${DEPLOY_BUCKET}/${artifact_key}" --only-show-errors
+          echo "uri=s3://${DEPLOY_BUCKET}/${artifact_key}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy through Systems Manager
+        shell: bash
+        env:
+          ARTIFACT_URI: ${{ steps.artifact.outputs.uri }}
+        run: |
+          archive="/tmp/prolog-frontend-${GITHUB_SHA}.tgz"
+          staging="/opt/prolog/frontend-dist.next-${GITHUB_SHA}"
+
+          parameters="$(jq -nc \
+            --arg uri "$ARTIFACT_URI" \
+            --arg archive "$archive" \
+            --arg staging "$staging" \
+            '{commands: [
+              "set -eu",
+              ("aws s3 cp " + $uri + " " + $archive + " --region ap-northeast-2 --only-show-errors"),
+              ("rm -rf " + $staging),
+              ("install -d -m 755 " + $staging),
+              ("tar -xzf " + $archive + " -C " + $staging),
+              ("test -f " + $staging + "/index.html"),
+              "rm -rf /opt/prolog/frontend-dist.previous",
+              "if [ -d /opt/prolog/frontend-dist ]; then mv /opt/prolog/frontend-dist /opt/prolog/frontend-dist.previous; fi",
+              ("mv " + $staging + " /opt/prolog/frontend-dist"),
+              "cd /opt/prolog",
+              "if ! docker compose -p prolog -f compose.prod.yml up -d --no-deps --force-recreate caddy; then rm -rf /opt/prolog/frontend-dist; mv /opt/prolog/frontend-dist.previous /opt/prolog/frontend-dist; docker compose -p prolog -f compose.prod.yml up -d --no-deps --force-recreate caddy; exit 1; fi",
+              "curl --fail --silent --show-error --retry 20 --retry-delay 2 --retry-all-errors http://127.0.0.1/ >/dev/null",
+              ("rm -f " + $archive),
+              "rm -rf /opt/prolog/frontend-dist.previous"
+            ]}')"
+
+          command_id="$(aws ssm send-command \
+            --instance-ids "$EC2_INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "Deploy frontend ${GITHUB_SHA}" \
+            --timeout-seconds 900 \
+            --parameters "$parameters" \
+            --query 'Command.CommandId' \
+            --output text)"
+
+          exit_code=1
+          for _ in {1..180}; do
+            status="$(aws ssm get-command-invocation \
+              --command-id "$command_id" \
+              --instance-id "$EC2_INSTANCE_ID" \
+              --query Status \
+              --output text 2>/dev/null || true)"
+            case "$status" in
+              Success)
+                exit_code=0
+                break
+                ;;
+              Failed|Cancelled|TimedOut)
+                break
+                ;;
+            esac
+            sleep 5
+          done
+
+          aws ssm get-command-invocation \
+            --command-id "$command_id" \
+            --instance-id "$EC2_INSTANCE_ID" \
+            --query '{Status:Status,Output:StandardOutputContent,Error:StandardErrorContent}'
+
+          exit "$exit_code"
