@@ -324,7 +324,7 @@ export const worldRoutes: Route[] = [
         // 목업: 요청에 simulate_failure가 있으면 AI 단계 실패를 흉내 낸다
         will_fail: Boolean((req.body as Body)?.simulate_failure),
         result_ids: [],
-        skipped_reason: hasReference && ms ? null : 'NO_REFERENCE_DATA',
+        skipped_reason: !ms ? 'NO_MANUSCRIPT' : hasReference ? null : 'NO_REFERENCE_DATA',
         created_at: stamp(),
       }
       db.jobs.push(job)

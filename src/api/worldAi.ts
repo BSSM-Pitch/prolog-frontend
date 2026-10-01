@@ -262,9 +262,11 @@ export async function rescan(token: string, projectId: string): Promise<Conflict
   ])
   const latest = manuscripts.filter((m) => m.status === 'ready')[0] ?? null
   scanManuscript.set(jobId, latest?.manuscript_id ?? null)
-  if (!latest || !characters.length || !rules.length) {
+  // 검사할 원고·사건에 넣을 확정 인물(백엔드 사건은 인물 1명 이상)·위반 키워드를 줄 규칙이 모두 있어야 한다
+  const missing = !latest ? 'NO_MANUSCRIPT' : !characters.length ? 'NO_CHARACTERS' : !rules.length ? 'NO_RULES' : null
+  if (missing) {
     scans.set(jobId, [])
-    return { job_id: jobId, status: 'skipped', result_ids: [], skipped_reason: !characters.length ? 'NO_CHARACTERS' : 'NO_RULES', manuscript_id: latest?.manuscript_id ?? null }
+    return { job_id: jobId, status: 'skipped', result_ids: [], skipped_reason: missing, manuscript_id: latest?.manuscript_id ?? null }
   }
   // 사건 참여 인물은 본문에 이름이 나오는 인물로 한다. 아무도 안 나오면 첫 인물(주인공)로 본다.
   // 전원을 넣으면 같은 문장이 인물 수만큼 충돌로 겹친다

@@ -18,6 +18,16 @@ const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
 const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
 const pad = (n: number) => String(n).padStart(2, '0')
 
+type SkipInfo = { title: string; body: string; action: string; to: string }
+const NO_REFERENCE: SkipInfo = { title: '비교할 설정이 아직 없어요', body: '확정된 인물 설정이나 규칙이 생기면 새 장면과 비교해 드려요.', action: '인물 설계하기', to: 'characters/new' }
+/** 검사를 건너뛴 이유별 안내 — 무엇이 빠졌는지 정확히 알려 준다 */
+const SKIPPED: Record<string, SkipInfo> = {
+  NO_MANUSCRIPT: { title: '검사할 원고가 없어요', body: '원고를 올리거나 편집기에서 장면을 쓴 뒤 다시 검사해 주세요.', action: '원고 쓰기', to: 'manuscripts' },
+  NO_CHARACTERS: { title: '확정된 인물이 없어요', body: '충돌은 인물의 행동을 규칙과 비교해 찾아요. 인물 초안을 확정한 뒤 다시 검사해 주세요.', action: '인물 설계하기', to: 'characters/new' },
+  NO_RULES: { title: '확정된 설정 규칙이 없어요', body: '규칙의 위반 판정 키워드로 원고 문장을 찾아요. 규칙을 추가하거나 후보를 확정한 뒤 다시 검사해 주세요.', action: '설정 규칙 보기', to: 'rules' },
+}
+const skipInfo = (reason: string | null) => SKIPPED[reason ?? ''] ?? NO_REFERENCE
+
 // Figma 843:1781 · 05 설정 충돌 검토 (+ 상태 명세 1264:2911 설정 충돌 검토 행)
 export function ConflictsPage() {
   const project = useProject()
@@ -129,10 +139,10 @@ export function ConflictsPage() {
       )}
       {job?.status === 'skipped' && (
         <div className="state-block">
-          <p className="answer__title">비교할 설정이 아직 없어요</p>
-          <p className="answer__body">확정된 인물 설정이나 규칙이 생기면 새 장면과 비교해 드려요.</p>
-          <Link className="btn btn--primary" to={projectPath(projectId, 'characters/new')}>
-            인물 설계하기
+          <p className="answer__title">{skipInfo(job.skipped_reason).title}</p>
+          <p className="answer__body">{skipInfo(job.skipped_reason).body}</p>
+          <Link className="btn btn--primary" to={projectPath(projectId, skipInfo(job.skipped_reason).to)}>
+            {skipInfo(job.skipped_reason).action}
           </Link>
         </div>
       )}
