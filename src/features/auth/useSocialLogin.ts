@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
+import { ApiError } from '../../api/client'
 import { IS_REAL } from '../../api/config'
 import type { OAuthProvider } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -34,7 +35,7 @@ export function useSocialLogin() {
   async function start(provider: OAuthProvider): Promise<void> {
     if (IS_REAL && provider === 'google') {
       const url = authApi.googleAuthorizeUrl()
-      if (!url) throw new Error('Google 로그인 설정이 없어요. .env의 VITE_GOOGLE_CLIENT_ID를 백엔드와 같은 값으로 채워 주세요.')
+      if (!url) throw new ApiError(0, { code: 'GOOGLE_NOT_CONFIGURED', message: 'Google 로그인 설정이 없어요. .env의 VITE_GOOGLE_CLIENT_ID를 백엔드와 같은 값으로 채워 주세요.', details: {} })
       window.location.assign(url)
       return
     }

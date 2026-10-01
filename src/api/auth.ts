@@ -57,12 +57,18 @@ export function completeSocialSignup(signupTicket: string, username: string, rol
 
 const GOOGLE_STATE_KEY = 'prolog.google-oauth-state'
 
-/** real 모드: Google 인가 화면 주소. 돌아오면 /auth/callback이 code를 받는다. 클라이언트 ID가 없으면 null */
+/**
+ * real 모드: Google 인가 화면 주소. 돌아오면 /auth/callback이 code를 받는다. 클라이언트 ID가 없으면 null.
+ * 개발 서버에서 VITE_DEV_GOOGLE_LOGIN("이름|메일")이 있으면 Google 대신 그 계정으로 바로 콜백한다 —
+ * 백엔드 검증 서버(scripts.verify.serve)의 fake Google이 "seed-이름|메일" 코드를 받는다
+ */
 export function googleAuthorizeUrl(): string | null {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-  if (!clientId) return null
+  const devLogin = import.meta.env.DEV ? import.meta.env.VITE_DEV_GOOGLE_LOGIN : undefined
+  if (!clientId && !devLogin) return null
   const state = crypto.randomUUID()
   sessionStorage.setItem(GOOGLE_STATE_KEY, state)
+  if (!clientId) return `/auth/callback?${new URLSearchParams({ code: `seed-${devLogin!}`, state })}`
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: import.meta.env.VITE_GOOGLE_REDIRECT_URI ?? `${window.location.origin}/auth/callback`,

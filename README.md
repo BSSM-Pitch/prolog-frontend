@@ -27,7 +27,7 @@ Google 키 없이 확인하려면 백엔드의 검증용 서버를 쓴다. Googl
 
 1. 백엔드에서 `uv run python -m scripts.verify.seed`(사용자 `dev` · 팀 · 프로젝트 2 · 원고 · 인물 · 규칙 · 복선)와 `uv run python -m scripts.verify.serve`(8001)를 띄운다
 2. 이 앱의 `.env.local`에 `VITE_BACKEND_URL=http://localhost:8001`
-3. 브라우저 콘솔에서 `sessionStorage.setItem('prolog.google-oauth-state','dev')` 후 `/auth/callback?code=seed-dev%7Cdev%40example.com&state=dev`로 가면 `dev`로 로그인된다 (`seed-이름|메일`을 바꾸면 새 사용자로 가입 흐름을 탄다)
+3. `.env.local`에 `VITE_DEV_GOOGLE_LOGIN=dev|dev@example.com`을 넣으면 "Google로 로그인"을 누를 때 Google 대신 그 계정으로 바로 로그인된다(개발 서버 전용, `VITE_GOOGLE_CLIENT_ID`가 비어 있을 때만). 다른 `이름|메일`을 넣으면 새 사용자로 가입 흐름을 탄다
 
 real 모드에서 달라지는 것:
 
