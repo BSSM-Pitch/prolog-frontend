@@ -1,6 +1,6 @@
 import type { BackendCharacter } from './backendShapes'
 import { request, requestAll, requestLenient } from './client'
-import { AI_REAL } from './config'
+import { IS_REAL } from './config'
 import { syncManuscriptContent } from './manuscripts'
 import type { StructureAnalysis, StructureMap, StructureNode } from './types'
 
@@ -35,7 +35,7 @@ const toNode = (n: BackendNode, names: Map<string, string>): StructureNode => ({
 
 /** 4.4 최신 구조 지도 — 분석한 적 없으면 404 STRUCTURE_MAP_NOT_FOUND */
 export async function getStructureMap(token: string, projectId: string, manuscriptId: string) {
-  if (!AI_REAL) return request<StructureMap>('GET', `${base(projectId, manuscriptId)}/structure-map`, { accessToken: token })
+  if (!IS_REAL) return request<StructureMap>('GET', `${base(projectId, manuscriptId)}/structure-map`, { accessToken: token })
   const [map, names] = await Promise.all([request<BackendMap>('GET', `${base(projectId, manuscriptId)}/structure-map`, { accessToken: token }), characterNames(token, projectId)])
   return {
     manuscript_id: map.manuscript_id,
@@ -51,19 +51,19 @@ const toAnalysis = (a: StructureAnalysis): StructureAnalysis => ({ analysis_id: 
 
 /** 4.1 구조 분석 요청 — 분량이 부족하면 422 MANUSCRIPT_TOO_SHORT (simulate_failure는 목업 시연용) */
 export async function analyzeStructure(token: string, projectId: string, manuscriptId: string, simulateFailure = false) {
-  if (AI_REAL) await syncManuscriptContent(token, projectId, manuscriptId)
-  if (AI_REAL) return toAnalysis(await request<StructureAnalysis>('POST', `${base(projectId, manuscriptId)}/structure-analyses`, { accessToken: token }))
+  if (IS_REAL) await syncManuscriptContent(token, projectId, manuscriptId)
+  if (IS_REAL) return toAnalysis(await request<StructureAnalysis>('POST', `${base(projectId, manuscriptId)}/structure-analyses`, { accessToken: token }))
   return request<StructureAnalysis>('POST', `${base(projectId, manuscriptId)}/structure-analyses`, { body: simulateFailure ? { simulate_failure: true } : {}, accessToken: token })
 }
 
 export async function getAnalysis(token: string, projectId: string, manuscriptId: string, analysisId: string) {
-  if (AI_REAL) return toAnalysis((await requestLenient<StructureAnalysis>('GET', `${base(projectId, manuscriptId)}/structure-analyses/${analysisId}`, { accessToken: token })).data)
+  if (IS_REAL) return toAnalysis((await requestLenient<StructureAnalysis>('GET', `${base(projectId, manuscriptId)}/structure-analyses/${analysisId}`, { accessToken: token })).data)
   return request<StructureAnalysis>('GET', `${base(projectId, manuscriptId)}/structure-analyses/${analysisId}`, { accessToken: token })
 }
 
 /** 4.6 사건(노드) 수정 */
 export async function updateNode(token: string, projectId: string, manuscriptId: string, nodeId: string, input: { title?: string; summary?: string }) {
-  if (!AI_REAL) return request<StructureNode>('PATCH', `${base(projectId, manuscriptId)}/structure-map/nodes/${nodeId}`, { body: input, accessToken: token })
+  if (!IS_REAL) return request<StructureNode>('PATCH', `${base(projectId, manuscriptId)}/structure-map/nodes/${nodeId}`, { body: input, accessToken: token })
   const [node, names] = await Promise.all([request<BackendNode>('PATCH', `${base(projectId, manuscriptId)}/structure-map/nodes/${nodeId}`, { body: input, accessToken: token }), characterNames(token, projectId)])
   return toNode(node, names)
 }

@@ -15,7 +15,7 @@ npm run dev
 
 [prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)(`06b8928`)에는 AUTH·TEAM·PRJ·원고/챕터·편집 이력·인앱 알림·알림 설정, 수동 경로(인물 초안·확정 인물·세계관 규칙 직접 입력·복선 추적), 그리고 AI 기능(자연어 인물 추출 NLCD·규칙 추출 REX·원고 질문 AIQ·설정 충돌 SCDS·스토리 지도 SSM)이 있다.
 `VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(관계·개요 요약·이메일 연동)는 목업으로** 보낸다 (경로 목록은 `src/api/config.ts`).
-백엔드에 LLM 키(`OPENROUTER_API_KEY`)가 없으면 AI가 빈 결과만 준다(`USE_FAKE_LLM=1`). 그럴 때 시연은 `.env.local`에 `VITE_AI_MODE=mock`을 넣어 **AI만 목업**으로 돌린다(이전 동작).
+AI는 항상 백엔드가 한다. 백엔드에 LLM 키(`OPENROUTER_API_KEY`)가 없으면 AI가 빈 결과만 준다(`USE_FAKE_LLM=1`).
 목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장·인물·규칙·복선)를 목업 DB로 옮기므로 AI 기능도 실제 원고와 인물로 시연할 수 있다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
 
 1. 백엔드 README대로 서버를 띄운다 (`docker compose up -d` → `uv run alembic upgrade head` → `uv run uvicorn app.main:app`). 초대 알림·업로드 추출·AI 작업은 워커(`worker.outbox_relay`·`worker.notifier`·`worker.extractor`·`worker.sweeper`·`worker.ai_worker`)가 있어야 한다. LLM 키가 없으면 `USE_FAKE_LLM=1 uv run python -m worker.ai_worker`
@@ -36,7 +36,7 @@ real 모드에서 달라지는 것:
 - 초대 수락에는 초대 생성 응답의 토큰이 필요하고 초대 메일은 아직 없다. 초대하면 **초대 링크**(`/invite/:kind/:id/:invitationId?token=…`)를 보여 주고, 받은 사람이 열어서 참가한다
 - 원고 업로드는 presigned URL로 직접 올린 뒤 완료를 알린다(txt·docx만). 백엔드는 본문만 추출하므로 장이 없으면 편집기가 "1장" 같은 줄로 나눠 장을 만든다
 - AI 작업(인물 추출·규칙 추출·답변·충돌 검사·구조 분석)은 백엔드 워커가 하고 화면은 1초마다 상태를 확인한다. 실패는 200 + `data(status=failed)` + `error`로 온다(`requestLenient`)
-- 자연어 인물 설계(NLCD)는 추출 → "구조화 초안 검토로 계속"(forward)하면 백엔드 초안이 생긴다. (`VITE_AI_MODE=mock`이면 목업 초안 `draft_…`을 확정하는 순간 백엔드에 옮긴다)
+- 자연어 인물 설계(NLCD)는 추출 → "구조화 초안 검토로 계속"(forward)하면 백엔드 초안이 생긴다.
 - 규칙 추출(REX) 후보는 추출 작업 결과 안에만 있고 목록 API가 없다. 이 브라우저에서 요청한 추출 ID를 기억해(`localStorage prolog.rule-extractions.v1`) 규칙 목록 뒤에 후보를 붙인다. 후보 수정은 확정할 때 `edits`로 보낸다. 삭제는 무시로 남긴다. 근거 장은 백엔드가 비워 두어 근거 문장이 든 장을 찾아 채운다
 - 설정 충돌(SCDS)은 "사건 저장 → 그 사건 검사"뿐이라, "원고 다시 검사"는 최신 원고의 장 본문을 5,000자 단위 사건으로 저장해 검사 여러 개를 하나로 묶어 보여 준다. 참여 인물은 본문에 이름이 나오는 인물(없으면 첫 인물). 같은 규칙·인물로 이미 검사한 본문은 다시 보내지 않는다(`prolog.scanned-chunks.v1`). "직접 수정"은 원고의 그 문장도 고쳐 저장한다
 - 원고 질문(AIQ)의 선택 범위는 원고 본문(content) 기준 위치로 바꿔 보낸다. 답변에 근거 장면(citations)이 없다
@@ -109,7 +109,6 @@ real 모드에서 달라지는 것:
 - 팀 프로젝트 멤버 목록의 팀원(`source: team`)은 "팀원으로 참여"로 보이고 역할 변경·내보내기가 없다(백엔드가 `MEMBER_NOT_FOUND`로 막는다 — 팀에서 처리)
 - 인물의 역할·상태 표시("인물 · 활동 중")와 관계 수·주요 변화는 백엔드에 없어 목업(관계)에서 채운다. 마지막 등장 장은 장 본문에 이름이 나오는 가장 뒤의 장
 - 백엔드 초안·인물 항목은 카테고리별 배열이고, 영향 관계는 `value` 한 줄이다. 대상·유형·상태 입력은 "재현 · 신뢰 · 상태: 실종"처럼 합쳐 보낸다
-- 목업 AI 초안을 백엔드로 옮기면 항목의 `origin`이 `user_added`가 되고 원문 근거(`evidence`)가 빠진다 — API로는 둘 다 넣을 수 없다. 규칙 후보도 같다(`origin`·`evidence`·`source_chapter_no`)
 - 규칙 "R01"·복선 "F01" 번호는 백엔드에 없어 만든 순서로 매긴다. 백엔드 규칙은 `title`이 필수라 비워 두면 설명 앞 30자를 쓴다
 - 복선은 백엔드가 챕터 **ID**로 받는다. 화면의 장 번호는 복선 화면의 "현재 원고"(가장 최근에 만든 ready 원고)의 장으로 바꾼다. 관련 인물은 이름 ↔ 인물 ID로 바꾸고 연결/해제(`links`)로 맞춘다. 사건 연결은 백엔드에 없다. 설치 장이 지워진 복선(`orphaned`)은 "설치 장 삭제됨"
 - 비슷한 복선 후보(`meta.similar_candidates`)는 ID·제목만 와서 번호·장은 목록에서 채운다. 미회수 안내에 경과 장 수가 없어 현재 장 − 설치 장으로 계산한다

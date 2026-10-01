@@ -1,7 +1,7 @@
 import { splitChapters } from '../lib/chapters'
 import { chapterHeading, joinChapters, toChapter, toManuscript, toMessage, toThread, toThreadDetail, toVersion, type BackendChapter, type BackendManuscript, type BackendMessage, type BackendThread, type BackendThreadDetail, type BackendVersion } from './backendShapes'
 import { ApiError, request, requestAll, requestWithMeta } from './client'
-import { AI_REAL, IS_REAL } from './config'
+import { IS_REAL } from './config'
 import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
 // MSU 명세
@@ -228,17 +228,17 @@ export interface AskInput {
 }
 
 export function listThreads(accessToken: string, projectId: string, manuscriptId: string) {
-  if (AI_REAL) return aiq.listThreads(accessToken, projectId, manuscriptId)
+  if (IS_REAL) return aiq.listThreads(accessToken, projectId, manuscriptId)
   return request<QAThread[]>('GET', qa(projectId, manuscriptId), { accessToken })
 }
 
 export function createThread(accessToken: string, projectId: string, manuscriptId: string, input: AskInput) {
-  if (AI_REAL) return aiq.createThread(accessToken, projectId, manuscriptId, input)
+  if (IS_REAL) return aiq.createThread(accessToken, projectId, manuscriptId, input)
   return request<{ thread: QAThread; messages: QAMessage[] }>('POST', qa(projectId, manuscriptId), { body: input, accessToken })
 }
 
 export async function getThread(accessToken: string, projectId: string, manuscriptId: string, threadId: string) {
-  if (AI_REAL) return toThreadDetail(await request<BackendThreadDetail>('GET', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken }))
+  if (IS_REAL) return toThreadDetail(await request<BackendThreadDetail>('GET', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken }))
   return request<{ thread: QAThread; messages: QAMessage[] }>('GET', `${qa(projectId, manuscriptId)}/${threadId}`, { accessToken })
 }
 
@@ -247,18 +247,18 @@ export function deleteThread(accessToken: string, projectId: string, manuscriptI
 }
 
 export async function askFollowUp(accessToken: string, projectId: string, manuscriptId: string, threadId: string, content: string) {
-  if (AI_REAL) await syncManuscriptContent(accessToken, projectId, manuscriptId)
-  if (AI_REAL) return (await request<BackendMessage[]>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages`, { body: { content }, accessToken })).map(toMessage)
+  if (IS_REAL) await syncManuscriptContent(accessToken, projectId, manuscriptId)
+  if (IS_REAL) return (await request<BackendMessage[]>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages`, { body: { content }, accessToken })).map(toMessage)
   return request<QAMessage[]>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages`, { body: { content }, accessToken })
 }
 
 export async function getMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
-  if (AI_REAL) return toMessage(await request<BackendMessage>('GET', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}`, { accessToken }))
+  if (IS_REAL) return toMessage(await request<BackendMessage>('GET', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}`, { accessToken }))
   return request<QAMessage>('GET', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}`, { accessToken })
 }
 
 export async function retryMessage(accessToken: string, projectId: string, manuscriptId: string, threadId: string, messageId: string) {
-  if (AI_REAL) return toMessage(await request<BackendMessage>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/retry`, { accessToken }))
+  if (IS_REAL) return toMessage(await request<BackendMessage>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/retry`, { accessToken }))
   return request<QAMessage>('POST', `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/retry`, { accessToken })
 }
 

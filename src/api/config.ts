@@ -1,10 +1,5 @@
 // API 모드. real이면 백엔드에 구현된 API는 실제 서버로, 나머지는 목업으로 보낸다(혼합 모드).
 export const IS_REAL = import.meta.env.VITE_API_MODE === 'real'
-/**
- * AI 기능(NLCD·REX 추출·AIQ·SCDS·SSM)도 백엔드로 보낼지. 백엔드에 OpenRouter 키가 없으면
- * USE_FAKE_LLM 빈 응답만 오므로, 시연 때는 VITE_AI_MODE=mock으로 AI만 목업에 맡길 수 있다.
- */
-export const AI_REAL = IS_REAL && import.meta.env.VITE_AI_MODE !== 'mock'
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/v1'
 
 // 백엔드 ID는 UUID다. 목업이 만든 AI 초안·규칙 후보(draft_301, rule_302 등)는 목업이 받는다
@@ -71,7 +66,7 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['GET|PATCH|DELETE', /^\/notifications\/[^/]+$/],
 ]
 
-/** prolog-backend(06b8928) AI API — AI_REAL일 때만 백엔드로 보낸다 */
+/** prolog-backend(06b8928) AI API */
 const AI_ROUTES: Array<[string, RegExp]> = [
   // NLCD AI 인물 추출
   ['GET|POST', r('{P}\\/nl-extractions$')],
@@ -101,7 +96,7 @@ const AI_ROUTES: Array<[string, RegExp]> = [
   ['GET|PATCH', r('{P}\\/manuscripts\\/{ID}\\/structure-map\\/nodes\\/{ID}$')],
 ]
 
-const ROUTES = AI_REAL ? [...BACKEND_ROUTES, ...AI_ROUTES] : BACKEND_ROUTES
+const ROUTES = [...BACKEND_ROUTES, ...AI_ROUTES]
 
 export function servedByBackend(method: string, path: string) {
   return IS_REAL && ROUTES.some(([methods, re]) => methods.split('|').includes(method) && re.test(path))

@@ -1,6 +1,6 @@
 import { roleOf, toProject, type BackendMember, type BackendProject } from './backendShapes'
 import { request, requestAll, requestWithMeta } from './client'
-import { AI_REAL, IS_REAL } from './config'
+import { IS_REAL } from './config'
 import { getStructureMap } from './story'
 import { listConflicts } from './world'
 import { getCurrentUserId } from './identity'
@@ -39,11 +39,11 @@ export function getProject(accessToken: string, projectId: string) {
 
 /**
  * (명세 미정의) 개요 화면 요약 — 백엔드에 없어 real 모드에서도 목업이 계산한다.
- * AI를 백엔드가 할 때는 충돌·스토리 지도 요약을 백엔드 결과로 바꾼다.
+ * real 모드에서는 충돌·스토리 지도 요약을 백엔드 결과로 바꾼다.
  */
 export async function getOverview(accessToken: string, projectId: string) {
   const overview = await request<ProjectOverview>('GET', `/projects/${projectId}/overview`, { accessToken })
-  if (!AI_REAL) return overview
+  if (!IS_REAL) return overview
   const SEVERITY = ['high', 'medium', 'low']
   const [conflicts, story] = await Promise.all([
     listConflicts(accessToken, projectId).catch(() => null),

@@ -1,20 +1,18 @@
-import { isBackendId, type BackendWorldRule } from './backendShapes'
-import { request, requestMock } from './client'
-import { AI_REAL, IS_REAL } from './config'
+import type { BackendWorldRule } from './backendShapes'
+import { request } from './client'
+import { IS_REAL } from './config'
 import type { Conflict, ConflictCheck, RuleExtraction, WorldRule } from './types'
 import * as ai from './worldAi'
 
 // REX · SCDS 명세 — 설정 규칙과 충돌
 //
-// real 모드: 확정 규칙은 백엔드가 정본이다. AI 규칙 추출·후보·충돌 검사도 백엔드가 한다(worldAi.ts).
-// VITE_AI_MODE=mock이면 추출·후보·충돌은 목업이 하고, 후보를 확정하는 순간 백엔드에 규칙으로 쓴다.
+// real 모드: 규칙·AI 규칙 추출·후보·충돌 검사 모두 백엔드가 한다(화면 모양 변환은 worldAi.ts).
 
 const p = (projectId: string) => `/projects/${projectId}`
 
-/** real 모드 목록 — 백엔드 규칙을 목업에 옮긴 뒤 AI 후보와 함께 "R01" 번호를 붙여 받는다 */
+/** real 모드 목록 — 백엔드 규칙 뒤에 AI 추출 후보를 붙이고 "R01" 번호를 매긴다 */
 export function listRules(token: string, projectId: string) {
-  if (AI_REAL) return ai.listRules(token, projectId)
-  if (IS_REAL) return requestMock<WorldRule[]>('GET', `${p(projectId)}/world-rules`, { accessToken: token })
+  if (IS_REAL) return ai.listRules(token, projectId)
   return request<WorldRule[]>('GET', `${p(projectId)}/world-rules`, { accessToken: token })
 }
 
@@ -34,64 +32,54 @@ export async function addRule(token: string, projectId: string, input: { title?:
 }
 
 export async function updateRule(token: string, projectId: string, ruleId: string, input: { title?: string; description?: string; violation_keywords?: string[] }) {
-  if (AI_REAL && ai.isCandidateId(ruleId)) {
+  if (IS_REAL && ai.isCandidateId(ruleId)) {
     ai.editCandidate(ruleId, input)
     return listedRule(token, projectId, ruleId)
   }
-  if (!IS_REAL || !isBackendId(ruleId)) return request<WorldRule>('PATCH', `${p(projectId)}/world-rules/${ruleId}`, { body: input, accessToken: token })
+  if (!IS_REAL) return request<WorldRule>('PATCH', `${p(projectId)}/world-rules/${ruleId}`, { body: input, accessToken: token })
   const body = input.title !== undefined && !input.title.trim() ? { ...input, title: undefined } : input
   await request<BackendWorldRule>('PATCH', `${p(projectId)}/world-rules/${ruleId}`, { body, accessToken: token })
   return listedRule(token, projectId, ruleId)
 }
 
-/** 후보 확정. real 모드는 후보(목업)를 백엔드 규칙으로 만들고 후보를 지운다 — 백엔드 origin은 user_added가 된다 */
+/** 후보 확정. real 모드는 백엔드 추출 결과의 후보를 확정해 규칙으로 만든다 */
 export async function confirmRule(token: string, projectId: string, ruleId: string) {
   if (!IS_REAL) return request<WorldRule>('POST', `${p(projectId)}/world-rules/${ruleId}/confirm`, { accessToken: token })
-  if (AI_REAL) {
-    if (!ai.isCandidateId(ruleId)) return listedRule(token, projectId, ruleId)
-    const created = await ai.confirmCandidate(token, projectId, ruleId)
-    return created ? listedRule(token, projectId, created) : null
-  }
-  const candidate = await listedRule(token, projectId, ruleId)
-  if (isBackendId(ruleId)) return candidate
-  const created = await request<BackendWorldRule>('POST', `${p(projectId)}/world-rules`, {
-    body: { title: titleOf(candidate), description: candidate.description, violation_keywords: candidate.violation_keywords },
-    accessToken: token,
-  })
-  await requestMock<null>('DELETE', `${p(projectId)}/world-rules/${ruleId}`, { accessToken: token })
-  return listedRule(token, projectId, created.rule_id)
+  if (!ai.isCandidateId(ruleId)) return listedRule(token, projectId, ruleId)
+  const created = await ai.confirmCandidate(token, projectId, ruleId)
+  return created ? listedRule(token, projectId, created) : null
 }
 
 export async function ignoreRule(token: string, projectId: string, ruleId: string) {
-  if (AI_REAL && ai.isCandidateId(ruleId)) return ai.ignoreCandidate(token, projectId, ruleId).then(() => listedRule(token, projectId, ruleId))
+  if (IS_REAL && ai.isCandidateId(ruleId)) return ai.ignoreCandidate(token, projectId, ruleId).then(() => listedRule(token, projectId, ruleId))
   return request<WorldRule>('POST', `${p(projectId)}/world-rules/${ruleId}/ignore`, { accessToken: token })
 }
 
 export async function deleteRule(token: string, projectId: string, ruleId: string) {
   // 후보는 지울 수 없어 무시로 남긴다
-  if (AI_REAL && ai.isCandidateId(ruleId)) return ai.ignoreCandidate(token, projectId, ruleId).then(() => null)
+  if (IS_REAL && ai.isCandidateId(ruleId)) return ai.ignoreCandidate(token, projectId, ruleId).then(() => null)
   return request<null>('DELETE', `${p(projectId)}/world-rules/${ruleId}`, { accessToken: token })
 }
 
 /** REX 4.1 규칙 추출 요청 */
 export function extractRules(token: string, projectId: string, manuscriptId: string) {
-  if (AI_REAL) return ai.extractRules(token, projectId, manuscriptId)
+  if (IS_REAL) return ai.extractRules(token, projectId, manuscriptId)
   return request<RuleExtraction>('POST', `${p(projectId)}/manuscripts/${manuscriptId}/rule-extractions`, { accessToken: token })
 }
 
 export function getRuleExtraction(token: string, projectId: string, manuscriptId: string, jobId: string) {
-  if (AI_REAL) return ai.getRuleExtraction(token, projectId, manuscriptId, jobId)
+  if (IS_REAL) return ai.getRuleExtraction(token, projectId, manuscriptId, jobId)
   return request<RuleExtraction>('GET', `${p(projectId)}/manuscripts/${manuscriptId}/rule-extractions/${jobId}`, { accessToken: token })
 }
 
 export function listConflicts(token: string, projectId: string) {
-  if (AI_REAL) return ai.listConflicts(token, projectId)
+  if (IS_REAL) return ai.listConflicts(token, projectId)
   return request<Conflict[]>('GET', `${p(projectId)}/conflicts`, { accessToken: token })
 }
 
 /** SCDS 4.11 수용 / 무시 / 수정 */
 export function resolveConflict(token: string, projectId: string, conflictId: string, body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string }) {
-  if (AI_REAL) return ai.resolveConflict(token, projectId, conflictId, body)
+  if (IS_REAL) return ai.resolveConflict(token, projectId, conflictId, body)
   return request<Conflict>('PATCH', `${p(projectId)}/conflicts/${conflictId}`, { body, accessToken: token })
 }
 
@@ -100,16 +88,16 @@ export function resolveConflict(token: string, projectId: string, conflictId: st
  * 백엔드는 장 본문을 사건으로 저장해 검사한다(worldAi.ts rescan)
  */
 export function rescan(token: string, projectId: string, simulateFailure = false) {
-  if (AI_REAL) return ai.rescan(token, projectId)
+  if (IS_REAL) return ai.rescan(token, projectId)
   return request<ConflictCheck>('POST', `${p(projectId)}/rescan`, { body: simulateFailure ? { simulate_failure: true } : {}, accessToken: token })
 }
 
 export function getConflictCheck(token: string, projectId: string, jobId: string) {
-  if (AI_REAL) return ai.getConflictCheck(token, projectId, jobId)
+  if (IS_REAL) return ai.getConflictCheck(token, projectId, jobId)
   return request<ConflictCheck>('GET', `${p(projectId)}/conflict-checks/${jobId}`, { accessToken: token })
 }
 
 export function retryConflictCheck(token: string, projectId: string, jobId: string) {
-  if (AI_REAL) return ai.retryConflictCheck(token, projectId, jobId)
+  if (IS_REAL) return ai.retryConflictCheck(token, projectId, jobId)
   return request<ConflictCheck>('POST', `${p(projectId)}/conflict-checks/${jobId}/retry`, { accessToken: token })
 }

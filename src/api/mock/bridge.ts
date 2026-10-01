@@ -186,13 +186,3 @@ function mirrorWorld(db: MockDb, projectId: string, snapshot: ProjectSnapshot) {
     events: [],
   }))
 }
-
-/** AI 초안(목업)을 백엔드에 옮겨 확정했으면 목업 초안도 확정으로 닫는다 */
-export function markDraftConfirmed(draftId: string, characterId: string) {
-  const db = loadDb()
-  const d = db.drafts.find((x) => x.draft_id === draftId)
-  if (!d) return
-  d.status = 'confirmed'
-  d.confirmed_character_id = characterId
-  saveDb(db)
-}

@@ -3,7 +3,7 @@ import { ApiError, request, requestAll, requestLenient } from './client'
 import { listChapters, listManuscripts, saveChapter, syncManuscriptContent } from './manuscripts'
 import type { Conflict, ConflictCheck, RuleExtraction, WorldRule } from './types'
 
-// real 모드 AI (VITE_AI_MODE가 mock이 아닐 때) — prolog-backend 06b8928의 REX 추출과 SCDS를 화면 모양으로 맞춘다.
+// real 모드 AI — prolog-backend 06b8928의 REX 추출과 SCDS를 화면 모양으로 맞춘다.
 //
 // REX: 규칙 후보는 추출 작업 결과 안에만 있고 "추출 목록" API가 없다. 이 브라우저에서 요청한 추출 ID를 기억해 두고
 //   목록을 부를 때 그 결과의 후보를 확정 규칙 뒤에 붙인다. 후보 ID는 "추출ID~번호"다.

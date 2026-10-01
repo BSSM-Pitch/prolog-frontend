@@ -1,13 +1,11 @@
 import { influenceText, isBackendId, toDraft, toDraftItem, type BackendCharacter, type BackendDraft, type BackendDraftItem } from './backendShapes'
 import { request, requestLenient, requestMock } from './client'
-import { AI_REAL, IS_REAL } from './config'
-import { markDraftConfirmed } from './mock/bridge'
+import { IS_REAL } from './config'
 import type { Character, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
 
 // NLCD · ASS 명세 — 인물
 //
-// real 모드: 확정 인물과 백엔드 초안(UUID)은 백엔드가 받는다. AI 추출(NLCD)도 백엔드가 하고 초안을 백엔드에 만든다.
-// VITE_AI_MODE=mock이면 추출은 목업이 하고, 그 초안(draft_301 등)은 확정하는 순간 백엔드에 옮겨 쓴다.
+// real 모드: AI 추출(NLCD)·초안·확정 인물 모두 백엔드가 받는다. 인물 목록은 관계(목업)를 붙이려고 목업을 거친다.
 
 const p = (projectId: string) => `/projects/${projectId}`
 const realDraft = (draftId: string) => IS_REAL && isBackendId(draftId)
@@ -35,7 +33,7 @@ const realExtraction = async (method: string, path: string, options: Parameters<
 
 /** NLCD 4.1 자연어 입력 제출 */
 export function createExtraction(token: string, projectId: string, input: { source_text: string; character_name?: string; target_character_id?: string | null }) {
-  if (AI_REAL) {
+  if (IS_REAL) {
     const { character_name, ...rest } = input
     return realExtraction('POST', `${p(projectId)}/nl-extractions`, { body: { ...rest, name: character_name || undefined }, accessToken: token })
   }
@@ -44,12 +42,12 @@ export function createExtraction(token: string, projectId: string, input: { sour
 
 /** NLCD 4.2 결과 폴링 */
 export function getExtraction(token: string, projectId: string, extractionId: string) {
-  if (AI_REAL) return realExtraction('GET', `${p(projectId)}/nl-extractions/${extractionId}`, { accessToken: token })
+  if (IS_REAL) return realExtraction('GET', `${p(projectId)}/nl-extractions/${extractionId}`, { accessToken: token })
   return request<NLExtraction>('GET', `${p(projectId)}/nl-extractions/${extractionId}`, { accessToken: token })
 }
 
 export function retryExtraction(token: string, projectId: string, extractionId: string) {
-  if (AI_REAL) return realExtraction('POST', `${p(projectId)}/nl-extractions/${extractionId}/retry`, { accessToken: token })
+  if (IS_REAL) return realExtraction('POST', `${p(projectId)}/nl-extractions/${extractionId}/retry`, { accessToken: token })
   return request<NLExtraction>('POST', `${p(projectId)}/nl-extractions/${extractionId}/retry`, { accessToken: token })
 }
 
@@ -118,34 +116,5 @@ type ConfirmBody = { resolution?: 'merge' | 'create_new'; merge_target_character
 /** ASS 4.9 확정 — 중복이면 409 후 resolution으로 다시 요청 */
 export async function confirmDraft(token: string, projectId: string, draftId: string, body: ConfirmBody = {}): Promise<Pick<Character, 'character_id' | 'name'>> {
   if (!IS_REAL) return request<Character>('POST', `${d(projectId, draftId)}/confirm`, { body, accessToken: token })
-  if (isBackendId(draftId)) return request<BackendCharacter>('POST', `${d(projectId, draftId)}/confirm`, { body, accessToken: token })
-  return publishDraft(token, projectId, draftId, body)
-}
-
-/** 목업 초안 → 백엔드 초안. 중복 확인(409) 뒤 다시 확정할 때 같은 백엔드 초안을 쓴다 */
-const published = new Map<string, string>()
-
-/**
- * AI 초안(목업)을 확정한다: 백엔드에 빈 초안을 만들고 항목을 옮긴 뒤 확정한다.
- * 백엔드 API로 넣은 항목은 origin이 user_added가 되고 원문 근거(evidence)를 받지 않는다 — 백엔드 팀과 맞출 것.
- */
-async function publishDraft(token: string, projectId: string, draftId: string, body: ConfirmBody) {
-  const draft = await requestMock<CharacterDraft>('GET', d(projectId, draftId), { accessToken: token })
-  let realId = published.get(draftId)
-  if (realId) {
-    await request<BackendDraft>('PATCH', `${p(projectId)}/character-drafts/${realId}`, { body: { character_name: draft.character_name ?? '' }, accessToken: token })
-  } else {
-    const created = await request<BackendDraft>('POST', `${p(projectId)}/character-drafts`, { body: { character_name: draft.character_name }, accessToken: token })
-    realId = created.draft_id
-    for (const item of draft.items) {
-      await request<BackendDraftItem>('POST', `${p(projectId)}/character-drafts/${realId}/items`, { body: backendItem(item), accessToken: token })
-    }
-    published.set(draftId, realId)
-  }
-  // 기존 인물에 더하는 초안(NLCD target_character_id)은 그 인물에 합친다
-  const confirmBody = !body.resolution && draft.target_character_id ? { resolution: 'merge' as const, merge_target_character_id: draft.target_character_id } : body
-  const character = await request<BackendCharacter>('POST', `${p(projectId)}/character-drafts/${realId}/confirm`, { body: confirmBody, accessToken: token })
-  published.delete(draftId)
-  markDraftConfirmed(draftId, character.character_id)
-  return character
+  return request<BackendCharacter>('POST', `${d(projectId, draftId)}/confirm`, { body, accessToken: token })
 }
