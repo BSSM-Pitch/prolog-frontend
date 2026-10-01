@@ -46,7 +46,7 @@ jobs:
         run: npm run build
         env:
           VITE_API_MODE: real
-          VITE_AI_MODE: mock
+          VITE_AI_MODE: real
           VITE_API_BASE_URL: /v1
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_REDIRECT_URI: https://prolog.kr/auth/callback
