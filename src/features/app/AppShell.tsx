@@ -67,17 +67,19 @@ export function AppShell() {
       <div className={collapsed ? 'app app--collapsed' : 'app'}>
         <Sidebar project={state.status === 'ready' ? state.project : null} collapsed={collapsed} onToggle={toggle} />
         <main className="app__main">
-          {state.status === 'error' ? (
-            <div className="app__problem" role="alert">
-              <h1>프로젝트를 열 수 없어요</h1>
-              <p>{state.message}</p>
-              <Link className="btn btn--outline" to="/projects">
-                내 프로젝트로 돌아가기
-              </Link>
-            </div>
-          ) : (
-            <Outlet />
-          )}
+          <div className="app__inner">
+            {state.status === 'error' ? (
+              <div className="app__problem" role="alert">
+                <h1>프로젝트를 열 수 없어요</h1>
+                <p>{state.message}</p>
+                <Link className="btn btn--outline" to="/projects">
+                  내 프로젝트로 돌아가기
+                </Link>
+              </div>
+            ) : (
+              <Outlet />
+            )}
+          </div>
         </main>
       </div>
     </CurrentProjectContext.Provider>

@@ -22,6 +22,7 @@ import { ROLE_OPTIONS } from '../../lib/roles'
 import { useResource } from '../../lib/useResource'
 import { useNotificationsChanged } from '../notifications/labels'
 import { useTeamsChanged } from '../teams/teamEvents'
+import { Logo } from '../../components/Logo'
 import { projectPath } from './currentProject'
 
 type Icon = ComponentType<IconProps>
@@ -46,7 +47,6 @@ const DESIGN_ITEMS: SubItem[] = [
   { label: '스토리 맵', sub: 'story-map', disabled: true },
 ]
 
-// Figma 915:2343 Sidebar (Default / Close)
 export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
@@ -75,29 +75,25 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside className={collapsed ? 'sidebar sidebar--collapsed' : 'sidebar'} aria-label="주 메뉴">
-      <button
-        type="button"
-        className="sidebar__collapse"
-        onClick={onToggle}
-        aria-label={collapsed ? '메뉴 펼치기' : '메뉴 접기'}
-        aria-expanded={!collapsed}
-      >
-        {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
-      </button>
+      <div className="sidebar__head">
+        <Link to="/projects" className="sidebar__brand" title="내 프로젝트">
+          <Logo size={32} wordmark={!collapsed} />
+        </Link>
+        <button
+          type="button"
+          className="sidebar__collapse"
+          onClick={onToggle}
+          aria-label={collapsed ? '메뉴 펼치기' : '메뉴 접기'}
+          aria-expanded={!collapsed}
+        >
+          {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
+        </button>
+      </div>
 
-      <NavLink to="/projects" end className="sidebar__profile" title="내 프로젝트">
-        <span className="sidebar__avatar" aria-hidden="true">
-          {user.username.slice(0, 1).toUpperCase()}
-        </span>
-        <span className="sidebar__who">
-          <span className="sidebar__role">{roleTitle}</span>
-          <span className="sidebar__name">{user.username}</span>
-        </span>
+      <NavLink to="/projects" end className="sidebar__project" title={project?.title ?? '내 프로젝트'}>
+        <span className="sidebar__project-eyebrow">Project</span>
+        <span className="sidebar__project-name">{project ? project.title : '선택한 프로젝트 없음'}</span>
       </NavLink>
-
-      <p className="sidebar__project" title={project?.title}>
-        {project ? project.title : '선택한 프로젝트 없음'}
-      </p>
 
       <nav className="sidebar__nav">
         <NavItem icon={IconHome} label="개요" to={project ? toProject() : null} end disabledReason={disabledReason} />
@@ -157,10 +153,18 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
 
       <div className="sidebar__bottom">
         <NavItem icon={IconSettings} label="프로젝트 멤버" to={project ? toProject('members') : null} disabledReason={disabledReason} />
-        <button type="button" className="sidebar__item" onClick={onLogout} title={collapsed ? '로그아웃' : undefined}>
-          <IconLogout size={24} stroke={1.5} aria-hidden="true" />
-          <span className="sidebar__label">로그아웃</span>
-        </button>
+        <div className="sidebar__me">
+          <span className="sidebar__avatar" aria-hidden="true">
+            {user.username.slice(0, 1).toUpperCase()}
+          </span>
+          <span className="sidebar__who">
+            <span className="sidebar__name">{user.username}</span>
+            <span className="sidebar__role">{roleTitle}</span>
+          </span>
+          <button type="button" className="sidebar__logout" onClick={onLogout} aria-label="로그아웃" title="로그아웃">
+            <IconLogout size={18} stroke={1.75} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </aside>
   )
@@ -177,7 +181,9 @@ interface NavItemProps {
 function NavItem({ icon: I, label, to, end, disabledReason }: NavItemProps) {
   const content = (
     <>
-      <I size={24} stroke={1.5} aria-hidden="true" />
+      <span className="sidebar__icon" aria-hidden="true">
+        <I size={18} stroke={1.75} />
+      </span>
       <span className="sidebar__label">{label}</span>
     </>
   )
@@ -221,7 +227,9 @@ function NavGroup({ icon: I, label, open, onToggle, collapsed, active, disabledR
         title={disabledReason ?? label}
         onClick={disabled ? undefined : onToggle}
       >
-        <I size={24} stroke={1.5} aria-hidden="true" />
+        <span className="sidebar__icon" aria-hidden="true">
+          <I size={18} stroke={1.75} />
+        </span>
         <span className="sidebar__label">
           {label}
           {badge ? <span className="sidebar__badge" aria-label={`안 읽음 ${badge}개`}>{badge}</span> : null}
