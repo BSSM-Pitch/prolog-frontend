@@ -415,3 +415,30 @@
     padding: var(--space-8) var(--space-6) var(--space-12);
   }
 }
+
+/* 휴대폰: 작업 영역 여백을 줄이고, 격자 칸이 내용 때문에 넓어지지 않게 한다 */
+@media (max-width: 640px) {
+  .app__main {
+    padding: var(--space-6) var(--space-4) var(--space-12);
+  }
+  .app__main :where(.panel, .two-col > *, [class*='__layout'] > *) {
+    min-width: 0;
+  }
+  .app__main :where(.panel) {
+    padding: var(--space-5);
+  }
+  .app__main :where(table) {
+    display: block;
+    overflow-x: auto;
+  }
+  .app__main :where(.page-title) {
+    font-size: 26px;
+  }
+  /* 좁은 칸에서는 버튼 글자가 줄을 바꿔도 된다 */
+  .app__main :where(.btn) {
+    height: auto;
+    min-height: var(--btn-height);
+    padding-block: var(--space-2);
+    white-space: normal;
+  }
+}
