@@ -1,10 +1,9 @@
 /*
- * 로그인 및 회원가입 섹션 (Figma 1215:2403)
- * 지금 보고 있는 페이지 위에 모달처럼 뜬다. 1920 기준 왼쪽 700px에는 뒤 페이지가 보이고, 흰 패널은 1220px.
- * 예전의 브랜드 영역·접힌 시작 화면·접힌 탭은 디자인에서 빠졌다.
+ * 로그인 및 회원가입 패널. 지금 보고 있는 페이지(랜딩) 위에 오른쪽에서 흰 패널이 밀려 나온다.
+ * 이어지는 단계(-full)에서는 패널이 화면을 채우고, 왼쪽에 구름 사진 카드를 둔다.
  */
 .auth {
-  --brand-w: clamp(360px, 36.4583vw, 700px);
+  --brand-w: clamp(360px, 40vw, 760px);
   --slide: 480ms cubic-bezier(0.22, 0.8, 0.24, 1);
 
   position: fixed;
@@ -20,7 +19,7 @@
 .auth__scrim {
   position: absolute;
   inset: 0;
-  background: rgba(31, 42, 53, 0.28);
+  background: rgba(17, 17, 17, 0.24);
   animation: auth-scrim-in var(--slide) both;
   cursor: pointer;
 }
@@ -41,23 +40,24 @@
   }
 }
 
-/* ───────── 패널 (Figma 1175:2048 로그인 섹션) ───────── */
+/* ───────── 패널 ───────── */
 .auth__panel {
   position: absolute;
   top: 0;
   bottom: 0;
   right: 0;
   left: var(--brand-w);
-  border: 0.6px solid rgba(0, 0, 0, 0.25);
-  border-right: 0;
-  border-radius: 20px 0 0 20px;
-  background: var(--auth-panel-light);
-  transition: left var(--slide);
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  background: var(--color-bg);
+  transition:
+    left var(--slide),
+    border-radius var(--slide);
   animation: auth-panel-in var(--slide) both;
 }
 /* 아이디 찾기·비밀번호 재설정, 사용자 유형·계정 인증은 패널이 화면을 채운다 */
 .auth[data-mode$='-full'] .auth__panel {
   left: 0;
+  border-radius: 0;
 }
 .auth[data-closing] .auth__panel {
   animation: auth-panel-out 380ms cubic-bezier(0.55, 0, 0.75, 0.2) forwards;
@@ -77,45 +77,62 @@
   }
 }
 
-/* 패널 왼쪽 손잡이 (Figma Rectangle 4×120) — 로그인은 슬레이트, 회원가입은 흰색 */
+/* 패널 왼쪽 손잡이 */
 .auth__panel::before {
   content: '';
   position: absolute;
   top: 50%;
   left: 20px;
   width: 4px;
-  height: 120px;
+  height: 64px;
   translate: 0 -50%;
-  border: 0.4px solid rgba(0, 0, 0, 0.25);
-  border-radius: 2px;
-  background: #5e7a94;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
   transition: opacity var(--slide);
-}
-.auth__panel[data-kind='signup']::before {
-  background: #ffffff;
 }
 .auth[data-mode$='-full'] .auth__panel::before {
   opacity: 0;
 }
 
-/* 펼쳐진 패널의 왼쪽 손잡이 영역 — 누르면 닫힌다 */
+/* 화면을 채운 단계: 왼쪽 절반은 구름 사진 카드 */
+.auth__panel::after {
+  content: '';
+  position: absolute;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  left: var(--space-4);
+  width: calc(50% - var(--space-8));
+  border-radius: var(--radius-xl);
+  background: var(--color-sky) url(/brand/clouds/sky-soft.webp) center / cover no-repeat;
+  opacity: 0;
+  transition: opacity var(--slide);
+  pointer-events: none;
+}
+.auth[data-mode$='-full'] .auth__panel::after {
+  opacity: 1;
+}
+.auth[data-mode$='-full'] .auth__content {
+  left: 50%;
+}
+
+/* 펼쳐진 패널의 왼쪽 손잡이 영역: 누르면 닫힌다 */
 .auth__handle {
   position: absolute;
   inset: 0 auto 0 0;
   z-index: 2;
-  width: 56px;
+  width: 48px;
   padding: 0;
   border: 0;
-  border-radius: 20px 0 0 20px;
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
   background: transparent;
   cursor: pointer;
   transition: background var(--transition-state);
 }
 .auth__handle:hover {
-  background: rgba(56, 73, 89, 0.06);
+  background: var(--color-surface);
 }
 .auth__handle:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: -4px;
 }
 
@@ -124,7 +141,7 @@
   position: absolute;
   inset: 0;
   display: flex;
-  padding: 40px 24px;
+  padding: var(--space-10) var(--space-6);
   overflow-y: auto;
   animation: auth-content-in 320ms ease 200ms both;
 }
@@ -144,103 +161,73 @@
   }
 }
 
-/* ───────── 로그인·회원가입 폼 (Figma 1175:2053 인증 폼: 600 · padding 40 · 간격 52) ───────── */
+/* ───────── 로그인·회원가입 폼 ───────── */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 52px;
-  width: min(600px, 100%);
-  padding: 40px;
-  border: 0.4px solid rgba(0, 0, 0, 0.5);
-  border-radius: 10px;
-  background: #ffffff;
+  gap: var(--space-8);
+  width: min(440px, 100%);
 }
 .auth-form__title {
-  font-size: 35px;
+  font-size: var(--fs-h2);
   font-weight: 500;
-  line-height: 45px;
+  line-height: 1.3;
 }
-/* 입력 묶음 — 필드 사이 36 */
 .auth-form__fields {
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: var(--space-5);
 }
-/* 버튼 + 보조 링크 — 로그인 16, 회원가입 4 */
 .auth-form__actions {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 .auth-form__actions--tight {
-  gap: 4px;
+  gap: var(--space-2);
 }
-/* 회원가입: 버튼 묶음과 소셜 버튼 사이 36 */
 .auth-form__footer {
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: var(--space-6);
 }
 .auth-form__link {
   align-self: center;
 }
 
-/* 입력 테두리 — 로그인 0.4px, 회원가입 0.8px (오류·성공·포커스 상태는 공통 스타일을 따른다) */
-.auth-form--login .field .field__control {
-  border-width: 0.4px;
-}
-.auth-form--login .field:where(:not(.field--error, .field--success, .field--disabled)) .field__control:where(:not(:focus-within)) {
-  border-color: rgba(106, 137, 167, 0.5);
-}
-.auth-form--signup .field .field__control {
-  border-width: 0.8px;
-}
-.auth-form--signup .field:where(:not(.field--error, .field--success, .field--disabled)) .field__control:where(:not(:focus-within)) {
-  border-color: rgba(106, 137, 167, 0.25);
-}
-.auth-form .btn--lg.btn--primary {
-  border-width: 0.5px;
-}
-
-/* ───────── 카드 단계 (Figma 인증 폼 480×, padding 32, gap 16) ───────── */
+/* ───────── 이어지는 단계의 카드 ───────── */
 .auth-card {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
-  width: min(480px, 100%);
-  padding: var(--itda-space-32);
-  border-radius: 12px;
-  background: var(--itda-surface);
-}
-.auth-card--bordered {
-  gap: 20px;
-  border: 1px solid var(--input-stroke);
-  border-radius: 10px;
+  gap: var(--space-6);
+  width: min(460px, 100%);
 }
 .auth-card__title {
-  font-size: 28px;
+  font-size: var(--fs-h2);
   font-weight: 500;
-  line-height: 36px;
+  line-height: 1.3;
 }
 .auth-card__desc {
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 24px;
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--color-text-2);
 }
 .auth-card__meta {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 .auth-card__caption {
-  font-size: 12px;
-  line-height: 20px;
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 .auth-card__row {
   display: flex;
-  gap: var(--itda-space-16);
+  gap: var(--space-3);
 }
-/* 버튼 폭을 정확히 1:3으로 (Figma 100·300) — 가로 여백이 flex 기준 폭에 더해지지 않게 뺀다 */
+/* 버튼 폭을 1:3으로. 가로 여백이 flex 기준 폭에 더해지지 않게 뺀다 */
 .auth-card__row > * {
   flex: 1;
   min-width: 0;
@@ -252,117 +239,51 @@
   flex: 3;
 }
 
-/* 카드 안의 세로 묶음 */
 .auth-card__group {
   display: flex;
   flex-direction: column;
+  gap: var(--space-4);
 }
 
-/* ───────── 사용자 유형 (Figma 840:178) — 480 기준 카드를 1.352배로 키웠다 ───────── */
-.auth-card--role {
-  zoom: 1.352;
-  width: min(480px, calc((100vw - 48px) / 1.352));
-  gap: 32.5px; /* 확대 후 44 */
-  border: 0.6px solid rgba(0, 0, 0, 0.25);
+/* 단계별 간격 */
+.verify__body,
+.find__body {
+  gap: var(--space-6);
 }
-.auth-card--role .auth-card__group {
-  gap: 17.75px; /* 확대 후 24 */
-}
-.auth-card--role .option {
-  border-width: 0.4px;
-}
-.auth-card--role .option[aria-checked='true'] {
-  border-color: var(--itda-muted);
-}
-.auth-card--role .btn {
-  border-width: 0.4px;
-}
-
-/* ───────── 계정 인증 (Figma 840:362) — 480 기준 카드를 1.2667배로 키웠다 ───────── */
-.auth-card--verify {
-  zoom: 1.2667;
-  width: min(480px, calc((100vw - 48px) / 1.2667));
-  gap: 40px;
-  border-radius: 8px;
-}
-.verify__body {
-  gap: 24px;
-}
-.verify__fields {
-  gap: 28.4px;
+.verify__fields,
+.find__fields,
+.find__result {
+  gap: var(--space-5);
 }
 .verify__block {
-  gap: 16px;
-}
-.auth-card--verify .field__input {
-  font-size: 20.27px;
-  line-height: 38px;
-}
-.auth-card--verify .btn--outline-strong {
-  border-width: 0.6px;
-  font-size: 20.27px;
-  line-height: 25.3px;
-}
-.auth-card--verify .btn--primary {
-  border-width: 0.4px;
-}
-.verify__email .field:where(:not(.field--error, .field--success, .field--disabled)) .field__control:where(:not(:focus-within)) {
-  border: 0.8px solid rgba(106, 137, 167, 0.25);
-}
-/* 인증 코드 칸은 기본 상태부터 진한 테두리 */
-.verify__code .field:where(:not(.field--error, .field--disabled)) .field__control:where(:not(:focus-within)) {
-  border: 0.6px solid var(--itda-ink);
-}
-
-/* ───────── 아이디 찾기 (Figma 840:435 · 1214:2226) ───────── */
-.auth-card--find {
-  gap: 48px;
-  padding: 40px;
-  border: 0.4px solid rgba(0, 0, 0, 0.5);
-  border-radius: 10px;
-}
-.find__body {
-  gap: 44px;
-}
-.find__fields {
-  gap: 36px;
-}
-.find__result {
-  gap: 28px;
+  gap: var(--space-3);
 }
 .find__help {
-  gap: 12px;
-}
-.auth-card--find .field:where(:not(.field--error, .field--success, .field--disabled)) .field__control:where(:not(:focus-within)) {
-  border: 0.4px solid rgba(106, 137, 167, 0.5);
-}
-.auth-card--find .btn {
-  border-width: 0.4px;
-}
-.auth-card--find .btn--outline {
-  border-color: rgba(106, 137, 167, 0.5);
-  font-weight: 300;
+  gap: var(--space-3);
 }
 
 .role-group {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-3);
 }
 
-/* ───────── 좁은 화면 ───────── */
-/* 좁은 화면: 패널이 화면을 채운다 */
+/* ───────── 좁은 화면: 패널이 화면을 채운다 ───────── */
 @media (max-width: 960px) {
   .auth {
     --brand-w: 0px;
   }
-  .auth-form {
-    gap: 36px;
-    padding: 28px 20px;
+  .auth__panel {
+    border-radius: 0;
+  }
+  .auth__panel::after {
+    display: none;
+  }
+  .auth[data-mode$='-full'] .auth__content {
+    left: 0;
   }
   .auth-form .social {
     flex-direction: column;
-    gap: 12px;
   }
 }
 
