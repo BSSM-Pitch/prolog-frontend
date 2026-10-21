@@ -36,36 +36,36 @@
 
 /* 상태 색 — 신뢰·우호는 파랑, 중립 회색, 긴장 주황, 갈등·적대 빨강 */
 .state--trust {
-  --state: #345e8d;
+  --state: var(--color-dark);
   --state-bg: var(--color-sky);
 }
 .state--friendly {
-  --state: #4f86c6;
+  --state: var(--color-primary);
   --state-bg: var(--color-surface);
 }
 .state--neutral {
-  --state: #6a89a7;
-  --state-bg: #eef2f6;
+  --state: var(--color-text-2);
+  --state-bg: var(--color-surface-2);
 }
 .state--tension {
-  --state: #b54708;
-  --state-bg: #fdf1e7;
+  --state: var(--color-warning);
+  --state-bg: var(--color-warning-50);
 }
 .state--conflict {
-  --state: #b42318;
-  --state-bg: #fdecea;
+  --state: var(--color-danger);
+  --state-bg: var(--color-danger-50);
 }
 .state--hostile {
-  --state: #7a1a12;
-  --state-bg: #f9dcd8;
+  --state: #8f1d14;
+  --state-bg: #fbdcd9;
 }
 
 .mindmap {
   width: 100%;
   height: auto;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
 }
 .mindmap__edge {
   cursor: pointer;
@@ -105,7 +105,7 @@
 }
 .mindmap__node rect {
   fill: var(--color-bg);
-  stroke: rgba(106, 137, 167, 0.6);
+  stroke: var(--color-border-strong);
 }
 .mindmap__node.is-center rect {
   fill: var(--color-text-1);
@@ -162,7 +162,7 @@
   height: 4px;
   margin-top: 48px;
   border-radius: 2px;
-  background: rgba(56, 73, 89, 0.12);
+  background: var(--color-surface-2);
 }
 .timeline__now {
   position: absolute;
@@ -224,7 +224,7 @@
   flex-direction: column;
   gap: 2px;
   padding: var(--space-4);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--state-bg);
   color: var(--state);
 }
@@ -243,7 +243,7 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-4);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
@@ -257,7 +257,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--state-bg);
   color: var(--state);
 }

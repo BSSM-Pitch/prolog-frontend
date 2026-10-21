@@ -44,10 +44,10 @@
   background: var(--color-surface);
 }
 .acts__item--1 {
-  background: #cfe3fb;
+  background: var(--color-sky);
 }
 .acts__item--2 {
-  background: #b5d5f9;
+  background: var(--color-border-strong);
 }
 .acts__item--3 {
   background: var(--color-text-1);
@@ -80,14 +80,14 @@
 .causal {
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
 }
 .causal svg {
   display: block;
 }
 .causal__axis {
-  stroke: rgba(56, 73, 89, 0.2);
+  stroke: var(--color-border);
   stroke-width: 2;
 }
 .causal__tick {
@@ -96,21 +96,21 @@
 }
 .causal__edge {
   fill: none;
-  stroke: #6a89a7;
+  stroke: var(--color-text-2);
   stroke-width: 2;
 }
 .causal__edge--affects {
   stroke-dasharray: 6 4;
 }
 .causal__arrowhead {
-  fill: #6a89a7;
+  fill: var(--color-text-2);
 }
 .causal__node {
   cursor: pointer;
 }
 .causal__node rect {
   fill: var(--color-bg);
-  stroke: rgba(106, 137, 167, 0.6);
+  stroke: var(--color-border-strong);
 }
 .causal__node--turning_point rect {
   fill: var(--color-sky);

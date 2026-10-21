@@ -1,9 +1,8 @@
-/* Figma 1261:2571 · 30 알림 / 1261:2820 · 31 알림 설정 */
+/* 알림 · 알림 설정 */
 .noti {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  max-width: 1280px;
 }
 .noti__layout {
   display: flex;
@@ -29,6 +28,7 @@
 .noti__list {
   display: flex;
   flex-direction: column;
+  gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -37,14 +37,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px 4px;
-  border-bottom: 1px solid var(--color-border);
-}
-.noti__item:last-child {
-  border-bottom: 0;
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
 }
 .noti__item.is-unread {
-  background: linear-gradient(90deg, rgba(220, 235, 253, 0.55), transparent 70%);
+  border-color: var(--color-border);
+  background: var(--color-bg);
 }
 .noti__head {
   display: flex;
@@ -59,7 +58,8 @@
   background: var(--color-primary);
 }
 .noti__body {
-  font-size: 16px;
+  font-size: 15px;
+  line-height: 1.6;
 }
 .noti__item.is-unread .noti__body {
   font-weight: 500;
@@ -72,7 +72,7 @@
   font: inherit;
   text-align: left;
   text-decoration: underline;
-  text-decoration-color: rgba(56, 73, 89, 0.3);
+  text-decoration-color: var(--color-border-strong);
   text-underline-offset: 3px;
   cursor: pointer;
 }
@@ -132,9 +132,10 @@
 .noti__table thead th {
   padding-block: 8px;
   border-bottom-color: var(--color-border);
-  color: var(--color-text-2);
-  font-size: 13px;
+  color: var(--color-text-3);
+  font-size: 12px;
   font-weight: 500;
+  letter-spacing: 0.04em;
 }
 .noti__table tbody th {
   font-weight: 400;
