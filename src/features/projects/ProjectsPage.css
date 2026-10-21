@@ -1,73 +1,92 @@
-/* Figma 1260:2218 — 작업 영역 폭 1504 기준 */
 .projects {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: var(--space-8);
 }
 
+/* 머리글: 구름 사진 위에 제목과 주요 행동 */
 .projects__header {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: var(--itda-space-32);
+  gap: var(--space-8);
+  min-height: 240px;
+  padding: var(--space-12);
+  border-radius: var(--radius-xl);
+  background: var(--color-sky) url(/brand/clouds/sky-hero.webp) center 75% / cover no-repeat;
 }
 .projects__crumb {
   font-size: 12px;
-  line-height: 20px;
-  color: var(--itda-muted);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(17, 17, 17, 0.6);
 }
 .projects__title {
-  margin-top: var(--itda-space-12);
-  font-size: 28px;
-  font-weight: 500;
-  line-height: 36px;
+  margin-top: var(--space-2);
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 .projects__desc {
-  margin-top: var(--itda-space-12);
-  font-size: 16px;
-  line-height: 24px;
+  margin-top: var(--space-3);
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: rgba(17, 17, 17, 0.72);
 }
 .projects__new {
   flex: none;
-  gap: var(--itda-space-12);
 }
 
 .projects__toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
 }
+/* 알약형 필터 묶음 */
 .projects__filters {
-  display: flex;
-  gap: var(--itda-space-12);
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
 }
 .projects__filter {
-  height: var(--prolog-control-height);
-  padding: 0 var(--itda-space-16);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 40px;
+  padding: 0 var(--space-4);
   border: 0;
-  border-radius: var(--prolog-radius-8);
+  border-radius: var(--radius-full);
   background: transparent;
-  color: var(--prolog-color-interaction);
+  color: var(--color-text-2);
   font-size: 14px;
   font-weight: 500;
-  transition: background var(--transition-state), color var(--transition-state);
+  transition:
+    background var(--transition-state),
+    color var(--transition-state);
 }
 .projects__filter:hover {
-  background: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-1);
 }
 .projects__filter[aria-pressed='true'] {
-  background: var(--itda-ink);
-  color: var(--itda-surface);
+  background: var(--color-dark);
+  color: #fff;
+}
+.projects__count {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
 }
 .projects__filter:focus-visible,
 .projects__more:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* 임시/Select */
+/* 정렬 선택 */
 .projects__sort {
   position: relative;
   display: inline-flex;
@@ -75,112 +94,180 @@
 }
 .projects__sort select {
   appearance: none;
-  width: 200px;
-  height: var(--prolog-control-height);
-  padding: 0 40px 0 16px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  width: 180px;
+  height: var(--btn-height);
+  padding: 0 40px 0 var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
   font-size: 14px;
   cursor: pointer;
 }
 .projects__sort select:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 0;
 }
 .projects__sort svg {
   position: absolute;
-  right: 14px;
+  right: 16px;
   pointer-events: none;
 }
 
 .projects__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-32);
+  gap: var(--space-12) var(--space-8);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
+/* 프로젝트 카드: 라운드 이미지 아래 제목·캡션, 오른쪽 블루 배지 */
 .project-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
-  height: 100%;
-  padding: var(--itda-space-24);
-  border: 1px solid var(--input-stroke);
-  border-radius: 12px;
-  background: var(--itda-surface);
 }
-.project-card__badges {
+.project-card__media {
+  position: relative;
+  height: 200px;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-sky);
+  background-size: 240%;
+  transition: background-size 600ms var(--ease);
+}
+.project-card:hover .project-card__media {
+  background-size: 260%;
+}
+.project-card__role {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
+  font-weight: 500;
+}
+.project-card__row {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--itda-space-12);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
 }
 .project-card__title {
-  margin-top: var(--itda-space-8);
+  min-width: 0;
   overflow: hidden;
-  font-size: 20px;
+  font-size: var(--fs-h3);
   font-weight: 500;
-  line-height: 28px;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.project-card__meta {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--itda-muted);
-}
-.project-card__open {
-  margin-top: var(--itda-space-12);
+.project-card__link {
+  color: inherit;
   text-decoration: none;
 }
+.project-card__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+}
+.project-card__link:focus-visible {
+  outline: none;
+}
+.project-card__link:focus-visible::after {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 4px;
+}
+.project-card__badge {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.project-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  margin-top: var(--space-1);
+  font-size: var(--fs-caption);
+  color: var(--color-text-2);
+}
+.project-card__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
-
+/* "더 보기"는 다른 목록 화면에서도 쓴다 */
 .projects__more {
   align-self: center;
-  padding: 8px 16px;
-  border: 0;
-  border-radius: var(--prolog-radius-8);
-  background: transparent;
-  color: var(--prolog-color-interaction);
+  height: var(--btn-height);
+  padding: 0 var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-1);
   font-size: 14px;
   font-weight: 500;
+  transition: background var(--transition-state);
 }
 .projects__more:hover:not(:disabled) {
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  background: var(--color-surface);
 }
 .projects__more:disabled {
-  color: var(--itda-muted);
+  color: var(--color-text-3);
   cursor: progress;
 }
 .projects__more-error {
   text-align: center;
 }
 
-/* State block — 빈 상태·불러오기·오류 (Figma 1255:2134) */
+/* 빈 상태·불러오기·오류 */
 .projects__state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--itda-space-16);
-  padding: 64px 24px;
-  border: 1px dashed var(--input-stroke);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.6);
+  gap: var(--space-3);
+  padding: var(--space-16) var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
   text-align: center;
 }
+.projects__state::before {
+  content: '';
+  width: 88px;
+  height: 88px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-sky) url(/brand/clouds/sky-soft.webp) 40% 60% / 400% no-repeat;
+}
+.projects__state[role='status']::before {
+  display: none;
+}
 .projects__state-title {
-  font-size: 20px;
+  font-size: var(--fs-h3);
   font-weight: 500;
-  line-height: 28px;
+  line-height: 1.4;
 }
 .projects__state-body {
   font-size: 14px;
-  line-height: 20px;
-  color: var(--itda-muted);
+  line-height: 1.6;
+  color: var(--color-text-2);
+}
+.projects__state .btn {
+  margin-top: var(--space-3);
 }
 
 @media (max-width: 1280px) {
@@ -192,7 +279,16 @@
   .projects__grid {
     grid-template-columns: 1fr;
   }
-  .projects__header,
+  .projects__header {
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 0;
+    padding: var(--space-8) var(--space-6);
+    border-radius: var(--radius-lg);
+  }
+  .projects__title {
+    font-size: 34px;
+  }
   .projects__toolbar {
     flex-direction: column;
     align-items: stretch;

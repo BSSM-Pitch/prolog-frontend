@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { IconChevronDown, IconPlus } from '@tabler/icons-react'
+import { IconChevronDown, IconClock, IconFileText, IconPlus, IconUser, IconUsers } from '@tabler/icons-react'
 import * as projectsApi from '../../api/projects'
 import type { OwnerType, Project, ProjectListMeta, ProjectSort } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { describeError } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
+import { skyThumb } from '../../lib/sky'
 import './ProjectsPage.css'
 import { PROJECT_ROLE_LABEL } from '../../lib/roles'
 
@@ -30,7 +31,6 @@ const SORTS: Array<{ value: ProjectSort; label: string }> = [
 /** 첫 페이지 요청 결과. key가 현재 필터·정렬과 다르면 아직 불러오는 중이다. */
 type FirstPage = { key: string; error: string | null }
 
-// Figma 1260:2218 · 27 내 프로젝트
 export function ProjectsPage() {
   const navigate = useNavigate()
   const { withAuth } = useSession()
@@ -111,8 +111,8 @@ export function ProjectsPage() {
           <h1 className="projects__title">내 프로젝트</h1>
           <p className="projects__desc">개인 프로젝트와 참여 중인 팀 프로젝트를 한곳에서 관리하세요.</p>
         </div>
-        <Button className="projects__new" onClick={() => navigate('/projects/new')}>
-          <IconPlus size={16} aria-hidden="true" />새 프로젝트
+        <Button className="projects__new" size="lg" onClick={() => navigate('/projects/new')}>
+          <IconPlus size={18} aria-hidden="true" />새 프로젝트
         </Button>
       </header>
 
@@ -127,7 +127,7 @@ export function ProjectsPage() {
               onClick={() => setFilter(f.value)}
             >
               {f.label}
-              {counts && ` ${counts[f.value]}`}
+              {counts && <span className="projects__count">{counts[f.value]}</span>}
             </button>
           ))}
         </div>
@@ -199,21 +199,34 @@ export function ProjectsPage() {
 
 function ProjectCard({ project: p }: { project: Project }) {
   const titleId = `project-${p.project_id}-title`
+  const team = p.owner_type === 'team'
   return (
     <article className="project-card" aria-labelledby={titleId}>
-      <div className="project-card__badges">
-        <span className="badge badge--filled">{p.owner_type === 'team' ? `팀 · ${p.team_name ?? '이름 없는 팀'}` : '개인'}</span>
-        <span className="badge badge--outline">{PROJECT_ROLE_LABEL[p.my_role]}</span>
+      <div className="project-card__media" style={skyThumb(p.project_id)}>
+        <span className="project-card__role">{PROJECT_ROLE_LABEL[p.my_role]}</span>
       </div>
-      <h2 id={titleId} className="project-card__title">
-        {p.title}
-      </h2>
+      <div className="project-card__row">
+        <h2 id={titleId} className="project-card__title">
+          {/* 카드 전체를 누를 수 있게 링크가 카드를 덮는다 */}
+          <Link to={`/projects/${p.project_id}`} className="project-card__link">
+            {p.title}
+          </Link>
+        </h2>
+        <span className="project-card__badge">
+          <IconFileText size={13} stroke={2} aria-hidden="true" />
+          원고 {p.manuscript_count}
+        </span>
+      </div>
       <p className="project-card__meta">
-        원고 {p.manuscript_count}개 · {relativeTime(p.updated_at)} 수정
+        <span>
+          {team ? <IconUsers size={14} stroke={1.75} aria-hidden="true" /> : <IconUser size={14} stroke={1.75} aria-hidden="true" />}
+          {team ? `팀 · ${p.team_name ?? '이름 없는 팀'}` : '개인'}
+        </span>
+        <span>
+          <IconClock size={14} stroke={1.75} aria-hidden="true" />
+          {relativeTime(p.updated_at)} 수정
+        </span>
       </p>
-      <Link className="btn btn--secondary btn--block project-card__open" to={`/projects/${p.project_id}`} aria-describedby={titleId}>
-        열기
-      </Link>
     </article>
   )
 }

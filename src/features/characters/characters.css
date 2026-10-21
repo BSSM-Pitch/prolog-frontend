@@ -4,14 +4,13 @@
 .draft {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: var(--space-8);
 }
 
 .two-col {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
   align-items: start;
 }
 .two-col--list {
@@ -21,22 +20,22 @@
 /* ───────── 등장인물 목록 ───────── */
 .char-search {
   width: 100%;
-  height: var(--prolog-control-height);
+  height: var(--btn-height);
   padding: 0 14px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   font-size: 14px;
 }
 .char-search:focus {
   outline: none;
-  border-color: var(--prolog-color-interaction);
-  box-shadow: inset 0 0 0 1px var(--prolog-color-interaction);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 .char-list {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -47,9 +46,9 @@
   gap: 4px;
   width: 100%;
   padding: 14px 16px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: var(--itda-surface);
+  background: var(--color-bg);
   text-align: left;
 }
 .char-item:hover {
@@ -57,10 +56,10 @@
 }
 .char-item[aria-current] {
   border-color: #b5d5f9;
-  background: var(--itda-background);
+  background: var(--color-surface);
 }
 .char-item:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .char-item__name {
@@ -69,21 +68,21 @@
 }
 .char-item__meta {
   font-size: 12px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 
 .char-detail__grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
 }
 .attr-box {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
-  padding: var(--itda-space-16);
+  gap: var(--space-3);
+  padding: var(--space-4);
   border-radius: 10px;
-  background: var(--itda-background);
+  background: var(--color-surface);
 }
 .chips {
   display: flex;
@@ -95,15 +94,15 @@
   align-items: center;
   height: 28px;
   padding: 0 12px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 999px;
-  background: var(--itda-surface);
+  background: var(--color-bg);
   font-size: 13px;
 }
 .char-detail__links {
   display: flex;
   align-items: baseline;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 .char-detail__count {
   font-size: 20px;
@@ -114,8 +113,8 @@
   flex-direction: column;
   gap: 8px;
   margin: 0;
-  padding: var(--itda-space-16);
-  border: 1px solid var(--input-stroke);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
   list-style: none;
   font-size: 14px;
@@ -124,26 +123,26 @@
 .changes strong {
   display: inline-block;
   min-width: 44px;
-  color: var(--prolog-color-interaction);
+  color: var(--color-primary);
   font-weight: 500;
 }
 .actions-row {
   display: grid;
   grid-auto-columns: 1fr;
   grid-auto-flow: column;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 
 /* ───────── 단계 표시 ───────── */
 .stepper {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
   margin: 0;
   padding: 14px 20px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  background: var(--itda-surface);
+  background: var(--color-bg);
   list-style: none;
   counter-reset: step;
 }
@@ -151,15 +150,15 @@
   display: flex;
   flex: 1;
   align-items: center;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
   font-size: 14px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .stepper__step:not(:last-child)::after {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--stroke);
+  background: var(--color-border);
 }
 .stepper__dot {
   display: inline-flex;
@@ -168,22 +167,22 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 50%;
   font-size: 12px;
 }
 .stepper__step--done .stepper__dot {
-  border-color: var(--itda-ink);
-  background: var(--itda-ink);
-  color: var(--itda-surface);
+  border-color: var(--color-text-1);
+  background: var(--color-text-1);
+  color: var(--color-bg);
 }
 .stepper__step--current {
-  color: var(--itda-ink);
+  color: var(--color-text-1);
   font-weight: 500;
 }
 .stepper__step--current .stepper__dot {
-  border: 2px solid var(--prolog-color-interaction);
-  color: var(--prolog-color-interaction);
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
 }
 
 /* ───────── 자연어 입력 ───────── */
@@ -191,24 +190,24 @@
   width: 100%;
   min-height: 180px;
   padding: 12px 16px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   font-size: 15px;
   line-height: 24px;
 }
 .nl-textarea:focus-within,
 .nl-select:focus {
   outline: none;
-  border-color: var(--prolog-color-interaction);
-  box-shadow: inset 0 0 0 1px var(--prolog-color-interaction);
+  border-color: var(--color-primary);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
 }
 .nl-select {
-  height: var(--prolog-control-height);
+  height: var(--btn-height);
   padding: 0 12px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   font-size: 14px;
 }
 
@@ -217,9 +216,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 10px;
-  background: var(--itda-surface);
+  background: var(--color-bg);
 }
 .extract-card__title {
   font-size: 15px;
@@ -227,10 +226,10 @@
 }
 .extract-card__evidence {
   font-size: 13px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .extract-card--empty .extract-card__title {
-  color: var(--itda-muted);
+  color: var(--color-text-2);
   font-weight: 400;
 }
 .state-block {
@@ -240,33 +239,33 @@
   gap: 12px;
   padding: 40px 16px;
   border-radius: 10px;
-  background: var(--itda-background);
+  background: var(--color-surface);
   text-align: center;
 }
 .state-block--error {
   background: #fdf1f0;
 }
 .state-block--error .answer__title {
-  color: var(--prolog-color-error);
+  color: var(--color-danger);
 }
 
 /* ───────── 초안 검토 ───────── */
 .draft-note {
   font-size: 12px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .draft-row {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
   padding: 10px 14px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
 }
 .draft-row[aria-current] {
   border-color: #b5d5f9;
-  background: var(--itda-background);
+  background: var(--color-surface);
 }
 .draft-row__text {
   flex: 1;
@@ -279,20 +278,20 @@
   font-size: 13px;
 }
 .draft-row--name {
-  background: var(--itda-background);
+  background: var(--color-surface);
 }
 .draft-row--name input {
   flex: 1;
   height: 32px;
   padding: 0 10px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   font-size: 15px;
 }
 .draft-list {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -300,12 +299,12 @@
 .draft-foot {
   display: flex;
   justify-content: space-between;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 .evidence-box {
   padding: 10px 14px;
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-background);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   font-size: 13px;
   line-height: 20px;
 }
@@ -320,32 +319,32 @@
 }
 .history li {
   padding: 6px 0;
-  border-bottom: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--color-border);
 }
 .history time {
   margin-left: 8px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
   font-size: 12px;
 }
 .check-note {
   padding: 12px 14px;
-  border-left: 3px solid var(--prolog-color-interaction);
-  border-radius: 0 var(--prolog-radius-8) var(--prolog-radius-8) 0;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   background: #f5f9ff;
   font-size: 14px;
   line-height: 22px;
 }
 .check-note--error {
-  border-color: var(--prolog-color-error);
+  border-color: var(--color-danger);
   background: #fdf1f0;
-  color: var(--prolog-color-error);
+  color: var(--color-danger);
 }
 
 /* 병합 선택 창의 선택지 */
 .choice-list {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 
 @media (max-width: 1100px) {

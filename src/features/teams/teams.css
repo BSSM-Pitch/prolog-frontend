@@ -1,44 +1,65 @@
-/* Figma 843:2082 · 25 새 팀 만들기 / 843:2184 · 26 팀 작업공간 */
+/* 새 팀 만들기 · 팀 작업공간 */
 .team-new,
 .team {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: var(--space-8);
 }
 .team-new {
   max-width: 880px;
 }
 
+/* 세로 스테퍼: 번호 원 + 아래로 이어지는 선 */
 .team-step {
   position: relative;
-  gap: var(--itda-space-12);
-  padding-left: 88px;
+  gap: var(--space-3);
+  padding-left: 96px;
 }
 .team-step__no {
   position: absolute;
   top: 24px;
-  left: 28px;
-  color: var(--prolog-color-interaction);
-  font-size: 24px;
+  left: 24px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-dark);
+  color: #fff;
+  font-size: 15px;
   font-weight: 600;
 }
+.team-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 76px;
+  bottom: -24px;
+  left: 45.5px;
+  width: 1px;
+  background: var(--color-border-strong);
+}
+.team-step.is-done .team-step__no {
+  background: var(--color-primary);
+  font-size: 0;
+}
 .team-step.is-done .team-step__no::after {
-  content: ' ✓';
+  content: '✓';
   font-size: 16px;
 }
-.team-step.is-locked {
-  opacity: 0.6;
-}
 .team-step.is-locked .team-step__no {
-  color: var(--itda-muted);
+  background: var(--color-bg);
+  color: var(--color-text-3);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+}
+.team-step.is-locked > :not(.team-step__no) {
+  opacity: 0.6;
 }
 .team-step__form {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
   max-width: 560px;
-  margin-top: var(--itda-space-12);
+  margin-top: var(--space-3);
 }
 .team-step__form .btn {
   align-self: flex-start;
@@ -48,9 +69,9 @@
 }
 .team-step__locked {
   padding: 14px 16px;
-  border: 1px dashed var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  color: var(--itda-muted);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-2);
   font-size: 14px;
 }
 .team-step__sent {
@@ -67,7 +88,7 @@
 .team-invite {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
 }
 .team-invite--inline {
   flex-direction: row;
@@ -92,7 +113,7 @@
 .team__metrics {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
   max-width: 760px;
 }
 .team__metric {
@@ -101,25 +122,26 @@
   text-decoration: none;
 }
 .team__metric strong {
-  font-size: 28px;
-  font-weight: 600;
+  font-size: 36px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
 }
 a.team__metric:hover {
-  border-color: var(--itda-muted);
+  background: var(--color-surface-2);
 }
 a.team__metric:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .team__section {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
 }
 .team__tasks {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
 }
 .team__create .btn {
   align-self: flex-start;
@@ -127,7 +149,7 @@ a.team__metric:focus-visible {
 .team__grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
   align-items: start;
 }
 .team__projects,
@@ -142,9 +164,9 @@ a.team__metric:focus-visible {
 .team__people li {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
   padding: 12px 0;
-  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+  border-bottom: 1px solid var(--color-border);
 }
 .team__projects li:last-child,
 .team__people li:last-child {
@@ -155,7 +177,7 @@ a.team__metric:focus-visible {
   min-width: 0;
 }
 .team__project-title {
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 500;
 }
 .team__avatar {
@@ -164,8 +186,9 @@ a.team__metric:focus-visible {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #dcebfd;
-  color: var(--prolog-color-interaction);
+  background: var(--color-sky);
+  color: var(--color-text-1);
+  font-size: 14px;
   font-weight: 600;
 }
 .team__person {

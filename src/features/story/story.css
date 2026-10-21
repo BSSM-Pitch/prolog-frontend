@@ -2,13 +2,12 @@
 .story {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
-  max-width: 1504px;
+  gap: var(--space-6);
 }
 .story__layout {
   display: grid;
   grid-template-columns: minmax(200px, 240px) minmax(0, 1fr) minmax(280px, 340px);
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
   align-items: start;
 }
 .story__pick {
@@ -18,7 +17,7 @@
   min-width: 220px;
 }
 .story__detail {
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 
 .acts {
@@ -34,7 +33,7 @@
   gap: 2px;
   min-width: 90px;
   padding: 12px 14px;
-  border-radius: var(--prolog-radius-8);
+  border-radius: var(--radius-md);
   font-size: 13px;
 }
 .acts__item strong {
@@ -42,7 +41,7 @@
   font-weight: 600;
 }
 .acts__item--0 {
-  background: #e5f0ff;
+  background: var(--color-surface);
 }
 .acts__item--1 {
   background: #cfe3fb;
@@ -51,8 +50,8 @@
   background: #b5d5f9;
 }
 .acts__item--3 {
-  background: var(--itda-ink);
-  color: var(--itda-surface);
+  background: var(--color-text-1);
+  color: var(--color-bg);
 }
 
 .zoom {
@@ -65,12 +64,12 @@
   height: 30px;
   min-width: 30px;
   padding: 0 8px;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: var(--itda-surface);
+  background: var(--color-bg);
 }
 .zoom button:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .zoom span {
@@ -80,7 +79,7 @@
 
 .causal {
   overflow-x: auto;
-  border: 1px solid var(--input-stroke);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
 }
@@ -92,7 +91,7 @@
   stroke-width: 2;
 }
 .causal__tick {
-  fill: var(--itda-muted);
+  fill: var(--color-text-2);
   font-size: 11px;
 }
 .causal__edge {
@@ -110,39 +109,39 @@
   cursor: pointer;
 }
 .causal__node rect {
-  fill: var(--itda-surface);
+  fill: var(--color-bg);
   stroke: rgba(106, 137, 167, 0.6);
 }
 .causal__node--turning_point rect {
-  fill: #dcebfd;
-  stroke: var(--prolog-color-interaction);
+  fill: var(--color-sky);
+  stroke: var(--color-primary);
 }
 .causal__node--climax rect {
-  fill: var(--itda-ink);
-  stroke: var(--itda-ink);
+  fill: var(--color-text-1);
+  stroke: var(--color-text-1);
 }
 .causal__node.is-selected rect {
-  stroke: var(--prolog-color-interaction);
+  stroke: var(--color-primary);
   stroke-width: 3;
 }
 .causal__label {
-  fill: var(--itda-ink);
+  fill: var(--color-text-1);
   font-size: 13px;
   font-weight: 500;
 }
 .causal__type {
-  fill: var(--itda-muted);
+  fill: var(--color-text-2);
   font-size: 10px;
 }
 .causal__node--climax .causal__label,
 .causal__node--climax .causal__type {
-  fill: var(--itda-surface);
+  fill: var(--color-bg);
 }
 .causal__node:focus-visible {
   outline: none;
 }
 .causal__node:focus-visible rect {
-  stroke: var(--prolog-color-interaction);
+  stroke: var(--color-primary);
   stroke-width: 3;
 }
 

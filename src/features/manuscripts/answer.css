@@ -2,19 +2,19 @@
 .answer {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
 }
 .answer--pending {
   flex-direction: row;
   align-items: flex-start;
-  padding: var(--itda-space-16);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-background);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
 }
 .answer--failed {
-  padding: var(--itda-space-16);
+  padding: var(--space-4);
   border: 1px solid #f4c7c3;
-  border-radius: var(--prolog-radius-8);
+  border-radius: var(--radius-md);
   background: #fdf1f0;
 }
 .answer__title {
@@ -23,16 +23,16 @@
   line-height: 22px;
 }
 .answer--failed .answer__title {
-  color: var(--prolog-color-error);
+  color: var(--color-danger);
 }
 .answer__body {
   font-size: 13px;
   line-height: 20px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .answer__actions {
   display: flex;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 .answer__text {
   font-size: 16px;
@@ -41,7 +41,7 @@
 .answer__citations {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -52,13 +52,13 @@
   gap: 8px;
   padding: 12px 14px;
   border-left: 3px solid #88bdf2;
-  border-radius: 0 var(--prolog-radius-8) var(--prolog-radius-8) 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   background: #f5f9ff;
 }
 .citation__label {
   font-size: 12px;
   font-weight: 600;
-  color: var(--prolog-color-interaction);
+  color: var(--color-primary);
 }
 .citation__quote {
   font-size: 14px;
@@ -71,7 +71,7 @@
 .answer__caution {
   font-size: 12px;
   line-height: 20px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 
 .answer__spinner {
@@ -80,7 +80,7 @@
   height: 18px;
   margin-top: 4px;
   border: 2px solid #b5d5f9;
-  border-top-color: var(--prolog-color-interaction);
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: answer-spin 0.9s linear infinite;
 }

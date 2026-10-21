@@ -1,19 +1,19 @@
-/* Figma 1247:1989 — 작업 영역 1504, 카드 padding 24 */
 .new-project {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: var(--space-8);
+  max-width: 960px;
 }
 
 .new-project__form {
-  gap: var(--itda-space-20);
+  gap: var(--space-8);
+  padding: var(--space-10);
 }
 
 .new-project__fieldset {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-20);
+  gap: var(--space-4);
   margin: 0;
   padding: 0;
   border: 0;
@@ -21,89 +21,94 @@
 .new-project__options {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--itda-space-20);
+  gap: var(--space-4);
 }
 .new-project__option {
-  min-height: 88px;
+  min-height: 96px;
 }
 
 .new-project__team {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
+  gap: var(--space-2);
   max-width: 400px;
 }
 .new-project__team select {
-  height: var(--prolog-control-height);
-  padding: 0 12px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  height: var(--btn-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   font-size: 14px;
 }
 
 .new-project__start {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-20);
+  gap: var(--space-4);
 }
 .new-project__start-title {
-  font-size: 20px;
+  font-size: var(--fs-h3);
   font-weight: 500;
-  line-height: 28px;
+  line-height: 1.4;
 }
 .new-project__start-title span {
-  color: var(--itda-muted);
+  color: var(--color-text-2);
   font-weight: 400;
 }
 .new-project__starts {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--itda-space-20);
+  gap: var(--space-4);
 }
 
+/* 파일 끌어다 놓기. 다른 화면에서도 쓴다 */
 .dropzone {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 152px;
-  padding: var(--itda-space-24);
-  border: 1px solid var(--input-stroke);
-  border-radius: 12px;
-  background: var(--itda-surface);
+  gap: var(--space-2);
+  min-height: 176px;
+  padding: var(--space-6);
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
   text-align: center;
   transition:
     border-color var(--transition-state),
     background var(--transition-state);
 }
 .dropzone--over {
-  border: 2px dashed var(--prolog-color-interaction);
-  background: var(--itda-background);
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
 }
 .dropzone--selected {
-  border-color: var(--itda-muted);
-  background: var(--itda-background);
+  border-style: solid;
+  border-color: var(--color-primary);
+  background: var(--color-primary-50);
 }
 .dropzone__title {
   font-size: 16px;
   font-weight: 500;
-  line-height: 24px;
+  line-height: 1.5;
   word-break: break-all;
 }
 .dropzone__hint {
-  margin-bottom: 8px;
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--prolog-color-interaction);
+  margin-bottom: var(--space-2);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 .dropzone__actions {
   display: flex;
-  gap: var(--itda-space-12);
+  gap: var(--space-2);
 }
 
 @media (max-width: 900px) {
+  .new-project__form {
+    padding: var(--space-6);
+  }
   .new-project__options,
   .new-project__starts {
     grid-template-columns: 1fr;

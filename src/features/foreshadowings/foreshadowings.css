@@ -2,13 +2,12 @@
 .fs {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-24);
-  max-width: 1504px;
+  gap: var(--space-6);
 }
 .fs__summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
 }
 .fs__metric {
   gap: 2px;
@@ -20,25 +19,25 @@
   font-weight: 600;
 }
 .fs__metric:hover {
-  border-color: var(--itda-muted);
+  border-color: var(--color-text-2);
 }
 .fs__metric:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .fs__layout {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
   align-items: start;
 }
 .fs__detail {
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
 }
 .fs__actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--itda-space-8);
+  gap: var(--space-2);
 }
 
 .fs__chips {
@@ -54,16 +53,16 @@
   font-weight: 500;
 }
 .fs-chip--setup {
-  background: #dcebfd;
-  color: var(--prolog-color-interaction);
+  background: var(--color-sky);
+  color: var(--color-primary);
 }
 .fs-chip--linked {
   background: #eef2f6;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .fs-chip--payoff {
   background: #e3f3ea;
-  color: var(--prolog-color-success);
+  color: var(--color-success);
 }
 
 .fs-steps {
@@ -77,17 +76,17 @@
 .fs-steps__item {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-8);
+  gap: var(--space-2);
   padding: 10px 14px;
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-background);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   font-size: 15px;
 }
 .fs-steps__item > span:first-child {
   min-width: 36px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .fs-steps__item .text-link {
   font-size: 13px;
@@ -96,9 +95,9 @@
   margin-left: auto;
 }
 .fs-steps__item--payoff.is-open {
-  border: 1px dashed var(--input-stroke);
+  border: 1px dashed var(--color-border);
   background: transparent;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 
 .priority {
@@ -109,7 +108,7 @@
 }
 .priority--high {
   background: #fdecea;
-  color: var(--prolog-color-error);
+  color: var(--color-danger);
 }
 .priority--medium {
   background: #fdf1e7;
@@ -117,21 +116,21 @@
 }
 .priority--low {
   background: #eef2f6;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 
 /* 타임라인 트랙 */
 .tracks {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-8);
+  gap: var(--space-2);
 }
 .tracks__axis {
   position: relative;
   height: 22px;
   margin-left: 200px;
   font-size: 11px;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 .tracks__axis span {
   position: absolute;
@@ -141,7 +140,7 @@
   top: 0;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--prolog-color-interaction);
+  background: var(--color-primary);
   color: #fff;
   font-weight: 600;
 }
@@ -160,7 +159,7 @@
   width: 100%;
   padding: 8px 0;
   border: 1px solid transparent;
-  border-radius: var(--prolog-radius-8);
+  border-radius: var(--radius-md);
   background: none;
   text-align: left;
 }
@@ -169,10 +168,10 @@
 }
 .track[aria-current] {
   border-color: #b5d5f9;
-  background: var(--itda-background);
+  background: var(--color-surface);
 }
 .track:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .track__label {
@@ -191,7 +190,7 @@
   position: absolute;
   top: 9px;
   height: 2px;
-  background: var(--prolog-color-interaction);
+  background: var(--color-primary);
 }
 .track__bar.is-open {
   background: repeating-linear-gradient(90deg, #88bdf2 0 6px, transparent 6px 10px);
@@ -205,7 +204,7 @@
 }
 .track__mark--setup {
   border-radius: 50%;
-  background: var(--prolog-color-interaction);
+  background: var(--color-primary);
 }
 .track__mark--linked {
   rotate: 45deg;
@@ -216,7 +215,7 @@
 }
 .track__mark--payoff {
   border-radius: 2px;
-  background: var(--prolog-color-success);
+  background: var(--color-success);
 }
 .tracks__legend {
   margin-left: 12px;

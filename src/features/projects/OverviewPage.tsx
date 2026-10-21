@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { IconAlertTriangle, IconBook2, IconPencil, IconRoute, IconTimeline, type IconProps } from '@tabler/icons-react'
+import type { ComponentType } from 'react'
 import * as projectsApi from '../../api/projects'
 import type { ProjectOverview } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -10,7 +12,6 @@ import './OverviewPage.css'
 
 type Load = { key: string; data: ProjectOverview | null; error: string | null }
 
-// Figma 841:784 · 01 개요 (붉은 문 너머)
 export function OverviewPage() {
   const project = useProject()
   const { withAuth } = useSession()
@@ -63,11 +64,13 @@ export function OverviewPage() {
             </h2>
             <div className="overview__metrics">
               <Metric
+                icon={IconBook2}
                 label="현재 원고"
                 value={ov.current_manuscript?.title ?? '원고 없음'}
                 detail={ov.current_manuscript ? `${ov.current_manuscript.last_chapter}장까지 작성` : '원고를 올리거나 새로 써 보세요'}
               />
               <Metric
+                icon={IconTimeline}
                 label="이야기 구조"
                 value={ov.story ? `사건 ${ov.story.event_count}개` : '분석 전'}
                 detail={ov.story ? `${ov.story.analyzed_through}장 분석 완료` : '스토리 지도에서 분석할 수 있어요'}
@@ -82,6 +85,8 @@ export function OverviewPage() {
             <div className="overview__tasks">
               {ov.current_manuscript ? (
                 <Task
+                  active
+                  icon={IconPencil}
                   title="쓰기 이어가기"
                   detail={`${ov.current_manuscript.last_chapter}장 계속 작성`}
                   action={
@@ -92,6 +97,8 @@ export function OverviewPage() {
                 />
               ) : (
                 <Task
+                  active
+                  icon={IconPencil}
                   title="원고 시작하기"
                   detail="파일을 올리거나 편집기에서 써요"
                   action={
@@ -102,6 +109,7 @@ export function OverviewPage() {
                 />
               )}
               <Task
+                icon={IconAlertTriangle}
                 title="충돌 해결"
                 detail={ov.tasks.conflicts_pending > 0 ? `미해결 ${ov.tasks.conflicts_pending}건` : '미해결 충돌이 없어요'}
                 action={
@@ -111,6 +119,7 @@ export function OverviewPage() {
                 }
               />
               <Task
+                icon={IconRoute}
                 title="복선 회수"
                 detail={ov.tasks.foreshadowing_unscheduled > 0 ? `시점 미정 ${ov.tasks.foreshadowing_unscheduled}건` : '남은 복선이 없어요'}
                 action={
@@ -126,7 +135,7 @@ export function OverviewPage() {
             <h2 id="ov-review" className="section-title">
               관계와 검토
             </h2>
-            <div className="panel overview__review">
+            <div className="overview__review">
               <div className="panel overview__relations">
                 {ov.relationships ? (
                   <>
@@ -173,9 +182,14 @@ export function OverviewPage() {
   )
 }
 
-function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
+type Icon = ComponentType<IconProps>
+
+function Metric({ icon: I, label, value, detail }: { icon: Icon; label: string; value: string; detail: string }) {
   return (
     <div className="panel overview__metric">
+      <span className="overview__icon" aria-hidden="true">
+        <I size={20} stroke={1.75} />
+      </span>
       <p className="panel__label">{label}</p>
       <p className="overview__metric-value">{value}</p>
       <p className="panel__label">{detail}</p>
@@ -183,9 +197,14 @@ function Metric({ label, value, detail }: { label: string; value: string; detail
   )
 }
 
-function Task({ title, detail, action }: { title: string; detail: string; action: ReactNode }) {
+/** 다음 작업 카드. active는 가장 먼저 할 일 — 블루로 위로 솟는다 */
+function Task({ icon: I, title, detail, action, active }: { icon: Icon; title: string; detail: string; action: ReactNode; active?: boolean }) {
   return (
-    <div className="panel overview__task">
+    <div className={active ? 'panel overview__task overview__task--active' : 'panel overview__task'}>
+      {active && <span className="overview__photo" aria-hidden="true" />}
+      <span className="overview__icon" aria-hidden="true">
+        <I size={20} stroke={1.75} />
+      </span>
       <p className="panel__title">{title}</p>
       <p className="panel__label">{detail}</p>
       {action}

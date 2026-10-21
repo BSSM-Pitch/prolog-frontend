@@ -598,3 +598,18 @@
 .invite-link .panel__label {
   flex-basis: 100%;
 }
+
+/* 회색 패널 안에서는 회색 버튼을 흰 면으로 바꿔 경계를 살린다 */
+.panel .btn--secondary,
+.panel .btn--soft,
+.panel .btn--secondary:disabled,
+.panel .btn--soft:disabled {
+  background: var(--color-bg);
+}
+.panel .btn--secondary:hover:not(:disabled),
+.panel .btn--soft:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+.panel .btn--outline:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}

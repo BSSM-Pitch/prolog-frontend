@@ -1,14 +1,13 @@
-/* Figma 1260:2438 · 28 프로젝트 멤버 (29 팀원과 초대도 함께 쓴다) */
+/* 프로젝트 멤버 (팀원과 초대 화면도 함께 쓴다) */
 .members {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: var(--space-8);
 }
 .members__layout {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
   align-items: flex-start;
 }
 .members__layout > .panel:first-child {
@@ -18,7 +17,7 @@
   display: flex;
   flex: 1 1 380px;
   flex-direction: column;
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
   max-width: 460px;
 }
 .members__alert {
@@ -34,15 +33,16 @@
 }
 .members__table th {
   padding: 8px 12px;
-  border-bottom: 1px solid var(--input-stroke);
-  color: var(--itda-muted);
-  font-size: 13px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-3);
+  font-size: 12px;
   font-weight: 500;
+  letter-spacing: 0.04em;
   text-align: left;
 }
 .members__table td {
   padding: 12px;
-  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+  border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
 }
 .members__table tr:last-child td {
@@ -54,12 +54,16 @@
 }
 .members__email {
   display: block;
-  color: var(--itda-muted);
+  color: var(--color-text-2);
   font-size: 13px;
   font-weight: 400;
 }
 .members__role {
-  height: 36px;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
 }
 .members__action {
   text-align: right;
@@ -68,7 +72,7 @@
 .members__form {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
 }
 .members__roles {
   display: flex;
@@ -89,9 +93,9 @@
 .members__invite {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-12);
+  gap: var(--space-3);
   padding: 10px 0;
-  border-bottom: 1px solid rgba(106, 137, 167, 0.18);
+  border-bottom: 1px solid var(--color-border);
 }
 .members__invite:last-child {
   border-bottom: 0;
@@ -104,7 +108,7 @@
 }
 
 .members__danger {
-  border-color: rgba(180, 35, 24, 0.25);
+  background: var(--color-danger-50);
 }
 
 @media (max-width: 1100px) {

@@ -1,95 +1,146 @@
-/* Figma 841:784 · 01 개요 */
 .overview {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: var(--space-12);
 }
 
 .overview__section {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-16);
+  gap: var(--space-4);
+}
+
+/* 원형 아이콘: 회색 면 카드 위의 흰 원 */
+.overview__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--space-2);
+  border-radius: 50%;
+  background: var(--color-bg);
 }
 
 .overview__metrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-20);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-6);
 }
 .overview__metric {
-  gap: 8px;
+  gap: var(--space-1);
 }
 .overview__metric-value {
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 500;
-  line-height: 28px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
+/* 다음 작업: 프로세스 카드. 첫 카드(가장 먼저 할 일)는 블루로 솟는다 */
 .overview__tasks {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--itda-space-20);
+  align-items: end;
+  gap: var(--space-6);
 }
 .overview__task {
-  gap: var(--itda-space-12);
+  position: relative;
+  gap: var(--space-1);
+  min-height: 264px;
+  overflow: hidden;
 }
 .overview__task .btn {
-  margin-top: var(--itda-space-16);
+  margin-top: auto;
+}
+.overview__task .panel__title {
+  margin-top: auto;
+  padding-top: var(--space-6);
+}
+.overview__task--active {
+  min-height: 296px;
+  background: var(--color-primary);
+  color: #fff;
+}
+.overview__task--active .panel__label {
+  color: rgba(255, 255, 255, 0.78);
+}
+.overview__task--active .overview__icon {
+  background: rgba(255, 255, 255, 0.18);
+}
+.overview__task--active .btn {
+  background: #fff;
+  color: var(--color-text-1);
+}
+.overview__task--active .btn:hover {
+  background: var(--color-primary-50);
+}
+.overview__photo {
+  position: absolute;
+  top: -36px;
+  right: -36px;
+  width: 140px;
+  height: 140px;
+  border: 8px solid var(--color-primary);
+  border-radius: 50%;
+  background: url(/brand/clouds/sky-soft.webp) 40% 50% / 300% no-repeat;
+}
+.overview__task .btn {
+  margin-top: var(--space-6);
 }
 
+/* 관계와 검토 */
 .overview__review {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-  gap: var(--itda-space-20);
-  background: rgba(255, 255, 255, 0.7);
+  gap: var(--space-6);
 }
 .overview__relations {
-  gap: var(--itda-space-20);
+  gap: var(--space-5);
 }
 .overview__relations-open {
   align-self: flex-start;
 }
 .overview__empty {
-  color: var(--itda-muted);
+  color: var(--color-text-2);
 }
 
 .overview__priority {
-  gap: var(--itda-space-16);
-  align-self: start;
+  gap: var(--space-4);
+  align-self: stretch;
 }
 .overview__priority-title {
-  font-size: 20px;
+  font-size: var(--fs-h3);
   font-weight: 500;
-  line-height: 28px;
+  line-height: 1.4;
 }
 .overview__badges {
   display: flex;
-  gap: var(--itda-space-12);
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 .overview__priority-ref {
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-2);
 }
 .overview__note {
-  padding: var(--itda-space-16);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-background);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 1.6;
 }
 
 .overview__problem {
   align-items: flex-start;
 }
 
-/* 작은 관계도 — 중심 인물 + 상하좌우 */
+/* 작은 관계도: 중심 인물 + 상하좌우 */
 .mini-graph {
   position: relative;
-  height: 220px;
-  border: 1px solid var(--input-stroke);
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%);
+  height: 240px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
 }
 .mini-graph__node {
   position: absolute;
@@ -97,38 +148,38 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
-  padding: 10px 16px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  min-width: 112px;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
   translate: -50% -50%;
 }
 .mini-graph__node strong {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
 }
 .mini-graph__node span {
-  font-size: 12px;
-  color: var(--itda-muted);
+  font-size: 11px;
+  color: var(--color-text-2);
 }
 .mini-graph__node--center {
   left: 50%;
   top: 50%;
-  min-width: 140px;
-  background: var(--itda-ink);
-  border-color: var(--itda-ink);
-  color: var(--itda-surface);
+  min-width: 132px;
+  background: var(--color-dark);
+  border-color: var(--color-dark);
+  color: #fff;
 }
 .mini-graph__node--center span {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.7);
 }
 .mini-graph__node--strong {
-  background: #9cc6f5;
-  border-color: #9cc6f5;
+  background: var(--color-primary-50);
+  border-color: var(--color-primary);
 }
 .mini-graph__node--strong span {
-  color: var(--itda-ink);
+  color: var(--color-primary);
 }
 .mini-graph__node--right {
   left: 84%;
@@ -149,12 +200,12 @@
 
 .mini-graph__line {
   position: absolute;
-  background: var(--itda-muted);
+  background: var(--color-border-strong);
 }
 .mini-graph__line--right,
 .mini-graph__line--left {
   top: 50%;
-  height: 2px;
+  height: 1px;
   width: 34%;
 }
 .mini-graph__line--right {
@@ -166,7 +217,7 @@
 .mini-graph__line--top,
 .mini-graph__line--bottom {
   left: 50%;
-  width: 2px;
+  width: 1px;
   height: 33%;
 }
 .mini-graph__line--top {
@@ -185,5 +236,9 @@
   .overview__metrics,
   .overview__tasks {
     grid-template-columns: 1fr;
+  }
+  .overview__task,
+  .overview__task--active {
+    min-height: 0;
   }
 }
