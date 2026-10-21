@@ -1,156 +1,179 @@
-import { type PointerEvent, useLayoutEffect, useRef, useState } from 'react'
-import {
-  AnimatePresence,
-  type MotionValue,
-  motion,
-  useMotionValueEvent,
-  useTransform,
-} from 'motion/react'
-import { useSectionProgress } from '../hooks/useSectionProgress'
-import { Character, Conflict, Relation, Foreshadow, Collab } from './FeatureVisuals'
+import { IconAlertTriangle, IconArrowLeft, IconArrowRight, IconRoute, IconSparkles, IconUsers, type IconProps } from '@tabler/icons-react'
+import { useRef, type ComponentType } from 'react'
+import { Reveal } from '../Reveal'
 
-/**
- * 레퍼런스
- * - Apple "Get to know" 갤러리: 고정 헤더 + 가로 트랙, 중앙 카드만 또렷하게
- * - Linear / Raycast 기능 카드: 아이콘 대신 실제 제품 UI 조각으로 설명
- * 카드 배경은 프라이머리 팔레트 스와치. 기능은 기획서 6장 핵심 기능 기준.
- */
-const CARDS = [
+type Feature = {
+  title: string
+  body: string
+  meta: string
+  metaIcon: ComponentType<IconProps>
+  badge: string
+  /** 카드 이미지: 구름 사진 + 그 위에 뜬 작은 화면 조각 */
+  sky: 'soft' | 'hero' | 'band'
+  focus: string
+  mock: 'character' | 'conflict' | 'foreshadow' | 'relation' | 'team'
+}
+
+const FEATURES: Feature[] = [
   {
-    hex: '#384959',
-    tone: 'dark',
     title: '자연어 캐릭터 설계',
-    body: '캐릭터를 문장으로 설명하세요. 캐릭터의 정보는 자동으로 정리되고, 언제든 고칠 수 있어요.',
-    Visual: Character,
+    body: '캐릭터를 문장으로 설명하면 정보가 자동으로 정리되고, 언제든 고칠 수 있어요.',
+    meta: '문장 한 줄로 시작',
+    metaIcon: IconSparkles,
+    badge: 'AI',
+    sky: 'soft',
+    focus: '30% 60%',
+    mock: 'character',
   },
   {
-    hex: '#BDDDFC',
-    tone: 'light',
     title: '설정 충돌 감지',
-    body: '설정에 어긋나는 글을 쓰면 AI가 짚어줘요.',
-    Visual: Conflict,
+    body: '설정에 어긋나는 문장을 쓰면 근거와 함께 짚어 줘요.',
+    meta: '원고 전체를 검토',
+    metaIcon: IconAlertTriangle,
+    badge: '자동',
+    sky: 'hero',
+    focus: '20% 80%',
+    mock: 'conflict',
   },
   {
-    hex: '#88BDF2',
-    tone: 'light',
-    title: '관계 변화 시각화',
-    body: '캐릭터 간의 관계 변화를 한눈에 볼 수 있게 도와줘요.',
-    Visual: Relation,
-  },
-  {
-    hex: '#6A89A7',
-    tone: 'dark',
     title: '복선 추적',
-    body: '어디서 복선을 심고, 거두었는지 간단히 정리해줘요.',
-    Visual: Foreshadow,
+    body: '어디서 복선을 심고 거두었는지 장면 단위로 정리해 줘요.',
+    meta: '심은 곳 · 거둔 곳',
+    metaIcon: IconRoute,
+    badge: '정리',
+    sky: 'band',
+    focus: '70% 40%',
+    mock: 'foreshadow',
   },
   {
-    hex: '#E5F0FF',
-    tone: 'light',
-    title: '함께 쓰기',
-    body: '팀을 만들어 함께 작업하고, 피드백을 주고받으세요.',
-    Visual: Collab,
+    title: '관계 변화 시각화',
+    body: '인물 사이의 관계가 장마다 어떻게 바뀌는지 한눈에 보여 줘요.',
+    meta: '장별 흐름',
+    metaIcon: IconRoute,
+    badge: '한눈에',
+    sky: 'soft',
+    focus: '80% 30%',
+    mock: 'relation',
   },
-] as const
-
-const N = CARDS.length
-
-function Segment({ i, progress }: { i: number; progress: MotionValue<number> }) {
-  const scaleX = useTransform(progress, (v) => Math.min(1, Math.max(0, v * N - i)))
-  return (
-    <span className="fx-seg">
-      <motion.i style={{ scaleX }} />
-    </span>
-  )
-}
-
-// 카드 위 마우스 위치를 따라가는 스포트라이트
-const onSpot = (e: PointerEvent<HTMLElement>) => {
-  const r = e.currentTarget.getBoundingClientRect()
-  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
-  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
-}
+  {
+    title: '함께 쓰기',
+    body: '팀을 만들어 같은 설정집을 보며 피드백을 주고받아요.',
+    meta: '역할별 권한',
+    metaIcon: IconUsers,
+    badge: '팀',
+    sky: 'hero',
+    focus: '85% 70%',
+    mock: 'team',
+  },
+]
 
 export function Features() {
-  const ref = useRef<HTMLElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const [distance, setDistance] = useState(0)
-  const [active, setActive] = useState(0)
-
-  // 트랙 폭을 측정해 가로 이동 거리 = 섹션 추가 높이로 사용 (자연스러운 속도)
-  useLayoutEffect(() => {
-    const track = trackRef.current
-    if (!track) return
-    const measure = () => setDistance(Math.max(0, track.scrollWidth - window.innerWidth))
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(track)
-    window.addEventListener('resize', measure)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [])
-
-  const p = useSectionProgress(ref)
-  const x = useTransform(p, [0, 1], [0, -distance])
-  useMotionValueEvent(p, 'change', (v) => setActive(Math.min(N - 1, Math.round(v * (N - 1)))))
+  const track = useRef<HTMLUListElement>(null)
+  const scrollBy = (dir: 1 | -1) => {
+    const el = track.current
+    if (!el) return
+    const card = el.querySelector('li')
+    el.scrollBy({ left: dir * ((card?.clientWidth ?? 360) + 32), behavior: 'smooth' })
+  }
 
   return (
-    <section
-      ref={ref}
-      className="features"
-      id="features"
-      style={{ height: `calc(${distance * 1.15}px + 100vh)` }}
-    >
-      <div className="features__sticky">
-        <header className="fx-head">
-          <div>
-            <h2>Prolog가 할 수 있는 것들</h2>
+    <section id="about" className="section about" aria-labelledby="about-title">
+      <Reveal className="section__head">
+        <div>
+          <p className="eyebrow">About Prolog</p>
+          <h2 id="about-title" className="t-h2">
+            창작에만 집중하세요
+          </h2>
+        </div>
+        <div className="section__aside">
+          <p className="t-body">설정 오류와 잊을 것 같던 정보를 간단히 확인할 수 있어요. 창작 외의 일은 Prolog에게 맡기세요.</p>
+          <div className="section__arrows">
+            <button type="button" className="icon-btn" aria-label="이전 기능" onClick={() => scrollBy(-1)}>
+              <IconArrowLeft size={20} stroke={1.75} />
+            </button>
+            <button type="button" className="icon-btn icon-btn--filled" aria-label="다음 기능" onClick={() => scrollBy(1)}>
+              <IconArrowRight size={20} stroke={1.75} />
+            </button>
           </div>
-          <div className="fx-meta">
-            <div className="fx-count" aria-live="polite">
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span
-                  key={active}
-                  initial={{ y: '100%', opacity: 0 }}
-                  animate={{ y: '0%', opacity: 1 }}
-                  exit={{ y: '-100%', opacity: 0 }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  0{active + 1}
-                </motion.span>
-              </AnimatePresence>
-              <small>/ 0{N}</small>
-            </div>
-            <div className="fx-segs" aria-hidden="true">
-              {CARDS.map((c, i) => (
-                <Segment key={c.hex} i={i} progress={p} />
-              ))}
-            </div>
-          </div>
-        </header>
+        </div>
+      </Reveal>
 
-        <motion.div ref={trackRef} className="fx-track" style={{ x }}>
-          {CARDS.map(({ Visual, ...c }, i) => (
-            <article
-              key={c.hex}
-              className={`fcard fcard--${c.tone}`}
-              style={{ background: c.hex }}
-              data-active={active === i}
-              onPointerMove={onSpot}
-            >
-              <div className="fcard__visual">
-                <Visual active={active === i} />
+      <Reveal delay={0.08}>
+        <ul id="features" ref={track} className="cards" aria-label="Prolog가 할 수 있는 것들">
+          {FEATURES.map((f) => (
+            <li key={f.title} className="card">
+              <div className="card__media" style={{ backgroundImage: `url(/brand/clouds/sky-${f.sky}.webp)`, backgroundPosition: f.focus }}>
+                <Mock kind={f.mock} />
               </div>
-              <div className="fcard__meta">
-                <h3>{c.title}</h3>
-                <p>{c.body}</p>
+              <div className="card__row">
+                <h3 className="t-h3">{f.title}</h3>
+                <span className="card__badge">★ {f.badge}</span>
               </div>
-            </article>
+              <p className="card__meta">
+                <f.metaIcon size={14} stroke={1.75} aria-hidden="true" />
+                {f.meta}
+              </p>
+              <p className="card__body">{f.body}</p>
+            </li>
           ))}
-        </motion.div>
-      </div>
+        </ul>
+      </Reveal>
     </section>
   )
+}
+
+/** 카드 이미지 위의 작은 화면 조각. 장식이라 스크린 리더에서는 숨긴다 */
+function Mock({ kind }: { kind: Feature['mock'] }) {
+  switch (kind) {
+    case 'character':
+      return (
+        <div className="mock" aria-hidden="true">
+          <span className="mock__avatar">아</span>
+          <div>
+            <p className="mock__title">아린</p>
+            <p className="mock__sub">주인공 · 왕국의 기록관</p>
+          </div>
+        </div>
+      )
+    case 'conflict':
+      return (
+        <div className="mock mock--col" aria-hidden="true">
+          <span className="mock__chip mock__chip--danger">충돌 1건</span>
+          <p className="mock__title">3장 ↔ 설정 #12</p>
+          <p className="mock__sub">“기록관은 왕궁 밖으로 나갈 수 없다”</p>
+        </div>
+      )
+    case 'foreshadow':
+      return (
+        <div className="mock mock--col" aria-hidden="true">
+          <p className="mock__sub">은빛 열쇠</p>
+          <div className="mock__track">
+            <span className="is-on" />
+            <i />
+            <span />
+          </div>
+          <p className="mock__title">2장에서 심음 · 회수 전</p>
+        </div>
+      )
+    case 'relation':
+      return (
+        <div className="mock" aria-hidden="true">
+          <span className="mock__avatar">아</span>
+          <span className="mock__line" />
+          <span className="mock__avatar mock__avatar--dark">카</span>
+          <p className="mock__sub">동료 → 적</p>
+        </div>
+      )
+    case 'team':
+      return (
+        <div className="mock" aria-hidden="true">
+          <div className="mock__stack">
+            <span className="mock__avatar">김</span>
+            <span className="mock__avatar">J</span>
+            <span className="mock__avatar mock__avatar--dark">+3</span>
+          </div>
+          <p className="mock__title">잿빛 왕국 팀</p>
+        </div>
+      )
+  }
 }

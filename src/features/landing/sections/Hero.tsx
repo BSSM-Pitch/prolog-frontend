@@ -1,61 +1,89 @@
-import { useRef } from 'react'
-import { motion, useTransform } from 'motion/react'
-import { useSectionProgress } from '../hooks/useSectionProgress'
-import { SequenceCanvas } from '../components/SequenceCanvas'
-import { FRAMES } from '../frames'
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { IconArrowUpRight } from '@tabler/icons-react'
+import { useSession } from '../../../auth/session'
 
-/**
- * 레퍼런스: Apple 제품 페이지의 "카드 → 풀블리드" 확장.
- * 스크롤에 따라 헤드라인이 물러나고, 인셋 카드였던 영상이 화면 전체로 열린다.
- */
+// 세로 스테퍼로 넘기는 세 장면. 왼쪽 원을 누르면 문구가 바뀐다
+const SLIDES = [
+  {
+    step: '쓰기',
+    title: ['흐르는 대로,', '이야기를 써내려가세요.'],
+    body: '창작자를 위한 단단한 지반. 쓰는 일에만 집중하면 나머지는 Prolog가 정리해요.',
+  },
+  {
+    step: '정리',
+    title: ['인물과 세계는', '알아서 정리돼요.'],
+    body: '원고를 올리면 인물, 관계, 세계 규칙이 한 권의 설정집으로 차곡차곡 쌓여요.',
+  },
+  {
+    step: '검토',
+    title: ['어긋난 설정은', '먼저 알려 드려요.'],
+    body: '앞에서 정한 설정과 맞지 않는 문장을 근거와 함께 짚어 줘요. 고칠지는 작가가 정해요.',
+  },
+]
+
+const AVATARS = ['김', 'J', '서']
+
 export function Hero() {
-  const ref = useRef<HTMLElement>(null)
-  const p = useSectionProgress(ref)
-
-  // 1 = 카드, 0 = 풀블리드
-  const open = useTransform(p, [0, 0.42], [1, 0], { clamp: true })
-  const clipPath = useTransform(open, (v) => {
-    const side = window.innerWidth < 720 ? 5 : 21
-    return `inset(${v * 47}% ${v * side}% ${v * 5}% ${v * side}% round ${v * 28}px)`
-  })
-  const mediaScale = useTransform(p, [0, 0.42], [1.18, 1])
-  const tint = useTransform(p, [0.3, 0.55], [0, 1])
-
-  const headY = useTransform(p, [0, 0.35], ['0%', '-30%'])
-  const headOpacity = useTransform(p, [0, 0.3], [1, 0])
-  const headScale = useTransform(p, [0, 0.35], [1, 0.92])
-
-  const copyOpacity = useTransform(p, [0.5, 0.62, 0.86, 0.96], [0, 1, 1, 0])
-  const copyY = useTransform(p, [0.5, 0.62], [40, 0])
-  const barScale = useTransform(p, [0, 1], [0, 1])
+  const signedIn = useSession().status === 'signed-in'
+  const [active, setActive] = useState(0)
+  const slide = SLIDES[active]
 
   return (
-    <section ref={ref} className="hero" id="top">
-      <div className="hero__sticky">
-        <motion.div className="hero__head" style={{ y: headY, opacity: headOpacity, scale: headScale }}>
-          <h1 className="hero__title">
-            흐르는 대로
+    <section id="top" className="hero" aria-labelledby="hero-title">
+      <div className="hero__card">
+        <ol className="hero__stepper" aria-label="Prolog로 쓰는 세 단계">
+          {SLIDES.map((s, i) => (
+            <li key={s.step}>
+              <button
+                type="button"
+                className="hero__step"
+                aria-current={i === active ? 'step' : undefined}
+                aria-label={`${i + 1}단계 ${s.step}`}
+                onClick={() => setActive(i)}
+              >
+                {i + 1}
+              </button>
+            </li>
+          ))}
+        </ol>
+
+        <div className="hero__copy" aria-live="polite">
+          <p className="eyebrow hero__eyebrow">Write with clarity · {slide.step}</p>
+          <h1 id="hero-title" className="t-display hero__title">
+            {slide.title[0]}
             <br />
-            이야기를 써내려가세요.
+            {slide.title[1]}
           </h1>
-          <p className="hero__sub">
-            창작자들을 위한 지반이 다져져 있는 공간, Prolog 입니다.
-          </p>
-        </motion.div>
+          <p className="hero__body">{slide.body}</p>
+          <div className="hero__actions">
+            <Link to={signedIn ? '/projects' : '/auth/signup'} className="btn btn--primary btn--lg">
+              {signedIn ? '내 프로젝트로' : '무료로 시작하기'}
+            </Link>
+            <a href="#process" className="arrow-link hero__how">
+              How it works
+            </a>
+          </div>
+        </div>
 
-        <motion.div className="hero__media" style={{ clipPath }}>
-          <motion.div className="hero__scale" style={{ scale: mediaScale }}>
-            <SequenceCanvas {...FRAMES.hero} progress={p} eager className="seq" />
-          </motion.div>
-          <motion.div className="hero__tint" style={{ opacity: tint }} />
-          <motion.div className="hero__copy" style={{ opacity: copyOpacity, y: copyY }}>
-            <h2>창작에만 집중하세요</h2>
-            <p>설정 오류와 잊을 것 같던 정보들을 간단히 확인할 수 있어요.</p>
-          </motion.div>
-        </motion.div>
-
-        <div className="hero__progress" aria-hidden="true">
-          <motion.span style={{ scaleX: barScale }} />
+        {/* 오른쪽 아래를 안쪽으로 파낸 자리 */}
+        <div className="hero__notch">
+          <div className="know">
+            <div className="know__avatars" aria-hidden="true">
+              {AVATARS.map((a) => (
+                <span key={a}>{a}</span>
+              ))}
+            </div>
+            <div className="know__text">
+              <p className="know__title">베타 작가들과 함께 만드는 중</p>
+              <a href="#about" className="arrow-link know__link">
+                Know more
+              </a>
+            </div>
+            <a href="#about" className="icon-btn icon-btn--filled" aria-label="Prolog 더 알아보기">
+              <IconArrowUpRight size={20} stroke={1.75} />
+            </a>
+          </div>
         </div>
       </div>
     </section>
