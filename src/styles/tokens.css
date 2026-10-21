@@ -1,38 +1,87 @@
-/* Figma 변수(임시 페이지 · 제품 UI 기준)를 그대로 옮긴 토큰 */
+/* Sky 디자인 시스템 토큰. 밝은 플랫, 블루는 CTA에만, 블랙은 대비용 보조 액센트 */
 :root {
-  --itda-ink: #384959;
-  --itda-muted: #6a89a7;
-  --itda-surface: #ffffff;
-  --itda-background: #e5f0ff;
-  --itda-soft: #bdddfc;
-  --itda-accent: #88bdf2;
+  --color-primary: #2f80ed;
+  --color-primary-hover: #1f6fdc;
+  --color-primary-50: #e8f1fd;
+  --color-dark: #111111;
+  --color-dark-hover: #2a2a2a;
+  --color-text-1: #111111;
+  --color-text-2: #6b7280;
+  --color-text-3: #a0a6ae;
+  --color-surface: #f5f7fa;
+  --color-surface-2: #eef1f5;
+  --color-sky: #dceaf5;
+  --color-border: #e6eaf0;
+  --color-border-strong: #d3d9e1;
+  --color-bg: #ffffff;
 
-  --prolog-color-interaction: #345e8d;
-  --prolog-color-error: #b42318;
-  --prolog-color-success: #26734d;
+  --color-danger: #d92d20;
+  --color-danger-50: #fdeceb;
+  --color-success: #12875a;
+  --color-success-50: #e5f5ee;
+  --color-warning: #b54708;
+  --color-warning-50: #fdf3e8;
 
-  --itda-space-4: 4px;
-  --itda-space-8: 8px;
-  --itda-space-12: 12px;
-  --itda-space-16: 16px;
-  --itda-space-20: 20px;
-  --itda-space-24: 24px;
-  --itda-space-32: 32px;
-  --itda-space-40: 40px;
-  --itda-space-48: 48px;
+  --font-sans: 'DM Sans', 'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui,
+    sans-serif;
+  --fs-display: 64px;
+  --fs-display-caps: 56px;
+  --fs-h2: 36px;
+  --fs-h3: 20px;
+  --fs-body: 15px;
+  --fs-caption: 12px;
 
-  --prolog-control-height: 40px;
-  --prolog-radius-8: 8px;
-  --itda-radius-6: 6px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-section: 140px;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 48px;
+  --radius-full: 9999px;
+
+  --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
+  --focus-ring: 0 0 0 4px var(--color-primary-50);
+
+  --container: 1200px;
+  --btn-height: 48px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-state: 160ms ease;
+
+  /* ── 이전 이름. 화면별 작업이 끝나면 지운다 ── */
+  --itda-ink: var(--color-text-1);
+  --itda-muted: var(--color-text-2);
+  --itda-surface: var(--color-bg);
+  --itda-background: var(--color-surface);
+  --itda-soft: var(--color-sky);
+  --itda-accent: var(--color-primary);
+  --prolog-color-interaction: var(--color-primary);
+  --prolog-color-error: var(--color-danger);
+  --prolog-color-success: var(--color-success);
+  --itda-space-4: var(--space-1);
+  --itda-space-8: var(--space-2);
+  --itda-space-12: var(--space-3);
+  --itda-space-16: var(--space-4);
+  --itda-space-20: var(--space-5);
+  --itda-space-24: var(--space-6);
+  --itda-space-32: var(--space-8);
+  --itda-space-40: var(--space-10);
+  --itda-space-48: var(--space-12);
+  --prolog-control-height: var(--btn-height);
+  --prolog-radius-8: var(--radius-md);
+  --itda-radius-6: var(--radius-sm);
   --itda-border-1: 1px;
-
-  --stroke: rgba(0, 0, 0, 0.25);
-  --input-stroke: rgba(106, 137, 167, 0.5);
-
-  /* 로그인 섹션 배경 */
-  --auth-page-bg: linear-gradient(180deg, #e9f3ff 0%, #c9dff7 100%);
-  --auth-panel-light: linear-gradient(180deg, #ffffff 0%, #e9f4ff 100%);
-
-  --font-sans: 'Paperlogy', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
-  --transition-state: 150ms ease;
+  --stroke: var(--color-border);
+  --input-stroke: var(--color-border);
+  --auth-page-bg: var(--color-bg);
+  --auth-panel-light: var(--color-bg);
 }
