@@ -1,35 +1,38 @@
-/* ───────── 임시/Input (Figma 999:2239) ───────── */
+/* ───────── 입력 ───────── */
+/* 흰 면 + 연한 테두리. 회색 패널 위에서도, 흰 화면 위에서도 경계가 보이게 한다 */
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-8);
+  gap: var(--space-2);
   width: 100%;
 }
 
 .field__label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 1.5;
 }
 
 .field__control {
   display: flex;
   align-items: center;
   width: 100%;
-  height: var(--prolog-control-height);
-  padding: 0 20px;
-  background: var(--itda-surface);
-  border: 1px solid var(--input-stroke);
-  border-radius: 10px;
+  height: var(--btn-height);
+  padding: 0 var(--space-4);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   transition:
     border-color var(--transition-state),
     box-shadow var(--transition-state),
     background-color var(--transition-state);
 }
-
+.field__control:hover {
+  border-color: var(--color-border-strong);
+}
 .field__control:focus-within {
-  border-color: var(--prolog-color-interaction);
-  box-shadow: inset 0 0 0 1px var(--prolog-color-interaction);
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
 }
 
 .field__input {
@@ -40,79 +43,71 @@
   border: 0;
   outline: 0;
   background: transparent;
-  font-size: 16px;
+  font-size: var(--fs-body);
   font-weight: 400;
-  letter-spacing: 0.4px;
 }
-
 .field__input::placeholder {
-  color: rgba(56, 73, 89, 0.4);
+  color: var(--color-text-3);
 }
 
 .field--error .field__control {
-  border-color: var(--prolog-color-error);
+  border-color: var(--color-danger);
 }
 .field--error .field__control:focus-within {
-  box-shadow: inset 0 0 0 1px var(--prolog-color-error);
-}
-.field--error .field__input {
-  color: var(--prolog-color-error);
+  box-shadow: 0 0 0 4px var(--color-danger-50);
 }
 
 .field--success .field__control {
-  border-color: var(--prolog-color-success);
+  border-color: var(--color-success);
 }
 
 .field--disabled .field__control {
-  background: var(--itda-soft);
-  border-color: var(--itda-accent);
+  background: var(--color-surface);
+  border-color: var(--color-surface);
 }
 .field--disabled .field__input {
-  color: var(--itda-muted);
+  color: var(--color-text-3);
   cursor: not-allowed;
 }
 
 .field__hint {
-  font-size: 12px;
-  line-height: 20px;
+  font-size: var(--fs-caption);
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 .field--error .field__hint {
-  color: var(--prolog-color-error);
-  font-size: 14px;
+  color: var(--color-danger);
   font-weight: 500;
 }
 .field--success .field__hint {
-  color: var(--prolog-color-success);
+  color: var(--color-success);
   font-weight: 500;
 }
 
-/* 인증 코드 6자리 — Figma는 숫자 사이를 넓게 띄운다 */
+/* 인증 코드 6자리는 숫자 사이를 넓게 띄운다 */
 .field__input--code {
-  letter-spacing: 1.6em;
+  letter-spacing: 1.2em;
   font-variant-numeric: tabular-nums;
+  font-size: 20px;
 }
 .field__input--code::placeholder {
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
+  font-size: var(--fs-body);
 }
 
-/* 로그인·회원가입 패널의 큰 입력 (Figma 1175:2058: 50px · 25px) */
-.field--lg {
-  gap: 10px;
-}
+/* 로그인·회원가입 패널의 입력: 한 단계 크게 */
 .field--lg .field__label {
-  font-size: 17.5px;
-  line-height: 25px;
+  font-size: 14px;
 }
 .field--lg .field__control {
-  height: 50px;
+  height: 56px;
+  padding: 0 var(--space-5);
 }
 .field--lg .field__input {
-  font-size: 25px;
-  line-height: 37.5px;
+  font-size: 16px;
 }
 
-/* ───────── 임시/Button (Figma 837:86) ───────── */
-/* 여러 줄 입력 (TextArea) — 모양은 .textbox에 붙는 클래스가 정한다 */
+/* 여러 줄 입력 (TextArea). 모양은 .textbox에 붙는 클래스가 정한다 */
 .textbox {
   display: flex;
   flex-direction: column;
@@ -127,119 +122,109 @@
   background: transparent;
   resize: vertical;
   outline: none;
+  line-height: 1.6;
+}
+.textbox__input::placeholder {
+  color: var(--color-text-3);
 }
 
+/* ───────── 버튼: 알약형 48px ───────── */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--itda-space-16);
-  height: var(--prolog-control-height);
-  padding: 0 var(--itda-space-16);
-  border: 1px solid var(--stroke);
-  border-radius: var(--prolog-radius-8);
+  gap: var(--space-2);
+  height: var(--btn-height);
+  padding: 0 var(--space-6);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
   font-size: 14px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 1;
   text-align: center;
+  white-space: nowrap;
   transition:
     background var(--transition-state),
     color var(--transition-state),
     border-color var(--transition-state),
     opacity var(--transition-state);
 }
-
 .btn:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
-
 .btn:disabled {
   cursor: not-allowed;
 }
-
 .btn--block {
   width: 100%;
 }
 
+/* CTA: 화면에서 가장 중요한 행동 하나에만 */
 .btn--primary {
-  background: var(--itda-ink);
-  color: var(--itda-surface);
+  background: var(--color-primary);
+  color: #fff;
 }
 .btn--primary:hover:not(:disabled) {
-  background: #6a89a7;
-}
-.btn--primary:active:not(:disabled) {
-  background: var(--itda-ink);
+  background: var(--color-primary-hover);
 }
 
-/* Soft (Figma 837:82 / Hover 999:2252 / Focus 999:2254) */
-.btn--soft {
-  background: #e5f0ff;
-  color: var(--itda-ink);
-}
-.btn--soft:hover:not(:disabled) {
-  background: #9cc6f5;
-}
-.btn--soft[aria-pressed='true'] {
-  background: var(--itda-soft);
-}
-
-/* Secondary (Figma 837:80 / Hover 999:2248 / Focus 999:2250) */
-.btn--secondary {
-  background: var(--itda-soft);
-  color: var(--itda-ink);
-}
-.btn--secondary:hover:not(:disabled) {
-  background: #e5f0ff;
-}
-.btn--secondary:active:not(:disabled) {
-  background: #b5d5f9;
-}
-
+/* Dark: 내비게이션·보조 강조 */
 .btn--ink {
-  background: var(--itda-ink);
-  color: var(--itda-surface);
+  background: var(--color-dark);
+  color: #fff;
 }
 .btn--ink:hover:not(:disabled) {
-  background: #6a89a7;
+  background: var(--color-dark-hover);
 }
 
-.btn--outline {
-  background: var(--itda-surface);
-  border-color: rgba(56, 73, 89, 0.25);
-  color: var(--itda-ink);
-  font-weight: 400;
+/* 회색 면 버튼 */
+.btn--secondary,
+.btn--soft {
+  background: var(--color-surface);
+  color: var(--color-text-1);
 }
-.btn--outline:hover:not(:disabled) {
-  background: #e5f0ff;
+.btn--secondary:hover:not(:disabled),
+.btn--soft:hover:not(:disabled) {
+  background: var(--color-surface-2);
+}
+.btn--soft[aria-pressed='true'] {
+  background: var(--color-dark);
+  color: #fff;
 }
 
+.btn--outline,
 .btn--outline-strong {
-  background: var(--itda-surface);
-  border-color: var(--itda-ink);
-  color: var(--itda-ink);
-  font-size: 16px;
-  font-weight: 400;
+  background: var(--color-bg);
+  border-color: var(--color-border);
+  color: var(--color-text-1);
 }
+.btn--outline:hover:not(:disabled),
 .btn--outline-strong:hover:not(:disabled) {
-  background: #e5f0ff;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+.btn--outline-strong {
+  border-color: var(--color-text-1);
 }
 
-/* 오류 상태 (Figma 1214:2186, 1214:2151) */
 .btn--error {
-  background: var(--itda-surface);
-  border-color: var(--prolog-color-error);
-  color: var(--prolog-color-error);
+  background: var(--color-danger-50);
+  color: var(--color-danger);
+}
+.btn--error:hover:not(:disabled) {
+  background: #fbdcd9;
 }
 
-/* 비활성 (Figma 1214:2158) */
 .btn--primary:disabled,
 .btn--secondary:disabled,
-.btn--ink:disabled {
-  background: var(--itda-surface);
-  border-color: rgba(56, 73, 89, 0.5);
-  color: rgba(56, 73, 89, 0.5);
+.btn--soft:disabled,
+.btn--ink:disabled,
+.btn--outline:disabled,
+.btn--outline-strong:disabled {
+  background: var(--color-surface);
+  border-color: transparent;
+  color: var(--color-text-3);
 }
 
 .btn--busy {
@@ -247,38 +232,72 @@
   cursor: progress;
 }
 
-/* 로그인·회원가입 패널의 큰 버튼 (Figma 1175:2062: 50px · 21.88px) */
+/* 로그인 폼 등 한 단계 큰 버튼 */
 .btn--lg {
-  height: 50px;
-  padding: 0 20px;
-  border-radius: 10px;
-  font-size: 21.88px;
-  font-weight: 600;
-  line-height: 31.25px;
-  letter-spacing: 0.4px;
-}
-.btn--lg.btn--primary {
-  background: var(--itda-ink);
-}
-.btn--lg.btn--primary:hover:not(:disabled) {
-  background: #6a89a7;
+  height: 56px;
+  padding: 0 var(--space-8);
+  font-size: 16px;
 }
 .btn--lg.btn--error {
-  opacity: 0.75;
+  opacity: 0.85;
 }
 
-/* 화면의 마지막 주요 행동 (Figma 1247:2015 "프로젝트 만들고 계속" 64px) */
+/* 화면의 마지막 주요 행동 */
 .btn--xl {
   height: 64px;
-  border-radius: 10px;
-  font-size: 20px;
+  padding: 0 var(--space-10);
+  font-size: 17px;
   font-weight: 600;
 }
 
-/* ───────── 소셜 로그인 (Figma 1181:2054) ───────── */
+/* ───────── 원형 아이콘 버튼 48px ───────── */
+.icon-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--btn-height);
+  height: var(--btn-height);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-bg);
+  color: var(--color-text-1);
+  text-decoration: none;
+  transition:
+    background var(--transition-state),
+    border-color var(--transition-state);
+}
+.icon-btn:hover:not(:disabled) {
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+}
+.icon-btn--filled {
+  border-color: var(--color-dark);
+  background: var(--color-dark);
+  color: #fff;
+}
+.icon-btn--filled:hover:not(:disabled) {
+  border-color: var(--color-dark-hover);
+  background: var(--color-dark-hover);
+}
+.icon-btn--sm {
+  width: 36px;
+  height: 36px;
+}
+.icon-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ───────── 소셜 로그인 ───────── */
 .social {
   display: flex;
-  gap: 20px;
+  gap: var(--space-3);
   width: 100%;
 }
 
@@ -287,39 +306,41 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  height: 50px;
-  padding: 0 20px;
-  border: 1px solid var(--stroke);
-  border-radius: 10px;
-  background: transparent;
-  opacity: 0.75;
-  font-size: 17.5px;
-  font-weight: 400;
+  gap: var(--space-3);
+  height: 56px;
+  padding: 0 var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  font-size: 15px;
+  font-weight: 500;
   white-space: nowrap;
-  transition: opacity var(--transition-state);
+  transition:
+    background var(--transition-state),
+    border-color var(--transition-state);
 }
 .social__btn:hover:not(:disabled) {
-  opacity: 1;
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
 }
 .social__btn:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-  opacity: 1;
 }
 
 .social__mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   color: #fff;
   font-family: 'Noto Sans KR', system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 500;
 }
+/* 브랜드 마크 색은 각 서비스의 것을 그대로 쓴다 */
 .social__mark--google {
   background: #4285f4;
 }
@@ -327,94 +348,126 @@
   background: #03c75a;
 }
 
-/* ───────── 임시/Option (Figma 837:250) ───────── */
+/* ───────── 선택 카드 ───────── */
 .option {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-8);
+  gap: var(--space-1);
   width: 100%;
-  padding: var(--itda-space-16);
-  border: 1px solid var(--stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
   text-align: left;
   transition:
     background var(--transition-state),
     border-color var(--transition-state);
 }
 .option:hover {
-  border-color: var(--itda-muted);
+  border-color: var(--color-border-strong);
 }
 .option:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .option[aria-checked='true'] {
-  background: var(--itda-background);
-  border-color: var(--itda-muted);
+  background: var(--color-primary-50);
+  border-color: var(--color-primary);
 }
 .option__title {
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 28px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.5;
 }
 .option__body {
-  font-size: 14px;
-  font-weight: 300;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 
 /* ───────── 안내 문구 ───────── */
 .notice {
   font-size: 14px;
   font-weight: 500;
-  line-height: 20px;
+  line-height: 1.5;
+  color: var(--color-text-2);
 }
 .notice--error {
-  color: var(--prolog-color-error);
+  color: var(--color-danger);
 }
 .notice--success {
-  color: var(--prolog-color-success);
+  color: var(--color-success);
 }
-/* Figma "안내" 블록: 위아래 16px, 줄바꿈 유지 */
+/* 블록 안내: 연한 면 위에 줄바꿈 유지 */
 .notice--block {
-  padding: var(--itda-space-16) 0;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
   white-space: pre-line;
+}
+.notice--block.notice--error {
+  background: var(--color-danger-50);
+}
+.notice--block.notice--success {
+  background: var(--color-success-50);
 }
 
 .result-box {
   width: 100%;
-  padding: var(--itda-space-16);
-  border: 1px solid var(--stroke);
-  border-radius: var(--itda-radius-6);
-  background: var(--itda-background);
-  font-size: 14px;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--color-primary-50);
+  font-size: 15px;
   font-weight: 600;
-  line-height: 20px;
-  letter-spacing: 0.2px;
+  line-height: 1.5;
 }
 
 .text-link {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--itda-muted);
-  font-size: 15px;
-  font-weight: 300;
-  line-height: 25px;
+  color: var(--color-text-2);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.6;
   text-decoration: none;
+  transition: color var(--transition-state);
 }
 .text-link:hover {
+  color: var(--color-text-1);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 .text-link:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
 
-/* ───────── 확인 창 (Figma 1264:3150 상태 명세 · 확인과 경고) ───────── */
+/* "LEARN MORE →" 처럼 대문자 화살표 링크 */
+.arrow-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+.arrow-link::after {
+  content: '→';
+  transition: transform var(--transition-state);
+}
+.arrow-link:hover::after {
+  transform: translateX(3px);
+}
+
+/* ───────── 확인 창 ───────── */
 .dialog-backdrop {
   position: fixed;
   inset: 0;
@@ -422,55 +475,73 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  background: rgba(24, 34, 44, 0.35);
+  padding: var(--space-6);
+  background: rgba(17, 17, 17, 0.24);
 }
 .dialog {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
-  width: min(440px, 100%);
-  padding: var(--itda-space-24);
-  border-radius: 12px;
-  background: var(--itda-surface);
-  box-shadow: 0 16px 48px rgba(24, 34, 44, 0.24);
+  gap: var(--space-3);
+  width: min(460px, 100%);
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-soft);
+}
+.dialog .panel__title {
+  font-size: var(--fs-h3);
 }
 .dialog__actions {
   display: flex;
   justify-content: flex-end;
-  gap: var(--itda-space-8);
-  margin-top: var(--itda-space-12);
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 
-/* 두세 개 중 하나를 고르는 버튼 묶음 */
+/* 두세 개 중 하나를 고르는 알약형 묶음 */
 .segmented {
   display: inline-flex;
-  gap: var(--itda-space-8);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+.panel .segmented {
+  background: var(--color-surface-2);
 }
 .segmented button {
-  height: var(--prolog-control-height);
-  padding: 0 var(--itda-space-16);
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  height: 40px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-2);
   font-size: 14px;
-  transition: background var(--transition-state);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background var(--transition-state),
+    color var(--transition-state);
+}
+.segmented button:hover {
+  color: var(--color-text-1);
 }
 .segmented button[aria-checked='true'] {
-  border-color: var(--itda-muted);
-  background: var(--itda-soft);
-  font-weight: 500;
+  background: var(--color-bg);
+  color: var(--color-text-1);
+  box-shadow: 0 0 0 1px var(--color-border);
 }
 .segmented button:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 .segmented--wide {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  border-radius: var(--radius-lg);
 }
 
-/* Figma 1255:2147 Toggle */
+/* 켜짐/꺼짐 스위치 */
 .toggle {
   position: relative;
   width: 44px;
@@ -478,12 +549,12 @@
   flex: none;
   padding: 0;
   border: 0;
-  border-radius: 999px;
-  background: #c9d4df;
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
   transition: background var(--transition-state);
 }
 .toggle.is-on {
-  background: var(--prolog-color-interaction);
+  background: var(--color-primary);
 }
 .toggle__thumb {
   position: absolute;
@@ -493,7 +564,6 @@
   height: 18px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: transform var(--transition-state);
 }
 .toggle.is-on .toggle__thumb {
@@ -504,7 +574,7 @@
   cursor: not-allowed;
 }
 .toggle:focus-visible {
-  outline: 2px solid var(--prolog-color-interaction);
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
@@ -512,17 +582,17 @@
 .invite-link {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--itda-space-8);
+  gap: var(--space-2);
 }
 .invite-link__url {
   flex: 1 1 220px;
   min-width: 0;
-  height: var(--prolog-control-height);
-  padding: 0 12px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-background);
-  color: var(--itda-muted);
+  height: var(--btn-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-bg);
+  color: var(--color-text-2);
   font-size: 13px;
 }
 .invite-link .panel__label {
