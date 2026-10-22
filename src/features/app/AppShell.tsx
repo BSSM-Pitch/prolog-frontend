@@ -9,6 +9,16 @@ import './AppShell.css'
 
 const COLLAPSE_KEY = 'prolog.sidebar.collapsed'
 
+const LAST_PROJECT_KEY = 'prolog.project.last'
+
+function readLastProject() {
+  try {
+    return localStorage.getItem(LAST_PROJECT_KEY)
+  } catch {
+    return null
+  }
+}
+
 function readCollapsed() {
   try {
     return localStorage.getItem(COLLAPSE_KEY) === '1'
@@ -23,7 +33,20 @@ export function AppShell() {
   const [collapsed, setCollapsed] = useState(readCollapsed)
 
   const match = useMatch('/projects/:projectId/*')
-  const projectId = match?.params.projectId && match.params.projectId !== 'new' ? match.params.projectId : null
+  const urlProjectId = match?.params.projectId && match.params.projectId !== 'new' ? match.params.projectId : null
+  // 프로젝트 밖 화면(알림 설정 등)으로 가도 마지막에 연 프로젝트를 유지한다
+  const [lastProjectId, setLastProjectId] = useState(readLastProject)
+  const projectId = urlProjectId ?? lastProjectId
+
+  useEffect(() => {
+    if (!urlProjectId || urlProjectId === lastProjectId) return
+    setLastProjectId(urlProjectId)
+    try {
+      localStorage.setItem(LAST_PROJECT_KEY, urlProjectId)
+    } catch {
+      // 저장하지 못해도 이번 화면에서는 유지된다
+    }
+  }, [urlProjectId, lastProjectId])
 
   const [loaded, setLoaded] = useState<{ key: string; state: CurrentProjectState } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
@@ -34,11 +57,19 @@ export function AppShell() {
     let cancelled = false
     withAuth((token) => projectsApi.getProject(token, projectId))
       .then((project) => !cancelled && setLoaded({ key: requestKey, state: { status: 'ready', project } }))
-      .catch((e) => !cancelled && setLoaded({ key: requestKey, state: { status: 'error', projectId, message: describeError(e) } }))
+      .catch((e) => {
+        if (cancelled) return
+        if (!urlProjectId) {
+          // 기억해 둔 프로젝트가 없어졌거나 접근할 수 없으면 선택을 비운다
+          forgetProject()
+          return
+        }
+        setLoaded({ key: requestKey, state: { status: 'error', projectId, message: describeError(e) } })
+      })
     return () => {
       cancelled = true
     }
-  }, [projectId, requestKey, withAuth])
+  }, [projectId, urlProjectId, requestKey, withAuth])
 
   const state = useMemo<CurrentProjectState>(() => {
     if (!projectId) return { status: 'none' }
@@ -47,6 +78,15 @@ export function AppShell() {
     if (loaded?.state.status === 'ready' && loaded.state.project.project_id === projectId) return loaded.state
     return { status: 'loading', projectId }
   }, [projectId, requestKey, loaded])
+
+  function forgetProject() {
+    setLastProjectId(null)
+    try {
+      localStorage.removeItem(LAST_PROJECT_KEY)
+    } catch {
+      // 무시
+    }
+  }
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), [])
   const value = useMemo(() => ({ state, reload }), [state, reload])

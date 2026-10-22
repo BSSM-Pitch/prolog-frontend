@@ -46,13 +46,32 @@
 }
 /* 알약형 필터 묶음 */
 .projects__filters {
+  position: relative;
   display: inline-flex;
   gap: var(--space-1);
   padding: var(--space-1);
   border-radius: var(--radius-full);
   background: var(--color-surface);
 }
+/* 선택 표시: 칸 사이를 미끄러지는 블랙 알약 (위치는 lib/segmentedPill.ts가 정한다) */
+.projects__filters::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--pill-w, 0);
+  height: var(--pill-h, 0);
+  transform: translate(var(--pill-x, 0), var(--pill-y, 0));
+  background: var(--color-dark);
+  pointer-events: none;
+}
+.projects__filters.is-sliding::before {
+  transition:
+    transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
 .projects__filter {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -64,15 +83,12 @@
   color: var(--color-text-2);
   font-size: 14px;
   font-weight: 500;
-  transition:
-    background var(--transition-state),
-    color var(--transition-state);
+  transition: color 200ms ease;
 }
 .projects__filter:hover {
   color: var(--color-text-1);
 }
 .projects__filter[aria-pressed='true'] {
-  background: var(--color-dark);
   color: #fff;
 }
 .projects__count {
@@ -92,25 +108,10 @@
   display: inline-flex;
   align-items: center;
 }
-.projects__sort select {
-  appearance: none;
+.projects__sort .select__trigger {
   width: 180px;
-  height: var(--btn-height);
-  padding: 0 40px 0 var(--space-5);
-  border: 1px solid var(--color-border);
+  padding-left: var(--space-5);
   border-radius: var(--radius-full);
-  background: var(--color-bg);
-  font-size: 14px;
-  cursor: pointer;
-}
-.projects__sort select:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 0;
-}
-.projects__sort svg {
-  position: absolute;
-  right: 16px;
-  pointer-events: none;
 }
 
 .projects__grid {
@@ -293,7 +294,7 @@
     flex-direction: column;
     align-items: stretch;
   }
-  .projects__sort select {
+  .projects__sort .select__trigger {
     width: 100%;
   }
 }

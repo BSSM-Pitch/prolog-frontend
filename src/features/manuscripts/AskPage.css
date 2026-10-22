@@ -76,7 +76,7 @@
   align-items: center;
   gap: var(--space-3);
 }
-.ask__target select {
+.ask__target .select__trigger {
   height: 40px;
   padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
@@ -164,7 +164,7 @@
   flex-direction: column;
   gap: var(--space-3);
 }
-.composer__picker select {
+.composer__picker .select__trigger {
   align-self: flex-start;
   height: 40px;
   padding: 0 var(--space-4);

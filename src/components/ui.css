@@ -329,23 +329,14 @@
 }
 
 .social__mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  flex: none;
   width: 24px;
   height: 24px;
-  border-radius: 50%;
-  color: #fff;
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 500;
+  object-fit: contain;
 }
-/* 브랜드 마크 색은 각 서비스의 것을 그대로 쓴다 */
-.social__mark--google {
-  background: #4285f4;
-}
+/* 네이버 마크는 꽉 찬 정사각형이라 모서리만 둥글린다 */
 .social__mark--naver {
-  background: #03c75a;
+  border-radius: 6px;
 }
 
 /* ───────── 선택 카드 ───────── */
@@ -500,6 +491,7 @@
 
 /* 두세 개 중 하나를 고르는 알약형 묶음 */
 .segmented {
+  position: relative;
   display: inline-flex;
   gap: var(--space-1);
   padding: var(--space-1);
@@ -509,7 +501,27 @@
 .panel .segmented {
   background: var(--color-surface-2);
 }
+/* 선택 표시: 칸 사이를 미끄러지는 흰 알약 (위치는 lib/segmentedPill.ts가 정한다) */
+.segmented::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--pill-w, 0);
+  height: var(--pill-h, 0);
+  transform: translate(var(--pill-x, 0), var(--pill-y, 0));
+  border-radius: inherit;
+  background: var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border);
+  pointer-events: none;
+}
+.segmented.is-sliding::before {
+  transition:
+    transform 280ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 280ms cubic-bezier(0.32, 0.72, 0, 1);
+}
 .segmented button {
+  position: relative;
   height: 40px;
   padding: 0 var(--space-4);
   border: 0;
@@ -519,17 +531,13 @@
   font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
-  transition:
-    background var(--transition-state),
-    color var(--transition-state);
+  transition: color var(--transition-state);
 }
 .segmented button:hover {
   color: var(--color-text-1);
 }
 .segmented button[aria-checked='true'] {
-  background: var(--color-bg);
   color: var(--color-text-1);
-  box-shadow: 0 0 0 1px var(--color-border);
 }
 .segmented button:focus-visible {
   outline: 2px solid var(--color-primary);

@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
@@ -145,14 +146,14 @@ export function NewCharacterPage() {
           ) : (
             <label className="field">
               <span className="field__label">정보를 더할 인물</span>
-              <select className="nl-select" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+              <Select className="nl-select" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
                 <option value="">인물 선택</option>
                 {existing.map((c) => (
                   <option key={c.character_id} value={c.character_id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               {errors.name && <span className="field__hint notice--error">{errors.name}</span>}
             </label>
           )}

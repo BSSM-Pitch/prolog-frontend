@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiError } from '../../api/client'
@@ -167,14 +168,14 @@ export function NotificationsPage() {
                 안 읽음 {unread}
               </button>
             </div>
-            <select className="nl-select" value={type} onChange={(e) => setType(e.target.value as NotificationType | '')} aria-label="알림 유형">
+            <Select className="nl-select" value={type} onChange={(e) => setType(e.target.value as NotificationType | '')} aria-label="알림 유형">
               <option value="">모든 유형</option>
               {NOTIFICATION_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {NOTIFICATION_LABEL[t].title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {first.error && !first.data && <p className="notice notice--error">{first.error}</p>}
@@ -253,7 +254,7 @@ export function NotificationsPage() {
               <div key={provider} className="noti__channel">
                 <div>
                   <p className="noti__channel-name">{name}</p>
-                  <p className="panel__label">{linked ? linked.email_address : '연동하면 이메일로도 받을 수 있어요'}</p>
+                  <p className="panel__label">{linked ? linked.email_address : '연동 안 됨'}</p>
                 </div>
                 <span className={linked ? 'badge badge--success' : 'badge badge--filled'}>{linked ? '연동됨' : '연동 안 됨'}</span>
               </div>

@@ -63,3 +63,20 @@ h3 {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* 버튼 모서리는 스퀴클(슈퍼타원 |x|^p + |y|^p = 1)로 그린다.
+   곡률이 직선과 곡선의 경계에서 튀지 않고 모서리에서 변 가운데로 서서히 줄어든다.
+   CSS의 superellipse(K)는 지수 p = 2^K 이다. 애플 아이콘에 가까운 p = 5 → K = log2(5) ≈ 2.32.
+   곡률이 부드럽게 이어지려면 반경이 변의 상당 부분을 차지해야 해서 반경도 넉넉하게 둔다.
+   :not(#_)은 화면별 CSS의 border-radius보다 먼저 적용되게 하려는 우선순위 보정이다. */
+:is(button, .btn, [role='button']):not(#_),
+.segmented:not(#_)::before,
+.projects__filters:not(#_)::before {
+  border-radius: var(--radius-button);
+  corner-shape: superellipse(2.32);
+}
+.segmented:not(#_),
+.projects__filters:not(#_) {
+  border-radius: calc(var(--radius-button) + var(--space-1));
+  corner-shape: superellipse(2.32);
+}

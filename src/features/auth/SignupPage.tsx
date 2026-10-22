@@ -5,6 +5,7 @@ import { IS_REAL } from '../../api/config'
 import type { OAuthProvider } from '../../api/types'
 import { useSignupDraft } from '../../auth/signupDraft'
 import { Button } from '../../components/Button'
+import { Logo } from '../../components/Logo'
 import { SocialButtons } from '../../components/SocialButtons'
 import { TextField } from '../../components/TextField'
 import { describeError } from '../../lib/errors'
@@ -42,7 +43,11 @@ export function SignupPage() {
   /** 아이디 중복 확인. 사용 가능하면 true */
   async function ensureUsernameAvailable(): Promise<boolean> {
     const { available } = await authApi.checkUsername(username.trim())
-    if (!available) setErrors((e) => ({ ...e, username: '이미 사용 중인 아이디예요. 다른 아이디를 입력해 주세요.' }))
+    if (!available)
+      setErrors((e) => ({
+        ...e,
+        username: '이미 사용 중인 아이디예요. 다른 아이디를 입력해 주세요.',
+      }))
     return available
   }
 
@@ -66,7 +71,12 @@ export function SignupPage() {
     setBusy(true)
     try {
       if (!(await ensureUsernameAvailable())) return
-      update({ username: username.trim(), email: email.trim(), password, provider: null })
+      update({
+        username: username.trim(),
+        email: email.trim(),
+        password,
+        provider: null,
+      })
       navigate('/auth/signup/role')
     } catch (err) {
       setFormError(describeError(err))
@@ -108,6 +118,7 @@ export function SignupPage() {
   return (
     // Figma 1214:2075 — 제목 / 입력(간격 36) / [버튼+링크(4)] · 소셜(36), 묶음 사이 52
     <form className="auth-form auth-form--signup" onSubmit={onSubmit} noValidate>
+      <Logo size={40} wordmark={false} />
       <h1 className="auth-form__title">회원가입</h1>
       <div className="auth-form__fields">
         {notice && (

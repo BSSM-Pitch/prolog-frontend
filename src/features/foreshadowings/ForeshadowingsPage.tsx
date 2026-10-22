@@ -1,3 +1,5 @@
+import { Select } from '../../components/Select'
+import { createPortal } from 'react-dom'
 import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
@@ -136,18 +138,18 @@ export function ForeshadowingsPage() {
             <h2 id="fs-list-title" className="panel__title">
               {view === 'timeline' ? `복선 타임라인 / 1–${maxChapter}장` : '복선 목록'}
             </h2>
-            <select className="nl-select" value={statusFilter} onChange={(e) => set({ status: e.target.value })} aria-label="상태 필터">
+            <Select className="nl-select" value={statusFilter} onChange={(e) => set({ status: e.target.value })} aria-label="상태 필터">
               <option value="">상태 · 전체</option>
               <option value="unresolved">미회수</option>
               <option value="resolved">회수 완료</option>
               {all.some((f) => f.status === 'orphaned') && <option value="orphaned">설치 장 삭제됨</option>}
-            </select>
-            <select className="nl-select" value={charFilter} onChange={(e) => set({ character: e.target.value })} aria-label="인물 필터">
+            </Select>
+            <Select className="nl-select" value={charFilter} onChange={(e) => set({ character: e.target.value })} aria-label="인물 필터">
               <option value="">연결 대상 · 전체</option>
               {[...new Set(all.flatMap((f) => f.linked_characters))].map((c) => (
                 <option key={c}>{c}</option>
               ))}
-            </select>
+            </Select>
             <Button tone="soft" onClick={() => set({ view: view === 'timeline' ? null : 'timeline' })}>
               {view === 'timeline' ? '목록 보기' : '타임라인 보기'}
             </Button>
@@ -338,7 +340,7 @@ export function ForeshadowingsPage() {
       )}
 
       {similar && (
-        <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setSimilar(null)}>
+        createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setSimilar(null)}>
           <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="similar-title" onKeyDown={(e) => e.key === 'Escape' && setSimilar(null)}>
             <h2 id="similar-title" className="panel__title">
               비슷한 복선이 이미 있어요
@@ -378,7 +380,7 @@ export function ForeshadowingsPage() {
               <Button onClick={() => setSimilar(null)}>새 복선으로 두기</Button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       {confirmDelete && selected && (
@@ -517,7 +519,7 @@ function CreateDialog({ characters, defaultChapter, onCancel, onSubmit }: { char
     }
   }
   return (
-    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
+    createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="create-fs-title" onSubmit={submit} onKeyDown={(e) => e.key === 'Escape' && onCancel()} noValidate>
         <h2 id="create-fs-title" className="panel__title">
           복선 생성
@@ -533,7 +535,7 @@ function CreateDialog({ characters, defaultChapter, onCancel, onSubmit }: { char
           </Button>
         </div>
       </form>
-    </div>
+    </div>, document.body)
   )
 }
 

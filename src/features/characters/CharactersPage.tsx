@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
@@ -203,7 +204,7 @@ export function CharactersPage() {
       )}
 
       {blocked && (
-        <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setBlocked(null)}>
+        createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setBlocked(null)}>
           <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="blocked-title" onKeyDown={(e) => e.key === 'Escape' && setBlocked(null)}>
             <h2 id="blocked-title" className="panel__title">
               관계가 남아 있는 인물이에요
@@ -222,7 +223,7 @@ export function CharactersPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
     </div>
   )

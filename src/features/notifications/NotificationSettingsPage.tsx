@@ -142,10 +142,8 @@ export function NotificationSettingsPage() {
             return (
               <div key={provider} className="noti__channel">
                 <div>
-                  <p className="noti__channel-name">
-                    {name} <span className={linked ? 'badge badge--success' : 'badge badge--filled'}>{linked ? '연동됨' : '연동 안 됨'}</span>
-                  </p>
-                  <p className="panel__label">{linked ? `${linked.email_address} · ${shortDate(linked.connected_at)} 연동` : '연동하면 이메일로도 알림을 받을 수 있어요'}</p>
+                  <p className="noti__channel-name">{name}</p>
+                  <p className="panel__label">{linked ? `연동됨 · ${linked.email_address} · ${shortDate(linked.connected_at)}` : '연동 안 됨'}</p>
                 </div>
                 {linked ? (
                   <Button tone="outline" onClick={() => setUnlinking(linked)}>

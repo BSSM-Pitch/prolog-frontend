@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useState, type FormEvent } from 'react'
 import * as api from '../../api/teams'
 import type { TeamInvitation } from '../../api/types'
@@ -66,13 +67,13 @@ export function TeamInviteForm({ teamId, layout = 'stack', autoFocus, onInvited 
       />
       <label className="team-invite__role">
         <span className="field__label">역할</span>
-        <select className="nl-select" value={role} onChange={(e) => setRole(e.target.value as TeamInvitation['role'])}>
+        <Select className="nl-select" value={role} onChange={(e) => setRole(e.target.value as TeamInvitation['role'])}>
           {(['member', 'admin'] as const).map((r) => (
             <option key={r} value={r}>
               {TEAM_ROLE_LABEL[r]}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <Button type="submit" busy={busy}>
         초대 보내기

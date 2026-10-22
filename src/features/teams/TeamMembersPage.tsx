@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '../../api/client'
@@ -167,13 +168,13 @@ export function TeamMembersPage() {
                     </td>
                     <td>
                       {isOwner && !me ? (
-                        <select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as TeamRole)} aria-label={`${m.name}의 역할`}>
+                        <Select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as TeamRole)} aria-label={`${m.name}의 역할`}>
                           {(Object.keys(TEAM_ROLE_LABEL) as TeamRole[]).map((r) => (
                             <option key={r} value={r}>
                               {TEAM_ROLE_LABEL[r]}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       ) : (
                         <span className={m.role === 'owner' ? 'badge badge--done' : 'badge badge--filled'}>{TEAM_ROLE_LABEL[m.role]}</span>
                       )}

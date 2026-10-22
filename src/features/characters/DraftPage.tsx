@@ -1,3 +1,5 @@
+import { Select } from '../../components/Select'
+import { createPortal } from 'react-dom'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import * as api from '../../api/characters'
@@ -257,7 +259,7 @@ export function DraftPage() {
       )}
 
       {duplicate && (
-        <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setDuplicate(null)}>
+        createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setDuplicate(null)}>
           <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="dup-title" onKeyDown={(e) => e.key === 'Escape' && setDuplicate(null)}>
             <h2 id="dup-title" className="panel__title">
               같은 이름의 인물이 있어요
@@ -289,7 +291,7 @@ export function DraftPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       {discardAsk && (
@@ -347,13 +349,13 @@ function ItemEditor({ editing, item, disabled, onCancel, onSubmit, historyOpen, 
         <form className="nl-design" style={{ gap: 12 }} onSubmit={submit} noValidate>
           <label className="field">
             <span className="field__label">카테고리</span>
-            <select className="nl-select" value={field} onChange={(e) => setField(e.target.value as CharacterCategory)} disabled={editing.kind === 'item' || disabled}>
+            <Select className="nl-select" value={field} onChange={(e) => setField(e.target.value as CharacterCategory)} disabled={editing.kind === 'item' || disabled}>
               {CATEGORIES.map((c) => (
                 <option key={c.field} value={c.field}>
                   {c.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="field">
             <span className="field__label">{isInfluence ? '영향을 준 대상' : '값'}</span>

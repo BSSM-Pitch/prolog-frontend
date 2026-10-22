@@ -285,6 +285,10 @@
   .auth-form .social {
     flex-direction: column;
   }
+  /* 세로로 쌓이면 flex: 1이 높이를 눌러 버린다 */
+  .auth-form .social__btn {
+    flex: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

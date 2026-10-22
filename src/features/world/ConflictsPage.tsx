@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
@@ -151,10 +152,10 @@ export function ConflictsPage() {
             <label className="visually-hidden" htmlFor="conflict-filter">
               보기
             </label>
-            <select id="conflict-filter" className="nl-select" value={showResolved ? 'resolved' : 'pending'} onChange={(e) => setShowResolved(e.target.value === 'resolved')}>
+            <Select id="conflict-filter" className="nl-select" value={showResolved ? 'resolved' : 'pending'} onChange={(e) => setShowResolved(e.target.value === 'resolved')}>
               <option value="pending">미검토만</option>
               <option value="resolved">처리됨</option>
-            </select>
+            </Select>
           </div>
           {conflicts.loading && !conflicts.data && <p className="panel__label">불러오고 있어요</p>}
           {conflicts.data && list.length === 0 && (

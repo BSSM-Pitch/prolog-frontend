@@ -24,11 +24,12 @@ import { useNotificationsChanged } from '../notifications/labels'
 import { useTeamsChanged } from '../teams/teamEvents'
 import { Logo } from '../../components/Logo'
 import { projectPath } from './currentProject'
+import { ProjectPickerDialog } from './ProjectPickerDialog'
 
 type Icon = ComponentType<IconProps>
 
 interface SidebarProps {
-  /** 열려 있는 프로젝트. 없으면 프로젝트 전용 메뉴를 비활성으로 둔다 */
+  /** 열려 있는 프로젝트. 없으면 프로젝트 전용 메뉴를 누를 때 선택 창을 연다 */
   project: Project | null
   collapsed: boolean
   onToggle: () => void
@@ -42,9 +43,9 @@ const REVIEW_ITEMS: SubItem[] = [
 ]
 const DESIGN_ITEMS: SubItem[] = [
   { label: '캐릭터 분석', sub: 'characters' },
-  { label: '관계 변화 그래프', sub: 'relationships', disabled: true },
-  { label: '복선 추적', sub: 'foreshadowings', disabled: true },
-  { label: '스토리 맵', sub: 'story-map', disabled: true },
+  { label: '관계 변화 그래프', sub: 'relationships' },
+  { label: '복선 추적', sub: 'foreshadowings' },
+  { label: '스토리 맵', sub: 'story-map' },
 ]
 
 export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
@@ -52,6 +53,8 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   const { pathname } = useLocation()
   const { user, signOut } = useSession()
   const [open, setOpen] = useState<Record<string, boolean>>({})
+  /** 프로젝트 없이 프로젝트 전용 메뉴를 눌렀을 때 고른 뒤 이동할 하위 경로. null이면 창이 닫혀 있다 */
+  const [pickFor, setPickFor] = useState<string | null>(null)
   const teams = useResource(user ? teamsApi.listTeams : null, [user?.user_id])
   useTeamsChanged(teams.reload)
   // 최근 알림 3개와 안 읽은 수. 화면을 옮길 때마다 새로 확인한다 (명세에 실시간 채널 없음)
@@ -61,7 +64,7 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   if (!user) return null
 
   const roleTitle = ROLE_OPTIONS.find((r) => r.value === user.role)?.title ?? ''
-  const disabledReason = project ? undefined : '프로젝트를 열면 쓸 수 있어요'
+  const needsProject = (sub: string) => (project ? undefined : () => setPickFor(sub))
   const toProject = (sub = '') => (project ? projectPath(project.project_id, sub) : '')
   const inGroup = (items: typeof REVIEW_ITEMS) => Boolean(project) && items.some((i) => pathname.startsWith(toProject(i.sub)))
   // 하위 화면에 있으면 그룹을 펼친 상태로 시작한다
@@ -90,13 +93,13 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
         </button>
       </div>
 
-      <NavLink to="/projects" end className="sidebar__project" title={project?.title ?? '내 프로젝트'}>
+      <button type="button" className="sidebar__project" title="프로젝트 바꾸기" aria-haspopup="dialog" onClick={() => setPickFor('')}>
         <span className="sidebar__project-eyebrow">Project</span>
         <span className="sidebar__project-name">{project ? project.title : '선택한 프로젝트 없음'}</span>
-      </NavLink>
+      </button>
 
       <nav className="sidebar__nav">
-        <NavItem icon={IconHome} label="개요" to={project ? toProject() : null} end disabledReason={disabledReason} />
+        <NavItem icon={IconHome} label="개요" to={project ? toProject() : null} end onNeedProject={needsProject('')} />
         <NavGroup icon={IconBell} label="알림" badge={unread} open={isOpen('noti')} onToggle={() => toggle('noti')} collapsed={collapsed} active={pathname === '/notifications'}>
           {(recent.data?.data ?? []).length === 0 && <p className="sidebar__empty">새 알림이 없어요</p>}
           {(recent.data?.data ?? []).map((n) => (
@@ -111,7 +114,7 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             알림 설정
           </NavLink>
         </NavGroup>
-        <NavItem icon={IconNotebook} label="원고 작성" to={project ? toProject('manuscripts') : null} disabledReason={disabledReason} />
+        <NavItem icon={IconNotebook} label="원고 작성" to={project ? toProject('manuscripts') : null} onNeedProject={needsProject('manuscripts')} />
         {[
           { key: 'review', icon: IconFileCheck, label: '검토', items: REVIEW_ITEMS },
           { key: 'design', icon: IconAffiliate, label: '설계', items: DESIGN_ITEMS },
@@ -123,7 +126,6 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             open={isOpen(g.key, g.items)}
             onToggle={() => toggle(g.key, g.items)}
             collapsed={collapsed}
-            disabledReason={disabledReason}
             active={inGroup(g.items)}
           >
             {g.items.map((i) =>
@@ -131,10 +133,14 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
                 <span key={i.sub} className="sidebar__subitem" aria-disabled="true" title="아직 준비 중이에요">
                   {i.label}
                 </span>
-              ) : (
+              ) : project ? (
                 <NavLink key={i.sub} to={toProject(i.sub)} className="sidebar__subitem">
                   {i.label}
                 </NavLink>
+              ) : (
+                <button key={i.sub} type="button" className="sidebar__subitem" onClick={() => setPickFor(i.sub)}>
+                  {i.label}
+                </button>
               ),
             )}
           </NavGroup>
@@ -152,7 +158,7 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
       </nav>
 
       <div className="sidebar__bottom">
-        <NavItem icon={IconSettings} label="프로젝트 멤버" to={project ? toProject('members') : null} disabledReason={disabledReason} />
+        <NavItem icon={IconSettings} label="프로젝트 멤버" to={project ? toProject('members') : null} onNeedProject={needsProject('members')} />
         <div className="sidebar__me">
           <span className="sidebar__avatar" aria-hidden="true">
             {user.username.slice(0, 1).toUpperCase()}
@@ -166,6 +172,19 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
           </button>
         </div>
       </div>
+      {pickFor !== null && (
+        <ProjectPickerDialog
+          onCancel={() => setPickFor(null)}
+          onCreate={() => {
+            setPickFor(null)
+            navigate('/projects/new')
+          }}
+          onPick={(id) => {
+            setPickFor(null)
+            navigate(projectPath(id, pickFor))
+          }}
+        />
+      )}
     </aside>
   )
 }
@@ -175,10 +194,11 @@ interface NavItemProps {
   label: string
   to: string | null
   end?: boolean
-  disabledReason?: string
+  /** to가 없을 때(프로젝트 미선택) 눌렀을 때 할 일 */
+  onNeedProject?: () => void
 }
 
-function NavItem({ icon: I, label, to, end, disabledReason }: NavItemProps) {
+function NavItem({ icon: I, label, to, end, onNeedProject }: NavItemProps) {
   const content = (
     <>
       <span className="sidebar__icon" aria-hidden="true">
@@ -187,9 +207,9 @@ function NavItem({ icon: I, label, to, end, disabledReason }: NavItemProps) {
       <span className="sidebar__label">{label}</span>
     </>
   )
-  if (!to || disabledReason) {
+  if (!to) {
     return (
-      <button type="button" className="sidebar__item" aria-disabled="true" title={disabledReason ?? label}>
+      <button type="button" className="sidebar__item" onClick={onNeedProject} title={label}>
         {content}
       </button>
     )
@@ -208,24 +228,21 @@ interface NavGroupProps {
   onToggle: () => void
   collapsed: boolean
   active?: boolean
-  disabledReason?: string
   /** 안 읽은 알림 수처럼 이름 옆에 붙는 숫자. 0이면 숨긴다 */
   badge?: number
   children: ReactNode
 }
 
-function NavGroup({ icon: I, label, open, onToggle, collapsed, active, disabledReason, badge, children }: NavGroupProps) {
-  const disabled = Boolean(disabledReason)
-  const expanded = open && !collapsed && !disabled
+function NavGroup({ icon: I, label, open, onToggle, collapsed, active, badge, children }: NavGroupProps) {
+  const expanded = open && !collapsed
   return (
     <div className="sidebar__group">
       <button
         type="button"
         className={active ? 'sidebar__item sidebar__item--in-group' : 'sidebar__item'}
-        aria-expanded={disabled ? undefined : expanded}
-        aria-disabled={disabled || undefined}
-        title={disabledReason ?? label}
-        onClick={disabled ? undefined : onToggle}
+        aria-expanded={expanded}
+        title={label}
+        onClick={onToggle}
       >
         <span className="sidebar__icon" aria-hidden="true">
           <I size={18} stroke={1.75} />

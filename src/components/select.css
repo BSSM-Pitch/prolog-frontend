@@ -1,0 +1,122 @@
+/* 선택 상자: 닫힌 모양은 입력칸과 같고, 열린 목록은 흰 면 + Border의 플랫한 메뉴다 */
+.select__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  height: var(--btn-height);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text-1);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-state),
+    box-shadow var(--transition-state);
+}
+.select__trigger:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+.select__trigger:focus-visible,
+.select__trigger.is-open {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: var(--focus-ring);
+}
+.select__trigger:disabled {
+  background: var(--color-surface);
+  color: var(--color-text-3);
+  cursor: not-allowed;
+}
+.select__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.select__chevron {
+  flex: none;
+  color: var(--color-text-2);
+  transition: transform 200ms var(--ease);
+}
+.select__trigger.is-open .select__chevron {
+  transform: rotate(180deg);
+}
+
+.select__menu {
+  position: fixed;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  margin: 0;
+  padding: var(--space-1);
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  corner-shape: superellipse(2.32);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-soft);
+  transform-origin: top left;
+  animation: select-in 160ms var(--ease);
+}
+.select__menu--up {
+  transform: translateY(-100%);
+  transform-origin: bottom left;
+  animation-name: select-in-up;
+}
+.select__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 40px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  corner-shape: superellipse(2.32);
+  color: var(--color-text-2);
+  font-size: 14px;
+  cursor: pointer;
+}
+.select__option-label {
+  min-width: 0;
+  white-space: nowrap;
+}
+.select__option[data-active='true'] {
+  background: var(--color-surface);
+  color: var(--color-text-1);
+}
+.select__option[aria-selected='true'] {
+  color: var(--color-text-1);
+  font-weight: 600;
+}
+.select__option[aria-disabled] {
+  color: var(--color-text-3);
+  cursor: not-allowed;
+}
+
+@keyframes select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes select-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-100% + 4px));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .select__menu {
+    animation: none;
+  }
+  .select__chevron {
+    transition: none;
+  }
+}

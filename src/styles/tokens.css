@@ -48,6 +48,7 @@
   --radius-lg: 24px;
   --radius-xl: 48px;
   --radius-full: 9999px;
+  --radius-button: 20px;
 
   --shadow-soft: 0 8px 24px rgba(17, 17, 17, 0.06);
   --focus-ring: 0 0 0 4px var(--color-primary-50);

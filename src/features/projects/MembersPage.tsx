@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '../../api/client'
@@ -139,13 +140,13 @@ export function MembersPage() {
                     </td>
                     <td>
                       {isOwner && !me && !viaTeam ? (
-                        <select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as ProjectRole)} aria-label={`${m.name}의 역할`}>
+                        <Select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as ProjectRole)} aria-label={`${m.name}의 역할`}>
                           {(Object.keys(PROJECT_ROLE_LABEL) as ProjectRole[]).map((r) => (
                             <option key={r} value={r}>
                               {PROJECT_ROLE_LABEL[r]}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       ) : (
                         <span className={m.role === 'owner' ? 'badge badge--done' : 'badge badge--filled'}>{PROJECT_ROLE_LABEL[m.role]}</span>
                       )}

@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
@@ -172,7 +173,7 @@ export function EditorPage() {
                   장 선택
                 </label>
                 <span className="panel__title">{project.title} /</span>
-                <select
+                <Select
                   id="chapter-select"
                   className="editor__chapter"
                   value={chapter?.chapter_no ?? ''}
@@ -184,7 +185,7 @@ export function EditorPage() {
                       {c.chapter_no}장{c.title && c.title !== `${c.chapter_no}장` ? ` · ${c.title}` : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {canEdit && (
                   <Button tone="soft" onClick={addChapter} busy={adding}>
                     + 장 추가

@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { Button } from './Button'
 import './ui.css'
 
@@ -13,7 +14,7 @@ interface ConfirmDialogProps {
 /** 되돌릴 수 없는 작업 확인 창 (Figma 상태 명세 · 확인과 경고) */
 export function ConfirmDialog({ title, body, confirmLabel, busy, onConfirm, onCancel }: ConfirmDialogProps) {
   return (
-    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
+    createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-body" onKeyDown={(e) => e.key === 'Escape' && onCancel()}>
         <h2 id="dialog-title" className="panel__title">
           {title}
@@ -30,6 +31,6 @@ export function ConfirmDialog({ title, body, confirmLabel, busy, onConfirm, onCa
           </Button>
         </div>
       </div>
-    </div>
+    </div>, document.body)
   )
 }

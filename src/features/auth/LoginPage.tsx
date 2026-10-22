@@ -6,6 +6,7 @@ import type { OAuthProvider } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { takeReturnTo } from '../../lib/returnTo'
 import { Button } from '../../components/Button'
+import { Logo } from '../../components/Logo'
 import { SocialButtons } from '../../components/SocialButtons'
 import { TextField } from '../../components/TextField'
 import { describeError, errorCode } from '../../lib/errors'
@@ -65,6 +66,7 @@ export function LoginPage() {
   return (
     // Figma 1175:2053 — 제목 / 입력(간격 36) / 버튼+계정 복구(16) / 소셜, 묶음 사이 52
     <form className="auth-form auth-form--login" onSubmit={onSubmit} noValidate>
+      <Logo size={40} wordmark={false} />
       <h1 className="auth-form__title">로그인</h1>
       <div className="auth-form__fields">
         {IS_REAL && !state.notice && !error && (

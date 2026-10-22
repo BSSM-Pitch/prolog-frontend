@@ -1,3 +1,4 @@
+import { Select } from '../../components/Select'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../../api/client'
@@ -104,13 +105,13 @@ function StoryMap() {
         {ready.length > 1 && (
           <label className="story__pick">
             <span className="panel__label">분석 원고</span>
-            <select className="nl-select" value={latest?.manuscript_id ?? ''} onChange={(e) => (setPickedId(e.target.value), setJob(null), setTooShort(null))}>
+            <Select className="nl-select" value={latest?.manuscript_id ?? ''} onChange={(e) => (setPickedId(e.target.value), setJob(null), setTooShort(null))}>
               {ready.map((m) => (
                 <option key={m.manuscript_id} value={m.manuscript_id}>
                   {m.title} · {m.chapter_count}장
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
       </header>

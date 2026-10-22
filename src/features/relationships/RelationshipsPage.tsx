@@ -1,3 +1,5 @@
+import { Select } from '../../components/Select'
+import { createPortal } from 'react-dom'
 import { useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
@@ -125,14 +127,14 @@ export function RelationshipsPage() {
               <h2 id="mindmap-title" className="panel__title">
                 관계 마인드맵
               </h2>
-              <select className="nl-select" value={focus} onChange={(e) => set({ character: e.target.value, rel: null })} aria-label="인물 필터">
+              <Select className="nl-select" value={focus} onChange={(e) => set({ character: e.target.value, rel: null })} aria-label="인물 필터">
                 <option value="">인물 필터 · 전체</option>
                 {people.map((c) => (
                   <option key={c.character_id} value={c.character_id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               {canEdit && (
                 <Button tone="soft" onClick={() => setAdding(true)} disabled={people.length < 2}>
                   + 관계 추가
@@ -241,7 +243,7 @@ export function RelationshipsPage() {
       </div>
 
       {pending && (
-        <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setPending(null)}>
+        createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setPending(null)}>
           <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="ow-title" onKeyDown={(e) => e.key === 'Escape' && setPending(null)}>
             <h2 id="ow-title" className="panel__title">
               {pending.entry.chapter}장에 이미 기록이 있어요
@@ -272,7 +274,7 @@ export function RelationshipsPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </div>, document.body)
       )}
 
       {adding && (
@@ -419,11 +421,11 @@ function RecordForm({ chapter, initial, busy, onCancel, onSubmit }: { chapter: n
       <div className="two-col" style={{ gap: 8 }}>
         <label className="field">
           <span className="field__label">관계 상태</span>
-          <select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
+          <Select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
             {RELATION_STATES.map((s) => (
               <option key={s}>{s}</option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="field">
           <span className="field__label">신뢰도 · 0~100</span>
@@ -479,7 +481,7 @@ function AddRelationship({
   }
 
   return (
-    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
+    createPortal(<div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
       <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-rel-title" onSubmit={submit} onKeyDown={(e) => e.key === 'Escape' && onCancel()} noValidate>
         <h2 id="add-rel-title" className="panel__title">
           관계 추가
@@ -491,13 +493,13 @@ function AddRelationship({
           ].map(([label, value, setter]) => (
             <label key={label as string} className="field">
               <span className="field__label">{label as string}</span>
-              <select className="nl-select" value={value as string} onChange={(e) => (setter as (v: string) => void)(e.target.value)}>
+              <Select className="nl-select" value={value as string} onChange={(e) => (setter as (v: string) => void)(e.target.value)}>
                 {people.map((p) => (
                   <option key={p.character_id} value={p.character_id}>
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           ))}
           <label className="field">
@@ -506,11 +508,11 @@ function AddRelationship({
           </label>
           <label className="field">
             <span className="field__label">관계 상태</span>
-            <select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
+            <Select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
               {RELATION_STATES.map((s) => (
                 <option key={s}>{s}</option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="field">
             <span className="field__label">신뢰도 · 0~100</span>
@@ -527,6 +529,6 @@ function AddRelationship({
           </Button>
         </div>
       </form>
-    </div>
+    </div>, document.body)
   )
 }
