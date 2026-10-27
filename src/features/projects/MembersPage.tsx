@@ -28,7 +28,7 @@ const STATUS: Record<InvitationStatus, { label: string; badge: string }> = {
 
 type Pending = { kind: 'leave' | 'remove'; member: ProjectMember } | null
 
-// Figma 1260:2438 · 28 프로젝트 멤버
+// Figma 1260:2438 · 28 작품 멤버
 export function MembersPage() {
   const project = useProject()
   const { reload: reloadProject } = useCurrentProject()
@@ -47,7 +47,7 @@ export function MembersPage() {
   const [blocked, setBlocked] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
 
   async function run<T>(fn: (t: string) => Promise<T>) {
     setError(null)
@@ -88,14 +88,14 @@ export function MembersPage() {
       <header className="world__header">
         <div>
           <p className="page-crumb">{project.title} / 설정</p>
-          <h1 className="page-title">프로젝트 멤버</h1>
+          <h1 className="page-title">함께 쓰는 사람들</h1>
           <p className="page-desc">함께 작업할 사람을 초대하고 역할을 정하세요.</p>
         </div>
       </header>
 
       {blocked && (
         <div className="notice notice--error members__alert" role="alert">
-          <strong>프로젝트 소유자는 나갈 수 없어요</strong>
+          <strong>작품 소유자는 나갈 수 없어요</strong>
           <span>{blocked.includes('넘겨') ? '먼저 다른 멤버에게 소유자 역할을 넘겨 주세요.' : blocked}</span>
         </div>
       )}
@@ -125,7 +125,7 @@ export function MembersPage() {
             <tbody>
               {list.map((m) => {
                 const me = m.user_id === user?.user_id
-                // 팀 프로젝트의 팀원은 팀에서 관리한다 (백엔드는 여기서 바꾸면 MEMBER_NOT_FOUND)
+                // 팀 작품의 팀원은 팀에서 관리한다 (백엔드는 여기서 바꾸면 MEMBER_NOT_FOUND)
                 const viaTeam = m.source === 'team'
                 return (
                   <tr key={m.user_id}>
@@ -185,7 +185,7 @@ export function MembersPage() {
           ) : (
             <section className="panel">
               <h2 className="panel__title">초대하기</h2>
-              <p className="page-desc">초대는 프로젝트 소유자만 할 수 있어요. 함께할 사람이 있으면 소유자에게 요청해 주세요.</p>
+              <p className="page-desc">초대는 작품 소유자만 할 수 있어요. 함께할 사람이 있으면 소유자에게 요청해 주세요.</p>
             </section>
           )}
 
@@ -221,8 +221,8 @@ export function MembersPage() {
           title={pending.kind === 'leave' ? `“${project.title}”에서 나갈까요?` : `${pending.member.name} 님을 내보낼까요?`}
           body={
             pending.kind === 'leave'
-              ? '나가면 이 프로젝트의 원고와 분석 결과를 더 볼 수 없어요. 다시 참여하려면 초대를 받아야 해요.'
-              : '내보내면 이 프로젝트에 더 들어올 수 없어요. 쓴 원고와 기록은 그대로 남아요.'
+              ? '나가면 이 작품의 원고와 분석 결과를 더 볼 수 없어요. 다시 참여하려면 초대를 받아야 해요.'
+              : '내보내면 이 작품에 더 들어올 수 없어요. 쓴 원고와 기록은 그대로 남아요.'
           }
           confirmLabel={pending.kind === 'leave' ? '나가기' : '내보내기'}
           busy={busy}

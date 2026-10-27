@@ -1,13 +1,8 @@
-import { type PointerEvent, useLayoutEffect, useRef, useState } from 'react'
-import {
-  AnimatePresence,
-  type MotionValue,
-  motion,
-  useMotionValueEvent,
-  useTransform,
-} from 'motion/react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { AnimatePresence, type MotionValue, motion, useMotionValueEvent, useTransform } from 'motion/react'
 import { useSectionProgress } from '../hooks/useSectionProgress'
-import { Character, Conflict, Relation, Foreshadow, Collab } from './FeatureVisuals'
+import { Character, Conflict, Collab } from './FeatureVisuals'
+import { VOICE } from '../../../content/voice'
 
 /**
  * 레퍼런스
@@ -16,41 +11,9 @@ import { Character, Conflict, Relation, Foreshadow, Collab } from './FeatureVisu
  * 카드 배경은 프라이머리 팔레트 스와치. 기능은 기획서 6장 핵심 기능 기준.
  */
 const CARDS = [
-  {
-    hex: '#384959',
-    tone: 'dark',
-    title: '자연어 캐릭터 설계',
-    body: '캐릭터를 문장으로 설명하세요. 캐릭터의 정보는 자동으로 정리되고, 언제든 고칠 수 있어요.',
-    Visual: Character,
-  },
-  {
-    hex: '#BDDDFC',
-    tone: 'light',
-    title: '설정 충돌 감지',
-    body: '설정에 어긋나는 글을 쓰면 AI가 짚어줘요.',
-    Visual: Conflict,
-  },
-  {
-    hex: '#88BDF2',
-    tone: 'light',
-    title: '관계 변화 시각화',
-    body: '캐릭터 간의 관계 변화를 한눈에 볼 수 있게 도와줘요.',
-    Visual: Relation,
-  },
-  {
-    hex: '#6A89A7',
-    tone: 'dark',
-    title: '복선 추적',
-    body: '어디서 복선을 심고, 거두었는지 간단히 정리해줘요.',
-    Visual: Foreshadow,
-  },
-  {
-    hex: '#E5F0FF',
-    tone: 'light',
-    title: '함께 쓰기',
-    body: '팀을 만들어 함께 작업하고, 피드백을 주고받으세요.',
-    Visual: Collab,
-  },
+  { hex: 'var(--ink)', tone: 'dark', ...VOICE.tools.character, Visual: Character },
+  { hex: 'var(--sky)', tone: 'light', ...VOICE.tools.conflict, Visual: Conflict },
+  { hex: 'var(--c50)', tone: 'light', ...VOICE.tools.collab, Visual: Collab },
 ] as const
 
 const N = CARDS.length
@@ -62,13 +25,6 @@ function Segment({ i, progress }: { i: number; progress: MotionValue<number> }) 
       <motion.i style={{ scaleX }} />
     </span>
   )
-}
-
-// 카드 위 마우스 위치를 따라가는 스포트라이트
-const onSpot = (e: PointerEvent<HTMLElement>) => {
-  const r = e.currentTarget.getBoundingClientRect()
-  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
-  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
 }
 
 export function Features() {
@@ -97,16 +53,11 @@ export function Features() {
   useMotionValueEvent(p, 'change', (v) => setActive(Math.min(N - 1, Math.round(v * (N - 1)))))
 
   return (
-    <section
-      ref={ref}
-      className="features"
-      id="features"
-      style={{ height: `calc(${distance * 1.15}px + 100vh)` }}
-    >
+    <section ref={ref} className="features" id="features" style={{ height: `calc(${distance * 1.15}px + 100vh)` }}>
       <div className="features__sticky">
         <header className="fx-head">
           <div>
-            <h2>Prolog가 할 수 있는 것들</h2>
+            <h2>{VOICE.tools.title}</h2>
           </div>
           <div className="fx-meta">
             <div className="fx-count" aria-live="polite">
@@ -138,9 +89,8 @@ export function Features() {
               className={`fcard fcard--${c.tone}`}
               style={{ background: c.hex }}
               data-active={active === i}
-              onPointerMove={onSpot}
             >
-              <div className="fcard__visual">
+              <div className="fcard__visual" role="img" aria-label={`${c.title} 예시`}>
                 <Visual active={active === i} />
               </div>
               <div className="fcard__meta">

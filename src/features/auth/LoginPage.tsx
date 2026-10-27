@@ -1,3 +1,4 @@
+import { VOICE } from '../../content/voice'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
@@ -40,7 +41,7 @@ export function LoginPage() {
       signIn(await authApi.login(loginId.trim(), password))
       navigate(takeReturnTo(), { replace: true })
     } catch (err) {
-      setError(errorCode(err) === 'INVALID_CREDENTIALS' ? '아이디 또는 비밀번호가 올바르지 않습니다. 다시 확인해 주세요.' : describeError(err))
+      setError(errorCode(err) === 'INVALID_CREDENTIALS' ? '아이디 또는 비밀번호가 맞지 않아요. 다시 확인해 주세요.' : describeError(err))
     } finally {
       setBusy(false)
     }
@@ -65,7 +66,7 @@ export function LoginPage() {
   return (
     // Figma 1175:2053 — 제목 / 입력(간격 36) / 버튼+계정 복구(16) / 소셜, 묶음 사이 52
     <form className="auth-form auth-form--login" onSubmit={onSubmit} noValidate>
-      <h1 className="auth-form__title">로그인</h1>
+      <h1 className="auth-form__title">{VOICE.auth.login}</h1>
       <div className="auth-form__fields">
         {IS_REAL && !state.notice && !error && (
           <p className="notice" role="status">

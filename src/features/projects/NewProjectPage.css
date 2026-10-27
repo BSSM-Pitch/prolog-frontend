@@ -109,3 +109,19 @@
     grid-template-columns: 1fr;
   }
 }
+
+.new-project {
+  max-width: 900px;
+}
+.app .new-project__form {
+  border: 0;
+  border-top: 2px solid var(--itda-ink);
+  border-radius: 0;
+  padding: 28px 0 0;
+}
+.new-project__start-title {
+  font-weight: 700;
+}
+.new-project .dropzone {
+  border-radius: 2px;
+}

@@ -157,8 +157,10 @@
 }
 .auth-form__title {
   font-size: 35px;
-  font-weight: 500;
-  line-height: 45px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.025em;
+  word-break: keep-all;
 }
 /* 입력 묶음 — 필드 사이 36 */
 .auth-form__fields {

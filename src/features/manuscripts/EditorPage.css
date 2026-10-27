@@ -1,106 +1,148 @@
-/* Figma 841:662 · 19 원고 편집기 — 원고 2/3, 질문 1/3 */
 .editor {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-32);
-  max-width: 1504px;
+  gap: 40px;
+  max-width: 1400px;
+}
+.editor .page-crumb a {
+  color: inherit;
+  text-decoration: none;
+}
+.editor .page-crumb a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .editor__layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
-  gap: var(--itda-space-20);
+  grid-template-columns: minmax(0, 1fr) 280px;
   align-items: start;
+  gap: 40px;
 }
-
-.editor__paper {
-  gap: var(--itda-space-20);
+.app .editor__paper {
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-top: 2px solid var(--itda-ink);
+  border-radius: 0;
 }
 .editor__head {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-12);
-  padding-bottom: var(--itda-space-16);
+  gap: 12px;
+  padding: 18px 0;
   border-bottom: 1px solid var(--stroke);
 }
 .editor__head-title {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-12);
+  gap: 12px;
   flex-wrap: wrap;
 }
 .editor__chapter {
   height: 36px;
-  max-width: 280px;
-  padding: 0 10px;
-  border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
-  font-size: 18px;
-  font-weight: 500;
+  max-width: min(100%, 320px);
+  padding: 0 24px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: #fff;
+  font-size: 17px;
+  font-weight: 700;
+}
+.editor__chapter:focus-visible {
+  outline: 2px solid var(--itda-ink);
+  outline-offset: 4px;
 }
 .editor__head-title .btn {
-  height: 36px;
   margin-left: auto;
+  height: 34px;
+  font-size: 12px;
 }
 .editor__badges {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--itda-space-12);
+  gap: 12px;
+}
+.editor__badges .page-crumb {
+  margin: 0;
 }
 .editor__retry {
   border: 0;
   cursor: pointer;
 }
-
 .editor__text {
-  min-height: 460px;
-  padding: var(--itda-space-24) var(--itda-space-32);
-  border-radius: var(--prolog-radius-8);
-  background: #fbfdff;
-  font-size: 16px;
-  line-height: 1.9;
+  min-height: 60vh;
+  padding: 36px 12px 32px 0;
+  border-radius: 0;
+  background: #fff;
+  font-family: var(--font-literary);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 2.15;
+  letter-spacing: -0.015em;
+}
+.editor__text .textbox__input {
+  min-height: 52vh;
 }
 .editor__text:has(:focus-visible) {
-  box-shadow: inset 0 0 0 2px rgba(52, 94, 141, 0.35);
+  outline: 1px solid var(--input-stroke);
+  outline-offset: 8px;
 }
 .editor__text ::selection {
-  background: #bdddfc;
+  color: var(--itda-ink);
+  background: var(--prolog-highlight-setting);
 }
-
 .editor__foot {
   display: flex;
   align-items: center;
-  gap: var(--itda-space-16);
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--stroke);
 }
-
 .editor__side {
   display: flex;
   flex-direction: column;
-  gap: var(--itda-space-20);
+  gap: 24px;
+  padding-left: 28px;
+  border-left: 1px solid var(--stroke);
+}
+.app .editor__side .panel {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  gap: 16px;
+}
+.editor__side .panel__title {
+  font-size: 18px;
+  line-height: 1.5;
 }
 .editor__question {
   width: 100%;
-  padding: 10px 14px;
+  padding: 12px;
   border: 1px solid var(--input-stroke);
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-surface);
+  border-radius: 2px;
+  background: var(--itda-background);
   font-size: 14px;
-  line-height: 22px;
+  line-height: 1.8;
 }
 .editor__question:focus-within {
-  outline: none;
-  border-color: var(--prolog-color-interaction);
-  box-shadow: inset 0 0 0 1px var(--prolog-color-interaction);
+  border-color: var(--itda-ink);
+  box-shadow: inset 0 0 0 1px var(--itda-ink);
 }
 .editor__selection {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: var(--prolog-radius-8);
-  background: var(--itda-background);
+  gap: 8px;
+  padding: 14px;
+  border-left: 2px solid #b7af86;
+  background: var(--prolog-highlight-setting);
+  font-family: var(--font-literary);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 1.9;
+}
+.editor__selection :is(.panel__label, .text-link) {
+  font-family: var(--font-sans);
 }
 .editor__selection .text-link {
   align-self: flex-start;
@@ -109,26 +151,42 @@
 .editor__answer-head {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   justify-content: space-between;
 }
 .editor__answer-head .text-link {
-  font-size: 13px;
+  font-size: 12px;
 }
 .editor__asked {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 700;
+  line-height: 1.8;
 }
-.editor__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: var(--itda-space-24) var(--itda-space-8);
-  text-align: center;
-}
-
-@media (max-width: 1100px) {
+@media (max-width: 1180px) {
   .editor__layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 40px;
+  }
+  .editor__side {
+    border-left: 0;
+    border-top: 1px solid var(--stroke);
+    padding: 28px 0 0;
+  }
+  .editor__side form {
+    max-width: 640px;
+  }
+}
+@media (max-width: 600px) {
+  .editor {
+    gap: 28px;
+  }
+  .editor__text {
+    font-size: 17px;
+    padding-right: 0;
+  }
+  .editor__chapter {
+    max-width: 220px;
+    font-size: 15px;
   }
 }

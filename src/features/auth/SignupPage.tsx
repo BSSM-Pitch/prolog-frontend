@@ -1,3 +1,4 @@
+import { VOICE } from '../../content/voice'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
@@ -108,7 +109,7 @@ export function SignupPage() {
   return (
     // Figma 1214:2075 — 제목 / 입력(간격 36) / [버튼+링크(4)] · 소셜(36), 묶음 사이 52
     <form className="auth-form auth-form--signup" onSubmit={onSubmit} noValidate>
-      <h1 className="auth-form__title">회원가입</h1>
+      <h1 className="auth-form__title">{VOICE.auth.signup}</h1>
       <div className="auth-form__fields">
         {notice && (
           <p className="notice" role="status">
@@ -122,7 +123,7 @@ export function SignupPage() {
           onChange={set('username', setUsername)}
           error={errors.username}
           autoComplete="username"
-          placeholder="침착맨"
+          placeholder="작가님의 이름"
           autoFocus
         />
         {ticketMode ? (

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, Outlet, useMatch } from 'react-router-dom'
+import { Link, Outlet, useLocation, useMatch } from 'react-router-dom'
 import * as projectsApi from '../../api/projects'
 import { useSession } from '../../auth/session'
 import { describeError } from '../../lib/errors'
@@ -21,6 +21,9 @@ function readCollapsed() {
 export function AppShell() {
   const { withAuth } = useSession()
   const [collapsed, setCollapsed] = useState(readCollapsed)
+  const [menuLocation, setMenuLocation] = useState<string | null>(null)
+  const location = useLocation()
+  const menuOpen = menuLocation === location.key
 
   const match = useMatch('/projects/:projectId/*')
   const projectId = match?.params.projectId && match.params.projectId !== 'new' ? match.params.projectId : null
@@ -34,7 +37,11 @@ export function AppShell() {
     let cancelled = false
     withAuth((token) => projectsApi.getProject(token, projectId))
       .then((project) => !cancelled && setLoaded({ key: requestKey, state: { status: 'ready', project } }))
-      .catch((e) => !cancelled && setLoaded({ key: requestKey, state: { status: 'error', projectId, message: describeError(e) } }))
+      .catch(
+        (e) =>
+          !cancelled &&
+          setLoaded({ key: requestKey, state: { status: 'error', projectId, message: describeError(e) } }),
+      )
     return () => {
       cancelled = true
     }
@@ -43,7 +50,7 @@ export function AppShell() {
   const state = useMemo<CurrentProjectState>(() => {
     if (!projectId) return { status: 'none' }
     if (loaded?.key === requestKey) return loaded.state
-    // 같은 프로젝트를 다시 불러오는 동안에는 이전 정보를 그대로 보여 준다
+    // 같은 작품을 다시 불러오는 동안에는 이전 정보를 그대로 보여 준다
     if (loaded?.state.status === 'ready' && loaded.state.project.project_id === projectId) return loaded.state
     return { status: 'loading', projectId }
   }, [projectId, requestKey, loaded])
@@ -64,15 +71,29 @@ export function AppShell() {
 
   return (
     <CurrentProjectContext.Provider value={value}>
-      <div className={collapsed ? 'app app--collapsed' : 'app'}>
+      <div className={['app', collapsed && 'app--collapsed', menuOpen && 'app--menu-open'].filter(Boolean).join(' ')}>
+        <header className="app__mobile-bar">
+          <Link to="/projects" className="app__mobile-brand" aria-label="Prolog 내 서재">
+            prolog
+          </Link>
+          <button
+            type="button"
+            className="app__mobile-toggle"
+            aria-controls="app-navigation"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuLocation(menuOpen ? null : location.key)}
+          >
+            {menuOpen ? '메뉴 닫기' : '메뉴'}
+          </button>
+        </header>
         <Sidebar project={state.status === 'ready' ? state.project : null} collapsed={collapsed} onToggle={toggle} />
         <main className="app__main">
           {state.status === 'error' ? (
             <div className="app__problem" role="alert">
-              <h1>프로젝트를 열 수 없어요</h1>
+              <h1>작품을 열 수 없어요</h1>
               <p>{state.message}</p>
               <Link className="btn btn--outline" to="/projects">
-                내 프로젝트로 돌아가기
+                내 서재로 돌아가기
               </Link>
             </div>
           ) : (

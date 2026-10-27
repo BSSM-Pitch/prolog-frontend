@@ -64,7 +64,7 @@ function History() {
     }
   }
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const ms = manuscript.data
   const editorPath = projectPath(projectId, `manuscripts/${manuscriptId}`)
   const loadError = manuscript.error ?? first.error

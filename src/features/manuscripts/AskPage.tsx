@@ -35,7 +35,7 @@ export function AskPage() {
   const [confirmDelete, setConfirmDelete] = useState<QAThread | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
 
   const select = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params)
@@ -65,8 +65,8 @@ export function AskPage() {
     <div className="ask">
       <header>
         <p className="page-crumb">AI 보조 도구 / 원고 질문</p>
-        <h1 className="page-title">AI 질문</h1>
-        <p className="page-desc">원고 범위를 지정하면 근거 장면과 함께 답변을 확인할 수 있습니다.</p>
+        <h1 className="page-title">원고에 물어보기</h1>
+        <p className="page-desc">궁금한 장면을 물으면 원고를 바탕으로 답해요.</p>
       </header>
 
       {manuscripts.data && ready.length === 0 ? (

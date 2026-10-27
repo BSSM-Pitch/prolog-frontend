@@ -46,37 +46,37 @@ real 모드에서 달라지는 것:
 
 ## 화면과 경로
 
-| 경로 | Figma |
-|---|---|
-| `/auth` | 랜딩(`/`)으로 이동. 로그인·회원가입(`/auth/*`)은 따로 된 화면이 아니라 랜딩 위에 모달처럼 오른쪽에서 밀려 나오는 패널이다 (바깥·손잡이·Esc로 닫기, 닫으면 보던 자리 그대로) |
-| `/auth/login` | 1173:2382 로그인 · 1214:2175 오류 |
-| `/auth/signup` | 1214:2072 회원가입 |
-| `/auth/signup/role` | 840:176 사용자 유형 선택 |
-| `/auth/signup/verify` | 840:360 계정 인증 · 1214:2144 오류 |
-| `/auth/find-id` | 840:433 · 1214:2224 아이디 찾기 |
-| `/auth/reset-password` | 840:457 · 1214:2353 비밀번호 재설정 |
-| `/projects` | 1260:2218 · 27 내 프로젝트 (사이드바 915:2343) |
-| `/projects/new` | 1247:1989 새 프로젝트 |
-| `/projects/:id` | 841:784 · 01 개요 |
-| `/projects/:id/manuscripts` | 841:376 · 18 원고 업로드 |
-| `/projects/:id/manuscripts/:msId` | 841:662 · 19 원고 편집기 |
-| `/projects/:id/ask` | 842:579 · 02 AI 질문 · 35 답변 대기 · 36 답변 실패 |
-| `/projects/:id/characters` | 842:863 · 20 등장인물 |
-| `/projects/:id/characters/new` | 842:994 · 22 자연어로 인물 설계 |
-| `/projects/:id/characters/drafts/:draftId` | 842:1115 · 23 초안 검토 · 37 병합 선택 |
-| `/projects/:id/rules` | 843:1659 · 21 설정 규칙 |
-| `/projects/:id/conflicts` | 843:1781 · 05 설정 충돌 검토 |
-| `/projects/:id/relationships` | 843:1109 · 13 관계 변화 · 38 덮어쓰기 확인 |
-| `/projects/:id/foreshadowings` | 843:1394 · 04 복선 추적 · 843:1534 · 24 복선 타임라인 |
-| `/projects/:id/story-map` | 843:1243 · 03 스토리 지도 |
-| `/projects/:id/members` | 1260:2438 · 28 프로젝트 멤버 |
-| `/teams/new` | 843:2082 · 25 새 팀 만들기 |
-| `/teams/:teamId` | 843:2184 · 26 팀 작업공간 |
-| `/teams/:teamId/members` | 1260:2672 · 29 팀원과 초대 |
-| `/notifications` | 1261:2571 · 30 알림 |
-| `/settings/notifications` | 1261:2820 · 31 알림 설정 |
-| `/` | 랜딩 (디자인 팀 Prolog-landing 소스, `src/features/landing/`). 로그인 상태면 버튼이 "내 프로젝트"로 바뀐다 |
-| `/projects/:id/manuscripts/:msId/history` | 1261:3042 · 32 원고 편집 이력 |
+| 경로                                       | Figma                                                                                                                                                                       |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/auth`                                    | 랜딩(`/`)으로 이동. 로그인·회원가입(`/auth/*`)은 따로 된 화면이 아니라 랜딩 위에 모달처럼 오른쪽에서 밀려 나오는 패널이다 (바깥·손잡이·Esc로 닫기, 닫으면 보던 자리 그대로) |
+| `/auth/login`                              | 1173:2382 로그인 · 1214:2175 오류                                                                                                                                           |
+| `/auth/signup`                             | 1214:2072 회원가입                                                                                                                                                          |
+| `/auth/signup/role`                        | 840:176 사용자 유형 선택                                                                                                                                                    |
+| `/auth/signup/verify`                      | 840:360 계정 인증 · 1214:2144 오류                                                                                                                                          |
+| `/auth/find-id`                            | 840:433 · 1214:2224 아이디 찾기                                                                                                                                             |
+| `/auth/reset-password`                     | 840:457 · 1214:2353 비밀번호 재설정                                                                                                                                         |
+| `/projects`                                | 1260:2218 · 27 내 프로젝트 (사이드바 915:2343)                                                                                                                              |
+| `/projects/new`                            | 1247:1989 새 프로젝트                                                                                                                                                       |
+| `/projects/:id`                            | 841:784 · 01 개요                                                                                                                                                           |
+| `/projects/:id/manuscripts`                | 841:376 · 18 원고 업로드                                                                                                                                                    |
+| `/projects/:id/manuscripts/:msId`          | 841:662 · 19 원고 편집기                                                                                                                                                    |
+| `/projects/:id/ask`                        | 842:579 · 02 AI 질문 · 35 답변 대기 · 36 답변 실패                                                                                                                          |
+| `/projects/:id/characters`                 | 842:863 · 20 등장인물                                                                                                                                                       |
+| `/projects/:id/characters/new`             | 842:994 · 22 자연어로 인물 설계                                                                                                                                             |
+| `/projects/:id/characters/drafts/:draftId` | 842:1115 · 23 초안 검토 · 37 병합 선택                                                                                                                                      |
+| `/projects/:id/rules`                      | 843:1659 · 21 설정 규칙                                                                                                                                                     |
+| `/projects/:id/conflicts`                  | 843:1781 · 05 설정 충돌 검토                                                                                                                                                |
+| `/projects/:id/relationships`              | 843:1109 · 13 관계 변화 · 38 덮어쓰기 확인                                                                                                                                  |
+| `/projects/:id/foreshadowings`             | 843:1394 · 04 복선 추적 · 843:1534 · 24 복선 타임라인                                                                                                                       |
+| `/projects/:id/story-map`                  | 843:1243 · 03 스토리 지도                                                                                                                                                   |
+| `/projects/:id/members`                    | 1260:2438 · 28 프로젝트 멤버                                                                                                                                                |
+| `/teams/new`                               | 843:2082 · 25 새 팀 만들기                                                                                                                                                  |
+| `/teams/:teamId`                           | 843:2184 · 26 팀 작업공간                                                                                                                                                   |
+| `/teams/:teamId/members`                   | 1260:2672 · 29 팀원과 초대                                                                                                                                                  |
+| `/notifications`                           | 1261:2571 · 30 알림                                                                                                                                                         |
+| `/settings/notifications`                  | 1261:2820 · 31 알림 설정                                                                                                                                                    |
+| `/`                                        | 랜딩 (디자인 팀 Prolog-landing 소스, `src/features/landing/`). 로그인 상태면 버튼이 "내 프로젝트"로 바뀐다                                                                  |
+| `/projects/:id/manuscripts/:msId/history`  | 1261:3042 · 32 원고 편집 이력                                                                                                                                               |
 
 ## 랜딩
 
@@ -87,6 +87,16 @@ real 모드에서 달라지는 것:
 - Paperlogy는 앱의 `fonts.css`를 쓰고, Pretendard·JetBrains Mono·Nanum Pen Script는 랜딩을 열 때만 불러온다
 - 로그인·회원가입 버튼은 앱의 `/auth/login`, `/auth/signup`으로 연결했다. 수치(Stats)·후기(Voices) 섹션은 원본처럼 꺼 두었다
 - 추가 패키지: `lenis`(관성 스크롤), `motion`(스크롤 애니메이션)
+
+## 정유진 선생님 피드백 반영
+
+랜딩에 ‘작가 곁의 조용한 편집자’라는 보이스톤을 적용했다. 핵심 문구는 `src/content/voice.ts`, 문장·용어 기준은 [브랜드 보이스](docs/brand-voice.md)에서 관리한다.
+
+- 첫 화면: “한 편을 끝까지.”라는 굵은 고딕 제목과 시작 버튼, 옅은 책 본문 백드롭
+- 목차: Prolog의 약속 / 집필의 흐름 / 이야기의 도구
+- 실제 제공 기능에 맞춘 소개
+- 인증·작품·인물·원고·팀·알림의 안내와 사용자 용어 통일
+- 기존 앱 레이아웃·색상·API·URL은 유지
 
 ## 목업 테스트 계정
 
@@ -212,3 +222,5 @@ SSM (`src/api/story.ts`):
 - 노드의 관련 인물을 `character_id` 대신 이름(`characters`)으로 돌려줌
 - 노드 수정(`PATCH …/structure-map/nodes/:nodeId`)은 제목·요약만 받음. 다시 분석해도 사용자가 고친 지도는 유지
 - 화면은 장이 가장 많은 원고를 기본 분석 대상으로 고르고, 복선 연결은 그 본편 지도에서만 보여 줌 (복선의 장 번호가 어느 원고 기준인지 명세에 없음)
+
+실사용 화면은 랜딩과 동일한 흰 바탕·먹색 제목·명조 원고를 사용한다. 서재 목록, 작품 홈, 원고 편집, 인물·세계관·설정 검토와 공통 사이드바에 적용했으며, 스타일 토큰은 `src/styles/tokens.css`에서 관리한다. 모바일 메뉴는 페이지 이동 시 접힌다.

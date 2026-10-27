@@ -14,7 +14,11 @@ import './EditorPage.css'
 import './answer.css'
 import { TextArea } from '../../components/TextArea'
 
-type SaveState = { kind: 'saved'; at: string } | { kind: 'dirty' } | { kind: 'saving' } | { kind: 'error'; message: string }
+type SaveState =
+  | { kind: 'saved'; at: string }
+  | { kind: 'dirty' }
+  | { kind: 'saving' }
+  | { kind: 'error'; message: string }
 
 const AUTOSAVE_MS = 900
 
@@ -27,8 +31,14 @@ export function EditorPage() {
   const { withAuth } = useSession()
   const projectId = project?.project_id ?? ''
 
-  const manuscript = useResource(project ? (t) => api.getManuscript(t, projectId, manuscriptId) : null, [projectId, manuscriptId])
-  const chapters = useResource(project ? (t) => api.listChapters(t, projectId, manuscriptId) : null, [projectId, manuscriptId])
+  const manuscript = useResource(project ? (t) => api.getManuscript(t, projectId, manuscriptId) : null, [
+    projectId,
+    manuscriptId,
+  ])
+  const chapters = useResource(project ? (t) => api.listChapters(t, projectId, manuscriptId) : null, [
+    projectId,
+    manuscriptId,
+  ])
   const list = chapters.data ?? []
   const requested = Number(params.get('chapter'))
   const chapter = list.find((c) => c.chapter_no === requested) ?? list[list.length - 1] ?? null
@@ -48,9 +58,13 @@ export function EditorPage() {
     pendingSave.current = null
     setSave({ kind: 'saving' })
     try {
-      const saved = await withAuth((t) => api.saveChapter(t, projectId, manuscriptId, job.chapterId, { content: job.content }))
+      const saved = await withAuth((t) =>
+        api.saveChapter(t, projectId, manuscriptId, job.chapterId, { content: job.content }),
+      )
       chapters.setData((prev) => prev?.map((c) => (c.chapter_id === saved.chapter_id ? saved : c)) ?? null)
-      setSave(pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at ?? new Date().toISOString() })
+      setSave(
+        pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at ?? new Date().toISOString() },
+      )
     } catch (e) {
       pendingSave.current = pendingSave.current ?? job
       setSave({ kind: 'error', message: describeError(e) })
@@ -128,7 +142,7 @@ export function EditorPage() {
     }
   }
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const ms = manuscript.data
   const loadError = manuscript.error ?? chapters.error
   const canEdit = project.my_role !== 'viewer'
@@ -137,11 +151,9 @@ export function EditorPage() {
     <div className="editor">
       <header>
         <p className="page-crumb">
-          쓰기 / {project.title}
-          {chapter ? ` / ${chapter.chapter_no}장` : ''}
+          <Link to={projectPath(projectId)}>{project.title}</Link> / 원고
         </p>
-        <h1 className="page-title">원고 편집기</h1>
-        <p className="page-desc">집필에 집중하고, 필요한 순간에 AI 제안을 확인하세요.</p>
+        <h1 className="page-title">{ms?.title ?? '원고'}</h1>
       </header>
 
       {loadError && !ms && (
@@ -156,7 +168,9 @@ export function EditorPage() {
 
       {ms && ms.status !== 'ready' && (
         <div className="panel" role="status">
-          <p className="panel__title">{ms.status === 'processing' ? '아직 텍스트를 추출하고 있어요' : '이 원고는 텍스트 추출에 실패했어요'}</p>
+          <p className="panel__title">
+            {ms.status === 'processing' ? '아직 텍스트를 추출하고 있어요' : '이 원고는 텍스트 추출에 실패했어요'}
+          </p>
           <Link className="btn btn--outline" to={projectPath(projectId, 'manuscripts')}>
             원고 업로드 화면으로
           </Link>
@@ -171,7 +185,6 @@ export function EditorPage() {
                 <label className="visually-hidden" htmlFor="chapter-select">
                   장 선택
                 </label>
-                <span className="panel__title">{project.title} /</span>
                 <select
                   id="chapter-select"
                   className="editor__chapter"
@@ -191,7 +204,7 @@ export function EditorPage() {
                   </Button>
                 )}
               </div>
-              <div className="editor__badges">
+              <div className="editor__badges" role="status">
                 <SaveStatus state={save} fallbackAt={chapter?.updated_at ?? null} onRetry={flush} />
               </div>
             </div>
@@ -213,8 +226,9 @@ export function EditorPage() {
             )}
 
             <div className="editor__foot">
-              <Link className="btn btn--secondary" to={projectPath(projectId, `manuscripts/${manuscriptId}/history`)}>
-                전체 이력 보기
+              <span className="panel__label">{text.length.toLocaleString()}자</span>
+              <Link className="text-link" to={projectPath(projectId, `manuscripts/${manuscriptId}/history`)}>
+                편집 이력
               </Link>
               {!canEdit && <span className="panel__label">보기 전용이라 수정할 수 없어요</span>}
             </div>
@@ -234,7 +248,15 @@ export function EditorPage() {
   )
 }
 
-function SaveStatus({ state, fallbackAt, onRetry }: { state: SaveState | null; fallbackAt: string | null; onRetry: () => void }) {
+function SaveStatus({
+  state,
+  fallbackAt,
+  onRetry,
+}: {
+  state: SaveState | null
+  fallbackAt: string | null
+  onRetry: () => void
+}) {
   if (state?.kind === 'saving' || state?.kind === 'dirty') return <span className="page-crumb">저장 중…</span>
   if (state?.kind === 'error') {
     return (
@@ -260,7 +282,9 @@ interface AskPanelProps {
 function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpenCitation }: AskPanelProps) {
   const { withAuth } = useSession()
   const [question, setQuestion] = useState('')
-  const [selection, setSelection] = useState<{ chapterId: string; start: number; end: number; text: string } | null>(null)
+  const [selection, setSelection] = useState<{ chapterId: string; start: number; end: number; text: string } | null>(
+    null,
+  )
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [target, setTarget] = useState<{ threadId: string; messageId: string; question: string } | null>(null)
@@ -272,7 +296,9 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
     if (!el || !chapter) return
     const onSelect = () => {
       const { selectionStart: start, selectionEnd: end } = el
-      setSelection(end - start >= 2 ? { chapterId: chapter.chapter_id, start, end, text: el.value.slice(start, end) } : null)
+      setSelection(
+        end - start >= 2 ? { chapterId: chapter.chapter_id, start, end, text: el.value.slice(start, end) } : null,
+      )
     }
     el.addEventListener('select', onSelect)
     el.addEventListener('mouseup', onSelect)
@@ -301,7 +327,12 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
           projectId,
           manuscriptId,
           selection
-            ? { question: q, scope: 'selection', chapter_id: selection.chapterId, selection_range: { start: selection.start, end: selection.end } }
+            ? {
+                question: q,
+                scope: 'selection',
+                chapter_id: selection.chapterId,
+                selection_range: { start: selection.start, end: selection.end },
+              }
             : { question: q, scope: 'whole' },
         ),
       )
@@ -321,16 +352,17 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
   return (
     <aside className="editor__side">
       <form className="panel" onSubmit={onSubmit} noValidate>
-        <h2 className="panel__title">선택 문장에 질문하기</h2>
+        <h2 className="panel__title">원고에 물어보기</h2>
         {selection ? (
           <p className="editor__selection">
-            <span className="panel__label">선택한 문장</span>“{selection.text.length > 60 ? `${selection.text.slice(0, 58)}…` : selection.text}”
+            <span className="panel__label">선택한 문장</span>“
+            {selection.text.length > 60 ? `${selection.text.slice(0, 58)}…` : selection.text}”
             <button type="button" className="text-link" onClick={() => setSelection(null)}>
               선택 해제
             </button>
           </p>
         ) : (
-          <p className="panel__label">본문에서 문장을 드래그하면 그 부분에 대해 물어볼 수 있어요. 선택하지 않으면 원고 전체를 두고 답해요.</p>
+          <p className="panel__label">문장을 선택하면 그 부분을 중심으로 살펴봐요.</p>
         )}
         <label className="field">
           <span className="field__label">질문</span>
@@ -344,7 +376,7 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) e.currentTarget.form?.requestSubmit()
             }}
-            placeholder="윤서의 망설임을 더 선명하게 만들려면?"
+            placeholder="앞선 설정과 다른 부분이 있어?"
             rows={3}
           />
         </label>
@@ -358,33 +390,31 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
         </Button>
       </form>
 
-      <section className="panel" aria-labelledby="recent-answer">
-        <div className="editor__answer-head">
-          <h2 id="recent-answer" className="panel__title">
-            최근 답변
-          </h2>
-          <Link className="text-link" to={`${projectPath(projectId, 'ask')}?manuscript=${manuscriptId}`}>
-            대화 전체 보기
-          </Link>
-        </div>
-        {target ? (
-          <>
-            <p className="editor__asked">Q. {target.question}</p>
-            <AnswerCard
-              message={answer.message}
-              error={answer.error}
-              onRetry={answer.retry}
-              onOpenCitation={onOpenCitation}
-              onEditQuestion={() => setQuestion(target.question)}
-            />
-          </>
-        ) : (
-          <div className="editor__empty">
-            <p className="answer__title">아직 받은 답변이 없어요</p>
-            <p className="answer__body">문장을 선택하고 질문하면 원고 근거와 함께 답변이 이곳에 표시돼요. 답변은 원고를 바꾸지 않아요.</p>
+      {target && (
+        <section className="panel" aria-labelledby="recent-answer">
+          <div className="editor__answer-head">
+            <h2 id="recent-answer" className="panel__title">
+              최근 답변
+            </h2>
+            <Link className="text-link" to={`${projectPath(projectId, 'ask')}?manuscript=${manuscriptId}`}>
+              대화 전체 보기
+            </Link>
           </div>
-        )}
-      </section>
+          <p className="editor__asked">{target.question}</p>
+          <AnswerCard
+            message={answer.message}
+            error={answer.error}
+            onRetry={answer.retry}
+            onOpenCitation={onOpenCitation}
+            onEditQuestion={() => setQuestion(target.question)}
+          />
+        </section>
+      )}
+      {!target && (
+        <Link className="text-link" to={`${projectPath(projectId, 'ask')}?manuscript=${manuscriptId}`}>
+          이전 대화 보기
+        </Link>
+      )}
     </aside>
   )
 }

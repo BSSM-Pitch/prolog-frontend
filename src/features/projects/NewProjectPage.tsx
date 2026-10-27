@@ -16,19 +16,19 @@ const ACCEPT = '.docx,.txt,.pdf'
 type Start = { kind: 'none' } | { kind: 'file'; file: File } | { kind: 'editor' }
 
 const OWNER_OPTIONS: Array<{ value: OwnerType; title: string; body: string }> = [
-  { value: 'personal', title: '개인 프로젝트', body: '사용자를 초대해 함께 작업 가능' },
-  { value: 'team', title: '팀 프로젝트', body: '선택한 팀이 소유하는 프로젝트' },
+  { value: 'personal', title: '개인 작품', body: '혼자 시작하고, 동료를 초대할 수 있어요.' },
+  { value: 'team', title: '팀 작품', body: '팀과 함께 원고를 나눠요.' },
 ]
 
 const baseName = (name: string) => name.replace(/\.[^.]+$/, '')
 
-// Figma 1247:1989 새 프로젝트
+// Figma 1247:1989 새 작품
 export function NewProjectPage() {
   const navigate = useNavigate()
   const { withAuth } = useSession()
   const fileInput = useRef<HTMLInputElement>(null)
 
-  // 팀 작업공간의 "새 프로젝트"로 들어오면 그 팀을 고른 채로 시작한다
+  // 팀 작업공간의 "새 작품"로 들어오면 그 팀을 고른 채로 시작한다
   const presetTeam = useSearchParams()[0].get('team') ?? ''
   const [ownerType, setOwnerType] = useState<OwnerType>(presetTeam ? 'team' : 'personal')
   const [teams, setTeams] = useState<Team[] | null>(null)
@@ -72,11 +72,11 @@ export function NewProjectPage() {
     setFormError(null)
     const t = title.trim()
     if (!t) {
-      setTitleError('프로젝트 이름을 입력해 주세요.')
+      setTitleError('작품 이름을 입력해 주세요.')
       return
     }
     if (ownerType === 'team' && !teamId) {
-      setFormError('팀 프로젝트를 만들 팀을 골라 주세요.')
+      setFormError('팀 작품을 만들 팀을 골라 주세요.')
       return
     }
 
@@ -101,8 +101,8 @@ export function NewProjectPage() {
         }
         navigate(projectPath(id), { replace: true })
       } catch (err) {
-        // 프로젝트는 만들어졌으니 원고 화면에서 다시 시도하게 안내한다
-        navigate(projectPath(id, 'manuscripts'), { replace: true, state: { notice: `프로젝트는 만들었지만 원고를 추가하지 못했어요. ${describeError(err)}` } })
+        // 작품은 만들어졌으니 원고 화면에서 다시 시도하게 안내한다
+        navigate(projectPath(id, 'manuscripts'), { replace: true, state: { notice: `작품은 만들었지만 원고를 추가하지 못했어요. ${describeError(err)}` } })
       }
     } catch (err) {
       setFormError(describeError(err))
@@ -116,12 +116,12 @@ export function NewProjectPage() {
   return (
     <div className="new-project">
       <header>
-        <h1 className="page-title">새 프로젝트</h1>
+        <h1 className="page-title">새 작품</h1>
         <p className="page-desc">어떤 작품을 만드실 건가요?</p>
       </header>
 
       <form className="panel new-project__form" onSubmit={onSubmit} noValidate>
-        <h2 className="panel__title">프로젝트 만들기</h2>
+        <h2 className="panel__title">작품 만들기</h2>
 
         <fieldset className="new-project__fieldset">
           <legend className="field__label">작업 방식</legend>
@@ -142,7 +142,7 @@ export function NewProjectPage() {
           </div>
           {ownerType === 'team' &&
             (noTeams ? (
-              <p className="notice notice--error">소속된 팀이 없어요. 팀에 초대받거나 팀을 만든 뒤 팀 프로젝트를 만들 수 있어요.</p>
+              <p className="notice notice--error">소속된 팀이 없어요. 팀에 초대받거나 팀을 만든 뒤 팀 작품을 만들 수 있어요.</p>
             ) : (
               <label className="new-project__team">
                 <span className="field__label">소유 팀</span>
@@ -159,7 +159,7 @@ export function NewProjectPage() {
         </fieldset>
 
         <TextField
-          label="프로젝트 이름"
+          label="작품 이름"
           value={title}
           onChange={(v) => {
             setTitle(v)
@@ -176,7 +176,7 @@ export function NewProjectPage() {
           </h3>
           <p className="page-desc">
             파일을 업로드하거나 빈 편집기에서 직접 작성할 수 있습니다.
-            <br />한 프로젝트에 여러 원고를 업로드할 수 있습니다.
+            <br />한 작품에 여러 원고를 담을 수 있어요.
           </p>
           <div className="new-project__starts">
             <div
@@ -255,7 +255,7 @@ export function NewProjectPage() {
           </p>
         )}
         <Button type="submit" size="xl" block busy={busy} disabled={ownerType === 'team' && noTeams}>
-          {busy ? '만드는 중…' : '프로젝트 만들고 계속'}
+          {busy ? '만드는 중…' : '작품 시작하기'}
         </Button>
       </form>
     </div>

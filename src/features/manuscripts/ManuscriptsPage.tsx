@@ -46,7 +46,7 @@ export function ManuscriptsPage() {
   const processing = manuscripts.some((m) => m.status === 'processing')
   useInterval(list.reload, 1500, processing)
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
 
   const ready = manuscripts.filter((m) => m.status === 'ready')
   const selected = ready.find((m) => m.manuscript_id === selectedId) ?? ready[0] ?? null
@@ -118,7 +118,7 @@ export function ManuscriptsPage() {
   return (
     <div className="manuscripts">
       <header>
-        <p className="page-crumb">원고 관리 / 프로젝트에 추가</p>
+        <p className="page-crumb">원고 관리 / 작품에 추가</p>
         <h1 className="page-title">원고 업로드</h1>
         <p className="page-desc">파일을 추가하고 진행 상태를 확인하세요.</p>
       </header>
@@ -239,7 +239,7 @@ export function ManuscriptsPage() {
         <section className="panel manuscripts__side" aria-labelledby="list-title">
           <div className="manuscripts__side-head">
             <h2 id="list-title" className="panel__title">
-              프로젝트 원고
+              작품 원고
             </h2>
             {canEdit && (
               <Button tone="soft" onClick={createEditorManuscript} busy={creating}>

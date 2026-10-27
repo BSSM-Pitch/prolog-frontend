@@ -10,7 +10,7 @@ import './teams.css'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const WEEK = 7 * 86_400_000
-/** (명세 미정의) "작업 중" — 최근 7일 안에 고친 팀 프로젝트 */
+/** (명세 미정의) "작업 중" — 최근 7일 안에 고친 팀 작품 */
 const isActive = (updatedAt: string) => Date.now() - new Date(updatedAt).getTime() < WEEK
 
 // Figma 843:2184 · 26 팀 작업공간 (예: 문장 수집소)
@@ -26,7 +26,7 @@ export function TeamPage() {
         <p className="panel__title">팀을 열 수 없어요</p>
         <p className="page-desc">{team.error}</p>
         <Link className="btn btn--outline" to="/projects">
-          내 프로젝트로
+          내 서재로
         </Link>
       </div>
     )
@@ -44,7 +44,7 @@ export function TeamPage() {
         <p className="page-crumb">관리 / 팀 작업공간</p>
         <h1 className="page-title">{t.name}</h1>
         <p className="page-desc">
-          협업 창작팀 · 팀원 {t.member_count}명 · 팀 프로젝트 {t.project_count}개{t.description ? ` — ${t.description}` : ''}
+          협업 창작팀 · 팀원 {t.member_count}명 · 팀 작품 {t.project_count}개{t.description ? ` — ${t.description}` : ''}
         </p>
       </header>
 
@@ -55,7 +55,7 @@ export function TeamPage() {
           <span className="panel__label">{t.pending_invitation_count !== null ? `초대 대기 ${t.pending_invitation_count}` : `내 역할 · ${TEAM_ROLE_LABEL[t.my_role]}`}</span>
         </Link>
         <div className="panel team__metric">
-          <span className="panel__label">팀 프로젝트</span>
+          <span className="panel__label">팀 작품</span>
           <strong>{pad(t.project_count)}개</strong>
           <span className="panel__label">작업 중 {active}</span>
         </div>
@@ -71,10 +71,10 @@ export function TeamPage() {
             {manage ? <TeamInviteForm teamId={teamId} layout="inline" onInvited={() => team.reload()} /> : <p className="page-desc">팀원 초대는 소유자와 관리자만 할 수 있어요.</p>}
           </div>
           <div className="panel team__create">
-            <p className="panel__title">팀 프로젝트 만들기</p>
+            <p className="panel__title">팀 작품 만들기</p>
             <p className="page-desc">팀의 새로운 작품을 집필하세요</p>
             <Link className="btn btn--primary" to={`/projects/new?team=${teamId}`}>
-              새 프로젝트
+              새 작품
             </Link>
           </div>
         </div>
@@ -82,12 +82,12 @@ export function TeamPage() {
 
       <section aria-labelledby="projects-title" className="team__section">
         <h2 id="projects-title" className="section-title">
-          팀 프로젝트와 팀원
+          팀 작품과 팀원
         </h2>
         <div className="team__grid">
           <div className="panel">
-            <p className="panel__title">팀 프로젝트 / {list.length}개</p>
-            {list.length === 0 && <p className="page-desc">아직 팀 프로젝트가 없어요. 새 프로젝트를 만들어 팀원과 함께 써 보세요.</p>}
+            <p className="panel__title">팀 작품 / {list.length}개</p>
+            {list.length === 0 && <p className="page-desc">아직 팀 작품이 없어요. 새 작품을 만들어 팀원과 함께 써 보세요.</p>}
             <ul className="team__projects">
               {list.map((p) => (
                 <li key={p.project_id}>
@@ -98,7 +98,7 @@ export function TeamPage() {
                     </p>
                   </div>
                   <Link className="btn btn--outline" to={projectPath(p.project_id)}>
-                    프로젝트 열기
+                    작품 열기
                   </Link>
                 </li>
               ))}

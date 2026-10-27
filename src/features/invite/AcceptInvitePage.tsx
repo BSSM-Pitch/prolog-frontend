@@ -14,7 +14,7 @@ const MESSAGES: Record<string, string> = {
   INVITATION_NOT_FOUND: '초대를 찾을 수 없어요. 취소되었거나 링크가 잘못됐을 수 있어요.',
   TEAM_INVITATION_NOT_FOUND: '초대를 찾을 수 없어요. 취소되었거나 링크가 잘못됐을 수 있어요.',
   INVITATION_NOT_PENDING: '이미 수락한 초대예요.',
-  ALREADY_MEMBER: '이미 이 프로젝트에 참여하고 있어요.',
+  ALREADY_MEMBER: '이미 이 작품에 참여하고 있어요.',
   ALREADY_TEAM_MEMBER: '이미 이 팀의 팀원이에요.',
 }
 
@@ -52,13 +52,13 @@ export function AcceptInvitePage() {
   return (
     <div className="state-block" style={{ maxWidth: 560 }}>
       <p className="page-crumb">초대</p>
-      <h1 className="page-title">{isTeam ? '팀 초대' : '프로젝트 초대'}를 받았어요</h1>
+      <h1 className="page-title">{isTeam ? '팀 초대' : '작품 초대'}를 받았어요</h1>
       {invalid ? (
         <p className="notice notice--error">초대 링크가 올바르지 않아요. 받은 링크를 그대로 열어 주세요.</p>
       ) : (
         <>
           <p className="page-desc">
-            {user?.username} 계정으로 참가해요. 참가하면 {josa(isTeam ? '팀 작업공간' : '프로젝트', '으로/로')} 바로 이동해요.
+            {user?.username} 계정으로 참가해요. 참가하면 {josa(isTeam ? '팀 작업공간' : '작품', '으로/로')} 바로 이동해요.
           </p>
           {error && (
             <p className="notice notice--error" role="alert">

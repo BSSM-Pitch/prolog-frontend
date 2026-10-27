@@ -37,7 +37,7 @@ export function CharactersPage() {
   const [blocked, setBlocked] = useState<{ message: string; deps: Dependent[] } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
 
   const all = list.data ?? []
   const filtered = all.filter((c) => !query.trim() || c.name.includes(query.trim()))
@@ -65,9 +65,8 @@ export function CharactersPage() {
   return (
     <div className="characters">
       <header>
-        <p className="page-crumb">세계관 데이터 / 등장인물 {all.length}명</p>
+        <p className="page-crumb">{project.title}</p>
         <h1 className="page-title">등장인물</h1>
-        <p className="page-desc">선택한 인물의 정보와 변화 이력, 연결 관계를 관리하세요.</p>
       </header>
       {notice && (
         <p className="notice notice--success" role="status">

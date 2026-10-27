@@ -1,0 +1,102 @@
+/* 본문 조판은 배경으로만 두고, 제목과 시작 버튼의 위계를 유지한다. */
+.lp .writing-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 100svh;
+  padding: clamp(152px, 20svh, 200px) var(--gutter) 96px;
+  background: #fff;
+  color: #171717;
+}
+.lp .writing-hero__backdrop {
+  --manuscript-ink: rgb(23 23 23 / 9%);
+  position: absolute;
+  z-index: -1;
+  inset: 110px var(--gutter) 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+  gap: clamp(48px, 7vw, 120px);
+  overflow: hidden;
+  color: var(--manuscript-ink);
+  pointer-events: none;
+  user-select: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 8%, #000 60%, transparent 96%);
+}
+.lp .writing-hero__page {
+  font-family: var(--literary);
+  font-size: clamp(16px, 1.45vw, 22px);
+  font-weight: 500;
+  line-height: 2.15;
+  letter-spacing: -0.025em;
+  text-align: justify;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+.lp .writing-hero__page p {
+  margin: 0;
+  text-indent: 1em;
+}
+.lp .writing-hero__annotation {
+  padding: 0.05em 0;
+  color: rgb(23 23 23 / 25%);
+  background: transparent;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.lp .writing-hero__annotation--character {
+  background: rgb(103 145 171 / 14%);
+}
+.lp .writing-hero__annotation--setting {
+  background: rgb(168 155 90 / 14%);
+}
+.lp .writing-hero__annotation--review {
+  text-decoration: underline wavy rgb(151 99 74 / 32%);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+.lp .writing-hero h1 {
+  font-family: var(--font);
+  font-size: clamp(42px, 11.7vw, 168px);
+  font-weight: 850;
+  line-height: 1.08;
+  letter-spacing: -0.065em;
+  white-space: nowrap;
+}
+.lp .writing-hero__start {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  margin-top: 40px;
+  padding: 12px 28px;
+  background: #171717;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 650;
+  transition: background 0.2s;
+}
+.lp .writing-hero__start:hover {
+  background: #383838;
+}
+.lp .writing-hero__start:focus-visible {
+  outline: 2px solid #171717;
+  outline-offset: 5px;
+  border-radius: 0;
+}
+@media (max-width: 760px) {
+  .lp .writing-hero {
+    padding-top: 170px;
+    padding-bottom: 64px;
+  }
+  .lp .writing-hero__backdrop {
+    --manuscript-ink: rgb(23 23 23 / 8%);
+    inset-block-start: 138px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .lp .writing-hero__start {
+    margin-top: 32px;
+  }
+}

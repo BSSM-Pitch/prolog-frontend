@@ -1,3 +1,4 @@
+import { VOICE } from '../../content/voice'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { IconChevronDown, IconPlus } from '@tabler/icons-react'
@@ -8,7 +9,6 @@ import { Button } from '../../components/Button'
 import { describeError } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import './ProjectsPage.css'
-import { PROJECT_ROLE_LABEL } from '../../lib/roles'
 
 type Filter = 'all' | OwnerType
 
@@ -26,11 +26,10 @@ const SORTS: Array<{ value: ProjectSort; label: string }> = [
   { value: 'title_asc', label: '이름순' },
 ]
 
-
 /** 첫 페이지 요청 결과. key가 현재 필터·정렬과 다르면 아직 불러오는 중이다. */
 type FirstPage = { key: string; error: string | null }
 
-// Figma 1260:2218 · 27 내 프로젝트
+// Figma 1260:2218 · 27 내 서재
 export function ProjectsPage() {
   const navigate = useNavigate()
   const { withAuth } = useSession()
@@ -105,19 +104,15 @@ export function ProjectsPage() {
     <div className="projects">
       <header className="projects__header">
         <div>
-          <p className="projects__crumb">
-            작품 / {FILTERS.find((f) => f.value === filter)?.label}
-          </p>
-          <h1 className="projects__title">내 프로젝트</h1>
-          <p className="projects__desc">개인 프로젝트와 참여 중인 팀 프로젝트를 한곳에서 관리하세요.</p>
+          <h1 className="projects__title">내 서재</h1>
         </div>
         <Button className="projects__new" onClick={() => navigate('/projects/new')}>
-          <IconPlus size={16} aria-hidden="true" />새 프로젝트
+          <IconPlus size={16} aria-hidden="true" />새 작품
         </Button>
       </header>
 
       <div className="projects__toolbar">
-        <div className="projects__filters" role="group" aria-label="프로젝트 종류">
+        <div className="projects__filters" role="group" aria-label="작품 종류">
           {FILTERS.map((f) => (
             <button
               key={f.value}
@@ -146,13 +141,13 @@ export function ProjectsPage() {
 
       {load.state === 'loading' && (
         <div className="projects__state" role="status">
-          <p className="projects__state-title">프로젝트를 불러오고 있어요</p>
+          <p className="projects__state-title">작품을 불러오고 있어요</p>
         </div>
       )}
 
       {load.state === 'error' && (
         <div className="projects__state" role="alert">
-          <p className="projects__state-title">프로젝트 목록을 불러오지 못했어요</p>
+          <p className="projects__state-title">작품 목록을 불러오지 못했어요</p>
           <p className="projects__state-body">{load.message}</p>
           <Button tone="outline" onClick={() => setReloadKey((k) => k + 1)}>
             다시 시도
@@ -163,12 +158,16 @@ export function ProjectsPage() {
       {load.state === 'ready' && items.length === 0 && (
         <div className="projects__state">
           <p className="projects__state-title">
-            {filter === 'team' ? '참여 중인 팀 프로젝트가 없어요' : filter === 'personal' ? '개인 프로젝트가 없어요' : '아직 프로젝트가 없어요'}
+            {filter === 'team'
+              ? '참여 중인 팀 작품이 없어요'
+              : filter === 'personal'
+                ? '개인 작품이 없어요'
+                : VOICE.library.empty}
           </p>
           <p className="projects__state-body">
-            {filter === 'team' ? '팀에 초대받거나 팀을 만들면 이곳에 표시돼요.' : '새 프로젝트를 만들어 첫 원고를 올려 보세요.'}
+            {filter === 'team' ? '팀에 초대받거나 팀을 만들면 이곳에 표시돼요.' : VOICE.library.next}
           </p>
-          {filter !== 'team' && <Button onClick={() => navigate('/projects/new')}>새 프로젝트 만들기</Button>}
+          {filter !== 'team' && <Button onClick={() => navigate('/projects/new')}>새 작품 만들기</Button>}
         </div>
       )}
 
@@ -198,21 +197,18 @@ export function ProjectsPage() {
 }
 
 function ProjectCard({ project: p }: { project: Project }) {
-  const titleId = `project-${p.project_id}-title`
   return (
-    <article className="project-card" aria-labelledby={titleId}>
-      <div className="project-card__badges">
-        <span className="badge badge--filled">{p.owner_type === 'team' ? `팀 · ${p.team_name ?? '이름 없는 팀'}` : '개인'}</span>
-        <span className="badge badge--outline">{PROJECT_ROLE_LABEL[p.my_role]}</span>
-      </div>
-      <h2 id={titleId} className="project-card__title">
-        {p.title}
-      </h2>
-      <p className="project-card__meta">
-        원고 {p.manuscript_count}개 · {relativeTime(p.updated_at)} 수정
-      </p>
-      <Link className="btn btn--secondary btn--block project-card__open" to={`/projects/${p.project_id}`} aria-describedby={titleId}>
-        열기
+    <article className="project-card">
+      <Link className="project-card__link" to={`/projects/${p.project_id}`} aria-label={`${p.title} 열기`}>
+        <div className="project-card__owner">
+          <span>{p.owner_type === 'team' ? (p.team_name ?? '팀 작품') : '개인 작품'}</span>
+          {p.my_role === 'viewer' && <span>보기 전용</span>}
+        </div>
+        <h2 className="project-card__title">{p.title}</h2>
+        {p.description && <p className="project-card__description">{p.description}</p>}
+        <p className="project-card__meta">
+          원고 {p.manuscript_count}개 · {relativeTime(p.updated_at)} 수정
+        </p>
       </Link>
     </article>
   )

@@ -60,7 +60,7 @@ export function TeamMembersPage() {
       return await withAuth(fn)
     } catch (e) {
       if (e instanceof ApiError && e.code === 'LAST_OWNER_CANNOT_LEAVE') setBlocked({ title: '팀 소유자는 나갈 수 없어요', body: '먼저 다른 팀원에게 소유자 역할을 넘겨 주세요.' })
-      else if (e instanceof ApiError && e.code === 'TEAM_HAS_ACTIVE_PROJECTS') setBlocked({ title: e.message, body: '프로젝트를 옮기거나 삭제한 뒤 팀을 삭제할 수 있어요.' })
+      else if (e instanceof ApiError && e.code === 'TEAM_HAS_ACTIVE_PROJECTS') setBlocked({ title: e.message, body: '작품을 옮기거나 삭제한 뒤 팀을 삭제할 수 있어요.' })
       else setError(describeError(e))
       return undefined
     }
@@ -237,8 +237,8 @@ export function TeamMembersPage() {
               <p className="page-desc">팀을 삭제하면 팀원과 초대 기록이 함께 사라져요.</p>
               {t.project_count > 0 && (
                 <div className="notice notice--error members__alert">
-                  <strong>진행 중인 팀 프로젝트가 {t.project_count}개 있어요</strong>
-                  <span>프로젝트를 옮기거나 삭제한 뒤 팀을 삭제할 수 있어요.</span>
+                  <strong>진행 중인 팀 작품이 {t.project_count}개 있어요</strong>
+                  <span>작품을 옮기거나 삭제한 뒤 팀을 삭제할 수 있어요.</span>
                 </div>
               )}
               <Button tone="error" disabled={t.project_count > 0} onClick={() => setPending({ kind: 'delete' })}>

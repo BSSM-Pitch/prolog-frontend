@@ -20,7 +20,7 @@ type Duplicate = { name: string; candidateId: string }
 const itemLabel = (i: DraftItem) =>
   i.field === 'influence_relations' ? [i.value, i.type && i.type !== '영향' ? i.type : null, i.status ? `상태: ${i.status}` : null].filter(Boolean).join(' · ') : i.value
 
-// Figma 842:1115 · 23 구조화 초안 검토 / 1266:3400 · 37 병합 선택
+// Figma 842:1115 · 23 인물 초안 다듬기 / 1266:3400 · 37 병합 선택
 export function DraftPage() {
   const project = useProject()
   const navigate = useNavigate()
@@ -39,7 +39,7 @@ export function DraftPage() {
   const [confirming, setConfirming] = useState(false)
   const [discardAsk, setDiscardAsk] = useState(false)
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const d = draft.data
   const locked = d ? d.status !== 'pending_review' : true
   const selected = editing?.kind === 'item' ? d?.items.find((i) => i.item_id === editing.itemId) ?? null : null
@@ -115,7 +115,7 @@ export function DraftPage() {
         <p className="page-crumb">
           등장인물 / {d?.character_name ?? '새 인물'} · {locked ? (d?.status === 'confirmed' ? '확정됨' : d?.status === 'discarded' ? '폐기됨' : '') : '검토 대기'}
         </p>
-        <h1 className="page-title">구조화 초안 검토</h1>
+        <h1 className="page-title">인물 초안 다듬기</h1>
         <p className="page-desc">수정·삭제·추가 후 직접 확정한 항목만 작품 세계에 반영됩니다.</p>
       </header>
       <Stepper current={d?.status === 'confirmed' ? 4 : 3} />

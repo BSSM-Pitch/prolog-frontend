@@ -5,6 +5,7 @@ import { useSession } from '../../../auth/session'
 import { useSectionProgress } from '../hooks/useSectionProgress'
 import { SequenceCanvas } from '../components/SequenceCanvas'
 import { FRAMES } from '../frames'
+import { VOICE } from '../../../content/voice'
 
 /**
  * 타자기 영상을 스크롤로 스크럽해 "FOLLOW US." 를 사용자가 직접 타이핑하게 만든다.
@@ -37,18 +38,18 @@ export function Finale() {
 
         <motion.div className="finale__cta" style={{ opacity: ctaOpacity, y: ctaY }}>
           <h2>
-            첫 문장은,
+            {VOICE.finale.lead}
             <br />
-            지금 여기 Prolog 에서.
+            {VOICE.finale.title}
           </h2>
-          <p>이어서 쓰던 문장이 기다리고 있어요.</p>
+          <p>{VOICE.finale.description}</p>
           {signedIn ? (
             <Link to="/projects" className="lbtn lbtn--blue lbtn--lg">
-              이어서 쓰기
+              {VOICE.cta.resume}
             </Link>
           ) : (
-            <Link to="/auth/login" className="lbtn lbtn--blue lbtn--lg">
-              로그인하기
+            <Link to="/auth/signup" className="lbtn lbtn--blue lbtn--lg">
+              {VOICE.cta.start}
             </Link>
           )}
         </motion.div>

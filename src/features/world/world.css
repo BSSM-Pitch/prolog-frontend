@@ -57,8 +57,8 @@
   gap: 8px;
   padding: var(--itda-space-16);
   border: 1px solid var(--input-stroke);
-  border-radius: 10px;
-  background: #fbfdff;
+  border-radius: 2px;
+  background: var(--itda-surface);
 }
 .evidence-card__quote {
   flex: 1;
@@ -74,7 +74,7 @@
   flex-direction: column;
   gap: 8px;
   padding: var(--itda-space-16);
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--itda-background);
   font-size: 15px;
   line-height: 24px;
@@ -88,4 +88,60 @@
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+.evidence-card__quote {
+  font-family: var(--font-literary);
+  font-size: 16px;
+  line-height: 1.95;
+}
+.evidence-card {
+  border: 0;
+  border-left: 2px solid #c4ae9f;
+  background: var(--prolog-highlight-review);
+}
+.rule-tag {
+  border-radius: 2px;
+  background: var(--prolog-highlight-setting);
+  color: #70612d;
+}
+
+.app .world .two-col > .panel {
+  border: 0;
+  border-top: 2px solid var(--itda-ink);
+  border-radius: 0;
+  padding: 24px 0 0;
+}
+.world .two-col {
+  gap: 40px;
+}
+.world .char-list {
+  gap: 0;
+}
+.world .char-item {
+  padding: 18px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--stroke);
+  border-radius: 0;
+}
+.world .char-item[aria-current] {
+  background: var(--prolog-highlight-setting);
+  box-shadow: inset 2px 0 0 #b7af86;
+}
+.world .char-item__name {
+  font-weight: 650;
+  font-size: 16px;
+  line-height: 1.7;
+}
+.world .char-item__meta {
+  line-height: 1.8;
+}
+.world .evidence-box {
+  background: var(--prolog-highlight-setting);
+  font-family: var(--font-literary);
+  line-height: 1.9;
+}
+.world .evidence-box .panel__label,
+.world .evidence-box .text-link {
+  font-family: var(--font-sans);
 }

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { VOICE } from '../../content/voice'
 import { useLenis } from './hooks/useLenis'
 import { Features } from './sections/Features'
 import { Finale } from './sections/Finale'
@@ -14,23 +15,10 @@ import { Story } from './sections/Story'
 import 'lenis/dist/lenis.css'
 import './landing.css'
 
-// 랜딩에서만 쓰는 웹폰트(본문 Pretendard, 코드 JetBrains Mono, 손글씨 Nanum Pen Script). 앱 화면에는 싣지 않는다
-const FONT_LINKS = [
-  'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css',
-  'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Nanum+Pen+Script&display=swap',
-]
-
 function useLandingHead() {
   useEffect(() => {
-    for (const href of FONT_LINKS) {
-      if (document.querySelector(`link[href="${href}"]`)) continue
-      const link = document.createElement('link')
-      link.rel = 'stylesheet'
-      link.href = href
-      document.head.append(link)
-    }
     const prevTitle = document.title
-    document.title = 'Prolog — 생각이 글이 되는 곳'
+    document.title = VOICE.title
     return () => {
       document.title = prevTitle
     }

@@ -24,14 +24,16 @@
   gap: 8px;
   padding: var(--itda-space-24);
   border: 1px solid var(--input-stroke);
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--itda-background);
   text-align: center;
-  transition: border-color var(--transition-state), background var(--transition-state);
+  transition:
+    border-color var(--transition-state),
+    background var(--transition-state);
 }
 .upload-drop--over {
   border: 2px dashed var(--prolog-color-interaction);
-  background: #d9e9fd;
+  background: var(--prolog-highlight-character);
 }
 .upload-drop__title {
   font-size: 16px;
@@ -109,7 +111,7 @@
   inset: 0 auto 0 0;
   width: 40%;
   border-radius: inherit;
-  background: #6fa8e8;
+  background: var(--itda-ink);
   animation: upload-bar 1.4s ease-in-out infinite;
 }
 @keyframes upload-bar {
@@ -141,11 +143,11 @@
   gap: var(--itda-space-16);
   padding: var(--itda-space-16);
   border: 1px solid var(--input-stroke);
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--itda-surface);
 }
 .ms-card--selected {
-  border-color: #b5d5f9;
+  border-color: var(--input-stroke);
   background: var(--itda-background);
 }
 .ms-card__select {
@@ -187,4 +189,33 @@
   .manuscripts__layout {
     grid-template-columns: 1fr;
   }
+}
+
+.app .manuscripts__main > .panel,
+.app .manuscripts__side {
+  border: 0;
+  border-top: 2px solid var(--itda-ink);
+  border-radius: 0;
+  padding: 24px 0 0;
+}
+.manuscripts__layout {
+  gap: 40px;
+}
+.ms-card {
+  border: 0;
+  border-bottom: 1px solid var(--stroke);
+  border-radius: 0;
+  padding: 20px 16px;
+}
+.ms-card--selected {
+  background: var(--itda-background);
+  box-shadow: inset 2px 0 0 var(--itda-ink);
+}
+.ms-card__title {
+  font-weight: 750;
+}
+.upload-drop {
+  border-style: dashed;
+  background: var(--itda-background);
+  padding: 32px 24px;
 }

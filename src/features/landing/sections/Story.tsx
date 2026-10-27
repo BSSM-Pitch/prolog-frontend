@@ -1,31 +1,13 @@
 import { useRef, useState } from 'react'
-import {
-  type MotionValue,
-  motion,
-  useMotionValueEvent,
-  
-  useTransform,
-} from 'motion/react'
+import { type MotionValue, motion, useMotionValueEvent, useTransform } from 'motion/react'
 import { useSectionProgress } from '../hooks/useSectionProgress'
+import { VOICE } from '../../../content/voice'
 
 /**
  * 레퍼런스: Apple AirPods 페이지의 sticky 캔버스 시퀀스 + 좌측 챕터 내비게이션.
  * 섹션 하나를 3개 챕터로 나누고, 챕터마다 다른 시퀀스를 스크럽한다.
  */
-const CHAPTERS = [
-  {
-    title: '여러 창작자와 협업하고',
-    body: '팀을 만들어서 여러 사람들과 함께 창작하세요.',
-  },
-  {
-    title: '창작 자체에 집중하고',
-    body: '창작 외의 작업은 Prolog 에게 맡기세요.',
-  },
-  {
-    title: '설정과 정보는 한눈에',
-    body: '설정과 캐릭터 정보, 이야기 전개는 Prolog가 한눈에 볼 수 있도록 정리해 줄 거에요.',
-  },
-]
+const CHAPTERS = VOICE.chapters
 
 export function Story() {
   const ref = useRef<HTMLElement>(null)
@@ -97,49 +79,27 @@ function StageVideo({ name, focusX }: { name: string; focusX: number }) {
   )
 }
 
-const LINES = [
-  { w: 92, kind: 'h' },
-  { w: 100 },
-  { w: 86 },
-  { w: 64, kind: 'accent' },
-  { w: 96 },
-  { w: 72 },
-] as const
-
-function Line({ i, w, kind, progress }: { i: number; w: number; kind?: string; progress: MotionValue<number> }) {
-  const start = 0.08 + i * 0.1
-  const scaleX = useTransform(progress, [start, start + 0.14], [0, 1])
-  return (
-    <motion.span
-      className={`mock__line ${kind ? `mock__line--${kind}` : ''}`}
-      style={{ width: `${w}%`, scaleX }}
-    />
-  )
-}
-
 function EditorMock({ progress }: { progress: MotionValue<number> }) {
   const chipOpacity = useTransform(progress, [0.7, 0.8], [0, 1])
   const chipY = useTransform(progress, [0.7, 0.8], [12, 0])
   return (
-    <div className="mock" role="img" aria-label="Prolog 설정 정리 화면 예시">
+    <div className="mock" role="img" aria-label="Prolog 집필 화면 예시">
       <div className="mock__bar">
-        <i /> <i /> <i />
-        <span className="mono">prolog.app / 잿빛 왕국 · 설정집</span>
+        <span className="mono">잿빛 왕국 · 집필 화면 예시</span>
       </div>
       <div className="mock__body">
         <aside className="mock__side">
-          <p className="mono">WORLD</p>
-          <span className="pill pill--ink">캐릭터 · 12명</span>
-          <span className="pill pill--sky">세계관 설정 · 34개</span>
-          <span className="pill pill--blue">전개 타임라인 · 5장</span>
+          <p className="mono">이야기의 기록</p>
+          <span className="pill pill--ink">등장인물</span>
+          <span className="pill pill--sky">세계관</span>
         </aside>
         <div className="mock__doc">
-          <p className="mock__title">아린 — 주인공 · 왕국의 기록관</p>
-          {LINES.map((l, i) => (
-            <Line key={i} i={i} w={l.w} kind={'kind' in l ? l.kind : undefined} progress={progress} />
-          ))}
+          <p className="mock__title">아직 부치지 못한 편지</p>
+          <p className="mock__excerpt">
+            아린은 편지를 접지 못했다. 창밖으로 마지막 불빛이 지나갔고, 끝내 쓰지 못한 이름 하나가 종이 위에 남았다.
+          </p>
           <motion.div className="mock__chip" style={{ opacity: chipOpacity, y: chipY }}>
-            <span className="sparkle">✦</span> 설정 충돌 1건 · 3장에서 아린의 나이가 달라요
+            앞선 장면의 인물 설정도 함께 살펴보세요.
           </motion.div>
         </div>
       </div>

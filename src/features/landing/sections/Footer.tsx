@@ -1,10 +1,5 @@
 import { Logo } from '../components/Logo'
-
-const COLS = [
-  { title: '제품', links: ['기능', '요금제', '업데이트', '다운로드'] },
-  { title: '회사', links: ['소개', '채용', '블로그', '보도자료'] },
-  { title: '지원', links: ['도움말', '커뮤니티', '개인정보처리방침', '이용약관'] },
-]
+import { VOICE } from '../../../content/voice'
 
 export function Footer() {
   return (
@@ -12,21 +7,18 @@ export function Footer() {
       <div className="footer__top">
         <div className="footer__brand">
           <Logo size={36} />
-          <p>생각이 글이 되는 곳.</p>
+          <p>당신의 다음 문장을 위해.</p>
         </div>
-        {COLS.map((c) => (
-          <div key={c.title} className="footer__col">
-            <p className="mono">{c.title}</p>
-            {c.links.map((l) => (
-              <a key={l} href="#top">
-                {l}
-              </a>
-            ))}
-          </div>
-        ))}
+        <nav className="footer__col" aria-label="랜딩 목차">
+          {VOICE.navigation.map((link) => (
+            <a key={link.href} href={link.href}>
+              {link.label}
+            </a>
+          ))}
+        </nav>
       </div>
       <div className="footer__bottom">
-        <span>© 2026 Prolog Labs.</span>
+        <span>© 2026 Prolog.</span>
       </div>
     </footer>
   )

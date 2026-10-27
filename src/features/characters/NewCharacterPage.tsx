@@ -15,7 +15,7 @@ import { TextArea } from '../../components/TextArea'
 
 const EXAMPLE = '윤서는 신중하지만 집요하고, 약속을 무엇보다 중요하게 여긴다. 재현의 선택에 영향을 받았으며 붉은 문 앞에서 불안을 느낀다.'
 
-// Figma 842:994 · 22 자연어로 인물 설계
+// Figma 842:994 · 22 문장으로 인물 그리기
 export function NewCharacterPage() {
   const project = useProject()
   const navigate = useNavigate()
@@ -49,7 +49,7 @@ export function NewCharacterPage() {
     return () => window.clearInterval(id)
   }, [analyzing, extractionId, projectId, withAuth])
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const existing = characters.data ?? []
   const target = existing.find((c) => c.character_id === targetId)
 
@@ -116,8 +116,8 @@ export function NewCharacterPage() {
     <div className="nl-design">
       <header>
         <p className="page-crumb">등장인물 / {mode === 'new' ? '새 인물' : `${target?.name ?? '기존 인물'}에 추가`}</p>
-        <h1 className="page-title">자연어로 인물 설계</h1>
-        <p className="page-desc">인물을 문장으로 설명하고 원문 근거가 있는 항목만 검토하세요.</p>
+        <h1 className="page-title">문장으로 인물 그리기</h1>
+        <p className="page-desc">떠오르는 모습을 적으면 인물 초안으로 정리해요.</p>
       </header>
       <Stepper current={done ? 2 : 1} />
 
@@ -236,7 +236,7 @@ export function NewCharacterPage() {
                 )
               })}
               <Button block onClick={forward} busy={forwarding}>
-                구조화 초안 검토로 계속
+                인물 초안 다듬기
               </Button>
             </>
           )}

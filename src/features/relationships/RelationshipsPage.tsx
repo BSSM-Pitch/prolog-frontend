@@ -58,7 +58,7 @@ export function RelationshipsPage() {
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
   const nameOf = (id: string) => people.find((c) => c.character_id === id)?.name ?? '?'
   const set = (patch: Record<string, string | null>) => {

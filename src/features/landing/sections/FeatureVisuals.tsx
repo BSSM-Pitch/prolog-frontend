@@ -24,12 +24,8 @@ export function Character({ active }: Props) {
         {TRAITS.map((t, i) => (
           <span key={t} style={idx(i)}>
             {t}
-            <i aria-hidden="true">×</i>
           </span>
         ))}
-        <span className="fv-tags__add" style={idx(TRAITS.length)}>
-          + 추가
-        </span>
       </div>
     </div>
   )
@@ -51,9 +47,8 @@ export function Conflict({ active }: Props) {
         <p>아린이 도적을 잔혹하게 제압한다.</p>
       </div>
       <div className="fv-advice">
-        <span className="fv-spark">✦</span>
         <p>
-          현재 설정과 비교하면 과도하게 공격적인 행동처럼 보여요. 분노 끝에 멈추는 방향도 고려해 보세요.
+          앞선 장면의 성격과 다른 행동이에요. 아린의 마음이 바뀐 계기가 있는지 살펴보세요.
         </p>
       </div>
     </div>
@@ -131,25 +126,12 @@ export function Collab({ active }: Props) {
   return (
     <div className="fv fv-collab" data-on={active}>
       <div className="fv-doc">
-        <p className="fv-doc__title">잿빛 왕국 — 12화 초고</p>
-        <span className="fv-l" style={{ width: '94%' }} />
-        <span className="fv-l" style={{ width: '82%' }} />
-        <span className="fv-l fv-l--sel" style={{ width: '58%' }} />
-        <span className="fv-l" style={{ width: '88%' }} />
-        <span className="fv-l" style={{ width: '46%' }} />
-
-        <span className="fv-cursor fv-cursor--a">
-          <i />
-          <em>서연</em>
-        </span>
-        <span className="fv-cursor fv-cursor--b">
-          <i />
-          <em>도윤</em>
-        </span>
-        <div className="fv-comment">
-          <span className="fv-who fv-who--b">도</span>
-          <p>이 장면, 아린 설정이랑 맞을까요?</p>
-        </div>
+        <p className="fv-doc__title">잿빛 왕국을 함께 쓰는 사람들</p>
+        <ul className="fv-members">
+          <li><span>서연</span><strong>소유자</strong></li>
+          <li><span>도윤</span><strong>편집자</strong></li>
+          <li><span>하린</span><strong>보기 전용</strong></li>
+        </ul>
       </div>
     </div>
   )

@@ -11,7 +11,7 @@ export function ComingSoon({ title, figma }: { title: string; figma: string }) {
       <h1 className="coming-soon__title">{title}</h1>
       <p className="coming-soon__body">이 화면({figma})은 다음 단계에서 만들어요.</p>
       <Link className="btn btn--outline" to={project ? projectPath(project.project_id) : '/projects'}>
-        {project ? '작품 개요로 돌아가기' : '내 프로젝트로 돌아가기'}
+        {project ? '작품 개요로 돌아가기' : '내 서재로 돌아가기'}
       </Link>
     </div>
   )

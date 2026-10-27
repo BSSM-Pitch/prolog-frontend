@@ -164,7 +164,7 @@ a.team__metric:focus-visible {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #dcebfd;
+  background: var(--prolog-highlight-character);
   color: var(--prolog-color-interaction);
   font-weight: 600;
 }

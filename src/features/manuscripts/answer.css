@@ -51,9 +51,9 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px 14px;
-  border-left: 3px solid #88bdf2;
+  border-left: 3px solid var(--input-stroke);
   border-radius: 0 var(--prolog-radius-8) var(--prolog-radius-8) 0;
-  background: #f5f9ff;
+  background: var(--itda-background);
 }
 .citation__label {
   font-size: 12px;
@@ -79,7 +79,7 @@
   width: 18px;
   height: 18px;
   margin-top: 4px;
-  border: 2px solid #b5d5f9;
+  border: 2px solid var(--input-stroke);
   border-top-color: var(--prolog-color-interaction);
   border-radius: 50%;
   animation: answer-spin 0.9s linear infinite;
@@ -93,4 +93,14 @@
   .answer__spinner {
     animation-duration: 3s;
   }
+}
+
+.citation {
+  background: var(--prolog-highlight-setting);
+  border-left-color: #b7af86;
+}
+.citation__quote {
+  font-family: var(--font-literary);
+  font-size: 15px;
+  line-height: 1.9;
 }

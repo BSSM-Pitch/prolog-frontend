@@ -38,7 +38,7 @@ export function RulesPage() {
     setNotice(job.status === 'completed' ? (job.result_ids.length ? `규칙 후보 ${job.result_ids.length}개를 새로 찾았어요.` : '원고에서 새로 찾은 규칙 후보가 없어요.') : null)
   })
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
   const visible = (rules.data ?? []).filter((r) => r.status !== 'ignored')
   const pending = visible.filter((r) => r.status === 'pending')

@@ -12,7 +12,7 @@ import { notifyTeamsChanged } from './teamEvents'
 import './teams.css'
 import { TextArea } from '../../components/TextArea'
 
-// Figma 843:2082 · 25 새 팀 만들기 — 팀을 만들면 02 초대, 03 팀 프로젝트 단계가 열린다
+// Figma 843:2082 · 25 새 팀 만들기 — 팀을 만들면 02 초대, 03 팀 작품 단계가 열린다
 export function NewTeamPage() {
   const { withAuth } = useSession()
   const [name, setName] = useState('')
@@ -114,13 +114,13 @@ export function NewTeamPage() {
       <section className={team ? 'panel team-step' : 'panel team-step is-locked'} aria-labelledby="step3" aria-disabled={!team}>
         <p className="team-step__no">03</p>
         <h2 id="step3" className="panel__title">
-          팀 프로젝트
+          팀 작품
         </h2>
-        <p className="page-desc">팀 소유의 프로젝트를 여러 개 만들어 관리할 수 있습니다.</p>
+        <p className="page-desc">팀 소유의 작품을 여러 개 만들어 관리할 수 있습니다.</p>
         {team ? (
           <div className="actions-row">
             <Link className="btn btn--primary" to={`/projects/new?team=${team.team_id}`}>
-              팀 프로젝트 만들기
+              팀 작품 만들기
             </Link>
             <Link className="btn btn--outline" to={`/teams/${team.team_id}`}>
               팀 작업공간으로

@@ -21,7 +21,7 @@ const TYPE_LABEL = { event: '사건', turning_point: '전환점', climax: '절�
 
 // Figma 843:1243 · 03 스토리 지도 (+ 상태 명세 1264:2911 스토리 지도 행)
 export function StoryMapPage() {
-  // 프로젝트를 옮기면 지도·분석 상태를 처음부터 다시 불러온다
+  // 작품을 옮기면 지도·분석 상태를 처음부터 다시 불러온다
   const project = useProject()
   return <StoryMap key={project?.project_id ?? ''} />
 }
@@ -64,7 +64,7 @@ function StoryMap() {
     return () => window.clearInterval(id)
   }, [running, jobId, msId, projectId, withAuth])
 
-  if (!project) return <p className="page-desc">프로젝트를 불러오고 있어요</p>
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
   // 다른 원고를 고르면 이전 원고의 지도는 보이지 않게 한다
   const data: StructureMap | null = map.data?.manuscript_id === msId ? map.data : null

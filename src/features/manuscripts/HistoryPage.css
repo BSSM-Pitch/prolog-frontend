@@ -39,7 +39,7 @@
   overflow-y: auto;
   padding: 24px 28px;
   border: 1px solid var(--input-stroke);
-  border-radius: 12px;
+  border-radius: 2px;
   background: var(--itda-surface);
   font-size: 17px;
   line-height: 1.9;

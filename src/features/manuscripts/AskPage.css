@@ -36,10 +36,10 @@
   transition: background var(--transition-state);
 }
 .thread-item:hover {
-  background: #f5f9ff;
+  background: var(--itda-background);
 }
 .thread-item[aria-current] {
-  border-color: #b5d5f9;
+  border-color: var(--input-stroke);
   background: var(--itda-background);
 }
 .thread-item:focus-visible {
@@ -124,7 +124,7 @@
   flex-direction: column;
   gap: var(--itda-space-16);
   padding: var(--itda-space-16);
-  border-radius: 10px;
+  border-radius: 2px;
   background: var(--itda-background);
 }
 .composer__input,
@@ -144,10 +144,10 @@
 }
 .composer__source {
   min-height: 120px;
-  background: #fbfdff;
+  background: var(--itda-surface);
 }
 .composer__source ::selection {
-  background: #bdddfc;
+  background: var(--prolog-highlight-setting);
 }
 .composer__picker {
   display: flex;
