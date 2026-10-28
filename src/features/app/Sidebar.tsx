@@ -6,10 +6,10 @@ import {
   IconChevronDown,
   IconChevronLeft,
   IconChevronRight,
-  IconFileCheck,
   IconHome,
   IconLogout,
   IconNotebook,
+  IconRoute,
   IconUser,
   IconUsersGroup,
   IconWorld,
@@ -78,9 +78,16 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             </p>
             <NavItem icon={IconHome} label="작품 홈" to={to()} end />
             <NavItem icon={IconNotebook} label="원고" to={to('manuscripts')} />
+            <NavItem
+              icon={IconRoute}
+              label="작품 살펴보기"
+              to={to('story-map')}
+              active={['story-map', 'relationships', 'foreshadowings', 'conflicts'].some(
+                (path) => pathname === to(path),
+              )}
+            />
             <NavItem icon={IconUser} label="등장인물" to={to('characters')} />
             <NavItem icon={IconWorld} label="세계관" to={to('rules')} />
-            <NavItem icon={IconFileCheck} label="설정 검토" to={to('conflicts')} />
             <NavItem icon={IconUsersGroup} label="함께 쓰는 사람들" to={to('members')} />
           </>
         )}
@@ -138,9 +145,28 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   )
 }
 
-function NavItem({ icon: I, label, to, end }: { icon: Icon; label: string; to: string; end?: boolean }) {
+function NavItem({
+  icon: I,
+  label,
+  to,
+  end,
+  active,
+}: {
+  icon: Icon
+  label: string
+  to: string
+  end?: boolean
+  active?: boolean
+}) {
   return (
-    <NavLink to={to} end={end} className="sidebar__item" aria-label={label} title={label}>
+    <NavLink
+      to={to}
+      end={end}
+      className={({ isActive }) => `sidebar__item${isActive || active ? ' active' : ''}`}
+      aria-current={active ? 'page' : undefined}
+      aria-label={label}
+      title={label}
+    >
       <I size={19} stroke={1.7} aria-hidden="true" />
       <span className="sidebar__label">{label}</span>
     </NavLink>

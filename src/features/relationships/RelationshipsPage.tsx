@@ -1,55 +1,114 @@
-import { useState, type FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
 import { ApiError } from '../../api/client'
+import { IS_REAL } from '../../api/config'
+import type { Manuscript } from '../../api/types'
 import * as manuscriptsApi from '../../api/manuscripts'
 import * as api from '../../api/relationships'
 import { RELATION_STATES } from '../../api/relationships'
-import type { MindmapGraph, Relationship } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { describeError } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
-import { useProject } from '../app/currentProject'
+import { projectPath, useProject } from '../app/currentProject'
+import { InsightNav } from '../insights/InsightNav'
+import { InsightDialog } from '../insights/InsightDialog'
+import { chapterAt, relationshipView, snapshotAt } from '../insights/insightModel'
+import { RelationshipGraph } from './RelationshipGraph'
 import '../characters/characters.css'
 import './relationships.css'
 
-type Existing = { chapter: number; state: string; trust: number | null; event_title: string | null }
-type Pending = { relationshipId: string; entry: api.EntryInput; existing: Existing }
+type Pending = { relationshipId: string; entry: api.EntryInput; existing: { state: string; trust: number | null } }
 
-const stateClass = (state: string) =>
-  ({ 신뢰: 'trust', 우호: 'friendly', 중립: 'neutral', 긴장: 'tension', 갈등: 'conflict', 적대: 'hostile' })[state] ?? 'neutral'
-
-/** 장 시점의 상태 — 기록이 없으면 직전 기록을 이어받는다 (RCV 11항) */
-function snapshotAt(r: Relationship, chapter: number) {
-  const before = r.history.filter((h) => h.chapter <= chapter)
-  const h = before[before.length - 1]
-  if (!h) return null
-  return { ...h, carried: h.chapter !== chapter, previous: before[before.length - 2] ?? null }
-}
-
-// Figma 843:1109 · 13 관계 변화 / 1266:3609 · 38 덮어쓰기 확인
 export function RelationshipsPage() {
   const project = useProject()
   const [params, setParams] = useSearchParams()
+  const manuscripts = useResource(
+    project ? (token) => manuscriptsApi.listManuscripts(token, project.project_id) : null,
+    [project?.project_id],
+  )
+  const manuscriptId = (
+    manuscripts.data?.find((item) => item.manuscript_id === params.get('manuscript')) ?? manuscripts.data?.[0]
+  )?.manuscript_id
+  useEffect(() => {
+    if (manuscripts.loading || !manuscriptId || params.get('manuscript') === manuscriptId) return
+    const next = new URLSearchParams(params)
+    next.set('manuscript', manuscriptId)
+    setParams(next, { replace: true })
+  }, [manuscriptId, manuscripts.loading, params, setParams])
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요.</p>
+  if (manuscripts.error)
+    return (
+      <div className="insight-state" role="alert">
+        <p>{manuscripts.error}</p>
+        <Button onClick={manuscripts.reload}>다시 불러오기</Button>
+      </div>
+    )
+  if (manuscripts.loading) return <p className="insight-state">원고를 불러오고 있어요.</p>
+  if (!manuscriptId)
+    return (
+      <div className="insight-state">
+        <h1>먼저 원고를 만들어 주세요.</h1>
+        <Link to={projectPath(project.project_id, 'manuscripts')}>원고 열기</Link>
+      </div>
+    )
+  return (
+    <Relationships
+      key={`${project.project_id}:${manuscriptId}`}
+      projectId={project.project_id}
+      canEdit={project.my_role !== 'viewer'}
+      manuscriptId={manuscriptId}
+      manuscripts={manuscripts.data ?? []}
+    />
+  )
+}
+
+function Relationships({
+  projectId,
+  canEdit,
+  manuscriptId,
+  manuscripts,
+}: {
+  projectId: string
+  canEdit: boolean
+  manuscriptId: string
+  manuscripts: Manuscript[]
+}) {
+  const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
-  const projectId = project?.project_id ?? ''
-
-  const rels = useResource(project ? (t) => api.listRelationships(t, projectId) : null, [projectId])
-  const characters = useResource(project ? (t) => charactersApi.listCharacters(t, projectId) : null, [projectId])
-  const manuscripts = useResource(project ? (t) => manuscriptsApi.listManuscripts(t, projectId) : null, [projectId])
-
+  const active = useRef(true)
+  useEffect(() => {
+    active.current = true
+    return () => {
+      active.current = false
+    }
+  }, [])
+  const rels = useResource((token) => api.listRelationships(token, projectId, manuscriptId), [projectId, manuscriptId])
+  const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
+  const chapters = useResource(
+    (token) => manuscriptsApi.listChapters(token, projectId, manuscriptId),
+    [projectId, manuscriptId],
+  )
   const list = rels.data ?? []
   const people = characters.data ?? []
-  const latestChapter = (manuscripts.data ?? []).filter((m) => m.status === 'ready')[0]?.chapter_count ?? 0
-  const maxChapter = Math.max(1, latestChapter, ...list.flatMap((r) => r.history.map((h) => h.chapter)))
-  const chapter = Math.min(maxChapter, Number(params.get('chapter')) || maxChapter)
-  const focus = params.get('character') ?? ''
-
-  const mindmap = useResource(project ? (t) => api.getMindmap(t, projectId, chapter, focus || undefined) : null, [projectId, chapter, focus, list])
-  const selected = list.find((r) => r.relationship_id === params.get('rel')) ?? list.find((r) => !focus || r.source_character_id === focus || r.target_character_id === focus) ?? null
-
+  const maxChapter = Math.max(
+    1,
+    ...(chapters.data ?? []).map((item) => item.chapter_no),
+    ...list.flatMap((item) => item.history.map((entry) => entry.chapter)),
+  )
+  const chapter = chapterAt(Number(params.get('chapter')), maxChapter)
+  const view = relationshipView(people, list, chapter, params.get('character'), Number(params.get('page') ?? 1))
+  const selected =
+    view.neighbors.find((item) => item.relationship.relationship_id === params.get('rel'))?.relationship ?? null
+  const snapshot = selected ? snapshotAt(selected, chapter) : null
+  const selectedRelationshipId = selected?.relationship_id
+  const detail = useRef<HTMLElement>(null)
+  useEffect(() => {
+    if (!selectedRelationshipId) return
+    detail.current?.scrollIntoView({ block: 'nearest' })
+    detail.current?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true })
+  }, [selectedRelationshipId, chapter])
   const [recording, setRecording] = useState(false)
   const [adding, setAdding] = useState(false)
   const [pending, setPending] = useState<Pending | null>(null)
@@ -57,364 +116,361 @@ export function RelationshipsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-
-  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
-  const canEdit = project.my_role !== 'viewer'
-  const nameOf = (id: string) => people.find((c) => c.character_id === id)?.name ?? '?'
-  const set = (patch: Record<string, string | null>) => {
+  const nameOf = (id: string) => people.find((person) => person.character_id === id)?.name ?? '이름 없는 인물'
+  function set(patch: Record<string, string | null>) {
     const next = new URLSearchParams(params)
-    for (const [k, v] of Object.entries(patch)) {
-      if (v === null || v === '') next.delete(k)
-      else next.set(k, v)
+    for (const [key, value] of Object.entries(patch)) {
+      if (value === null) next.delete(key)
+      else next.set(key, value)
     }
+    setRecording(false)
+    setError(null)
     setParams(next, { replace: true })
   }
-
   async function saveRecord(relationshipId: string, entry: api.EntryInput, overwrite = false) {
+    if (busy) return
     setBusy(true)
     setError(null)
     try {
-      await withAuth((t) => api.recordState(t, projectId, relationshipId, entry, overwrite))
+      const updated = await withAuth((token) =>
+        api.recordState(token, projectId, relationshipId, entry, overwrite, manuscriptId),
+      )
+      if (!active.current) return
+      rels.setData(
+        (old) => old?.map((item) => (item.relationship_id === updated.relationship_id ? updated : item)) ?? null,
+      )
       setPending(null)
       setRecording(false)
-      setNotice(`${entry.chapter}장에 관계 상태를 ${overwrite ? '덮어썼어요' : '기록했어요'}.`)
-      rels.reload()
-    } catch (e) {
-      if (e instanceof ApiError && e.code === 'DUPLICATE_CHAPTER_RECORD') {
-        setPending({ relationshipId, entry, existing: e.details.existing_entry as Existing })
-      } else setError(describeError(e))
+      setNotice(`${entry.chapter}장 관계를 기록했어요.`)
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'DUPLICATE_CHAPTER_RECORD')
+        setPending({ relationshipId, entry, existing: err.details.existing_entry as Pending['existing'] })
+      else setError(describeError(err))
     } finally {
       setBusy(false)
     }
   }
-
   async function removeRelationship() {
-    if (!selected) return
+    if (!selected || busy) return
     setBusy(true)
     try {
-      await withAuth((t) => api.deleteRelationship(t, projectId, selected.relationship_id))
+      await withAuth((token) => api.deleteRelationship(token, projectId, selected.relationship_id))
+      if (!active.current) return
+      rels.setData((old) => old?.filter((item) => item.relationship_id !== selected.relationship_id) ?? null)
       setConfirmDelete(false)
       set({ rel: null })
-      rels.reload()
-    } catch (e) {
-      setError(describeError(e))
+    } catch (err) {
+      setError(describeError(err))
     } finally {
       setBusy(false)
     }
   }
-
-  const snap = selected ? snapshotAt(selected, chapter) : null
+  const loading =
+    (rels.loading && !rels.data) || (characters.loading && !characters.data) || (chapters.loading && !chapters.data)
+  const loadError = rels.error ?? characters.error ?? chapters.error
 
   return (
-    <div className="relations">
-      <header>
-        <p className="page-crumb">작품 흐름 / {chapter}장 기준</p>
-        <h1 className="page-title">관계 변화</h1>
-        <p className="page-desc">장면에 따른 관계 변화와 연결 사건을 함께 살펴보세요.</p>
+    <div className="relations insight-page">
+      <header className="insight-header">
+        <h1 className="page-title">인물 관계</h1>
+        <div className="insight-actions">
+          <label className="insight-field">
+            <span>원고</span>
+            <select
+              aria-label="관계를 기록할 원고"
+              value={manuscriptId}
+              disabled={busy || adding}
+              onChange={(event) => set({ manuscript: event.target.value, chapter: null, rel: null, page: null })}
+            >
+              {manuscripts.map((item) => (
+                <option key={item.manuscript_id} value={item.manuscript_id}>
+                  {item.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          {canEdit && (
+            <Button
+              tone="outline"
+              disabled={people.length < 2 || loading || !!loadError || !chapters.data?.length}
+              onClick={(event) => {
+                event.currentTarget.focus()
+                setAdding(true)
+              }}
+            >
+              관계 추가
+            </Button>
+          )}
+        </div>
       </header>
+      <InsightNav projectId={projectId} />
       {notice && (
-        <p className="notice notice--success" role="status">
+        <p className="insight-note" role="status">
           {notice}
         </p>
       )}
-
-      <div className="relations__layout">
-        <div className="relations__main">
-          <section className="panel" aria-labelledby="mindmap-title">
-            <div className="relations__toolbar">
-              <h2 id="mindmap-title" className="panel__title">
-                관계 마인드맵
-              </h2>
-              <select className="nl-select" value={focus} onChange={(e) => set({ character: e.target.value, rel: null })} aria-label="인물 필터">
-                <option value="">인물 필터 · 전체</option>
-                {people.map((c) => (
-                  <option key={c.character_id} value={c.character_id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              {canEdit && (
-                <Button tone="soft" onClick={() => setAdding(true)} disabled={people.length < 2}>
-                  + 관계 추가
-                </Button>
-              )}
-            </div>
-            <label className="chapter-slider">
-              <span className="field__label">
-                장 시점 · <strong>{chapter}장</strong> / {maxChapter}장
-              </span>
-              <input type="range" min={1} max={maxChapter} value={chapter} onChange={(e) => set({ chapter: e.target.value })} />
-            </label>
-            {mindmap.data && mindmap.data.edges.length === 0 ? (
-              <div className="state-block">
-                <p className="answer__title">아직 기록된 관계 변화가 없어요</p>
-                <p className="answer__body">{list.length === 0 ? '두 인물 사이의 관계를 추가하고 첫 상태를 기록해 보세요.' : `${chapter}장까지는 기록된 관계가 없어요. 장 시점을 뒤로 옮겨 보세요.`}</p>
-              </div>
-            ) : (
-              mindmap.data && (
-                <Mindmap
-                  graph={mindmap.data}
-                  selectedId={selected?.relationship_id ?? null}
-                  onSelectEdge={(id) => set({ rel: id })}
-                  onSelectNode={(id) => set({ character: id === focus ? null : id, rel: null })}
-                />
-              )
-            )}
-            <div className="legend" aria-label="관계 상태 색">
-              {RELATION_STATES.map((s) => (
-                <span key={s} className={`legend__item state--${stateClass(s)}`}>
-                  {s}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          {selected && (
-            <section className="panel" aria-labelledby="timeline-title">
-              <h2 id="timeline-title" className="panel__title">
-                관계 타임라인 / 선택한 관계와 동기화
-              </h2>
-              <Timeline rel={selected} max={maxChapter} current={chapter} onPick={(c) => set({ chapter: String(c) })} />
-            </section>
-          )}
-        </div>
-
-        {selected && (
-          <section className="panel relations__detail" aria-labelledby="rel-title">
-            <h2 id="rel-title" className="page-title">
-              {nameOf(selected.source_character_id)} ↔ {nameOf(selected.target_character_id)}
-            </h2>
-            {snap ? (
-              <>
-                <p className="panel__label">
-                  {chapter}장 기준 · {snap.carried ? `이어받음 (${snap.chapter}장 기록)` : '직접 기록'}
-                </p>
-                <div className={`rel-state state--${stateClass(snap.state)}`}>
-                  <span className="rel-state__label">현재 상태</span>
-                  <strong>
-                    {snap.state} {snap.trust ?? ''}
-                  </strong>
-                </div>
-                {snap.carried && <p className="check-note">{chapter}장은 직접 기록이 없어 {snap.chapter}장 상태를 이어서 보여줘요.</p>}
-                {snap.previous && (
-                  <p className="panel__label">
-                    이전 {snap.previous.state} {snap.previous.trust ?? ''} · 변화량 {snap.trust !== null && snap.previous.trust !== null ? `${snap.trust - snap.previous.trust > 0 ? '+' : ''}${snap.trust - snap.previous.trust}` : '—'}
-                  </p>
-                )}
-                {snap.event_title && (
-                  <div className="evidence-box">
-                    변화 사건 · {snap.chapter}장 {snap.event_title}
-                    {snap.event_deleted && <span className="badge badge--error rel-deleted">사건 삭제됨</span>}
-                  </div>
-                )}
-                {snap.event_deleted && <p className="check-note">{snap.chapter}장 사건이 삭제돼 이 기록과의 연결만 풀렸어요. 관계 상태는 그대로예요.</p>}
-              </>
-            ) : (
-              <p className="check-note">이 관계는 {chapter}장까지 상태 미정이에요. 장을 골라 첫 상태를 기록해 보세요.</p>
-            )}
-            <p className="panel__label">연결된 데이터 · 기록 {selected.history.length}건 · 연결 사건 {selected.history.filter((h) => h.event_title).length}건</p>
-
-            {recording && (
-              <RecordForm
-                chapter={chapter}
-                initial={snap && !snap.carried ? snap : null}
-                busy={busy}
-                onCancel={() => setRecording(false)}
-                onSubmit={(entry) => saveRecord(selected.relationship_id, entry)}
-              />
-            )}
-            {error && (
-              <p className="notice notice--error" role="alert">
-                {error}
-              </p>
-            )}
-            {canEdit && !recording && (
-              <div className="actions-row">
-                <Button onClick={() => (setRecording(true), setError(null))}>이 장에 상태 기록</Button>
-                <Button tone="error" onClick={() => setConfirmDelete(true)}>
-                  관계 삭제
-                </Button>
-              </div>
-            )}
-          </section>
-        )}
-      </div>
-
-      {pending && (
-        <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setPending(null)}>
-          <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="ow-title" onKeyDown={(e) => e.key === 'Escape' && setPending(null)}>
-            <h2 id="ow-title" className="panel__title">
-              {pending.entry.chapter}장에 이미 기록이 있어요
-            </h2>
-            <p className="page-desc">같은 장에는 관계 상태를 하나만 기록할 수 있어요. 기존 기록을 새 값으로 바꿀까요?</p>
-            <div className="compare">
-              <div className={`compare__card state--${stateClass(pending.existing.state)}`}>
-                <span className="panel__label">기존 기록</span>
-                <strong>
-                  {pending.existing.state} {pending.existing.trust ?? ''}
-                </strong>
-                {pending.existing.event_title && <span className="panel__label">원인 사건: {pending.existing.event_title}</span>}
-              </div>
-              <div className={`compare__card state--${stateClass(pending.entry.state)}`}>
-                <span className="panel__label">새 기록</span>
-                <strong>
-                  {pending.entry.state} {pending.entry.trust ?? ''}
-                </strong>
-                {pending.entry.event_title && <span className="panel__label">원인 사건: {pending.entry.event_title}</span>}
-              </div>
-            </div>
-            <div className="dialog__actions">
-              <Button tone="outline" onClick={() => setPending(null)} autoFocus>
-                취소
-              </Button>
-              <Button tone="error" busy={busy} onClick={() => saveRecord(pending.relationshipId, pending.entry, true)}>
-                덮어쓰기
-              </Button>
-            </div>
-          </div>
+      {loadError && (
+        <div className="insight-state" role="alert">
+          <p>{loadError}</p>
+          <Button
+            tone="outline"
+            onClick={() => {
+              rels.reload()
+              characters.reload()
+              chapters.reload()
+            }}
+          >
+            다시 불러오기
+          </Button>
         </div>
       )}
-
+      {loading ? (
+        <p className="insight-state" role="status">
+          관계를 불러오고 있어요.
+        </p>
+      ) : !loadError && people.length === 0 ? (
+        <div className="insight-state">
+          <h2>먼저 인물을 만들어 보세요.</h2>
+          <Link className="text-link" to={projectPath(projectId, 'characters')}>
+            등장인물 열기
+          </Link>
+        </div>
+      ) : (
+        !loadError && (
+          <>
+            <div className="relations__controls">
+              <label className="insight-field">
+                <span>중심 인물</span>
+                <select
+                  value={view.center?.character_id ?? ''}
+                  onChange={(event) => set({ character: event.target.value, rel: null, page: null })}
+                >
+                  {people.map((person) => (
+                    <option key={person.character_id} value={person.character_id}>
+                      {person.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="relations__chapter">
+                <span>
+                  <strong>{chapter}장</strong> 시점
+                </span>
+                <input
+                  type="range"
+                  min={1}
+                  max={maxChapter}
+                  value={chapter}
+                  onChange={(event) => set({ chapter: event.target.value, rel: null, page: null })}
+                  aria-label="관계를 살펴볼 장"
+                />
+              </label>
+            </div>
+            {view.neighbors.length ? (
+              <RelationshipGraph
+                view={view}
+                selectedId={selected?.relationship_id ?? null}
+                onPerson={(id) => set({ character: id, rel: null, page: null })}
+                onRelationship={(id) => set({ rel: selected?.relationship_id === id ? null : id })}
+              />
+            ) : (
+              <div className="insight-state">
+                <h2>{view.center?.name}의 관계가 아직 없어요.</h2>
+                <p>{chapter}장까지 기록된 관계가 없어요. 다른 인물이나 장을 골라 보세요.</p>
+              </div>
+            )}
+            {view.count > 1 && (
+              <nav className="insight-pagination" aria-label="연결된 인물 페이지">
+                <Button
+                  tone="outline"
+                  disabled={view.page === 1}
+                  onClick={() => set({ page: String(view.page - 1), rel: null })}
+                >
+                  이전 인물
+                </Button>
+                <span>
+                  {view.page} / {view.count}
+                </span>
+                <Button
+                  tone="outline"
+                  disabled={view.page === view.count}
+                  onClick={() => set({ page: String(view.page + 1), rel: null })}
+                >
+                  다음 인물
+                </Button>
+              </nav>
+            )}
+            {view.neighbors.length > 0 && (
+              <p className="insight-caption">인물을 누르면 중심이 바뀌고, 관계를 누르면 기록이 열려요.</p>
+            )}
+            {selected && snapshot && (
+              <section
+                key={`${selected.relationship_id}:${chapter}`}
+                className="relations__detail"
+                ref={detail}
+                aria-label="선택한 관계"
+              >
+                <header className="insight-header">
+                  <h2 tabIndex={-1}>
+                    {nameOf(selected.source_character_id)}와 {nameOf(selected.target_character_id)}
+                  </h2>
+                  <button type="button" className="text-link" onClick={() => set({ rel: null })}>
+                    닫기
+                  </button>
+                </header>
+                <p className="relations__state">
+                  <strong>{snapshot.state}</strong>
+                  <span>
+                    {snapshot.chapter}장 기록{snapshot.chapter !== chapter ? ` · ${chapter}장까지 이어짐` : ''}
+                  </span>
+                </p>
+                {snapshot.event_title && (
+                  <p className="relations__event">
+                    {snapshot.event_title}
+                    {snapshot.event_deleted ? ' (연결된 사건이 삭제됨)' : ''}
+                  </p>
+                )}
+                <details className="insight-disclosure">
+                  <summary>변화 기록 {selected.history.length}개</summary>
+                  <ol className="relations__history">
+                    {[...selected.history]
+                      .sort((a, b) => a.chapter - b.chapter)
+                      .map((entry) => (
+                        <li key={entry.chapter}>
+                          <button
+                            type="button"
+                            aria-current={entry.chapter === snapshot.chapter ? 'step' : undefined}
+                            onClick={() => set({ chapter: String(entry.chapter) })}
+                          >
+                            <span>{entry.chapter}장</span>
+                            <strong>{entry.state}</strong>
+                            {entry.trust !== null && <span>신뢰도 {entry.trust}</span>}
+                          </button>
+                        </li>
+                      ))}
+                  </ol>
+                </details>
+                {error && (
+                  <p className="insight-note" role="alert">
+                    {error}
+                  </p>
+                )}
+                {canEdit &&
+                  (recording ? (
+                    <RecordForm
+                      key={`${selected.relationship_id}:${chapter}`}
+                      chapter={chapter}
+                      initial={snapshot.chapter === chapter ? snapshot : null}
+                      busy={busy}
+                      onCancel={() => setRecording(false)}
+                      onSubmit={(entry) => saveRecord(selected.relationship_id, entry)}
+                    />
+                  ) : (
+                    <div className="insight-actions">
+                      <Button
+                        tone="outline"
+                        disabled={IS_REAL && !chapters.data?.some((item) => item.chapter_no === chapter)}
+                        onClick={() => setRecording(true)}
+                      >
+                        이 장의 관계 기록
+                      </Button>
+                      <details className="insight-disclosure">
+                        <summary>관리</summary>
+                        <button type="button" className="text-link" onClick={() => setConfirmDelete(true)}>
+                          관계 삭제
+                        </button>
+                      </details>
+                    </div>
+                  ))}
+              </section>
+            )}
+          </>
+        )
+      )}
+      <p className="insight-caption">{IS_REAL ? '이 원고에 저장한 관계 기록' : '시연용 관계 기록'}</p>
+      {pending && (
+        <InsightDialog
+          title={`${pending.entry.chapter}장 기록을 바꿀까요?`}
+          busy={busy}
+          onClose={() => setPending(null)}
+        >
+          <p>
+            {pending.existing.state} → {pending.entry.state}
+          </p>
+          <p className="page-desc">이 장에 이미 기록이 있어요. 새 값으로 바꾸면 이전 값은 남지 않아요.</p>
+          {error && <p role="alert">{error}</p>}
+          <div className="insight-actions">
+            <Button tone="outline" onClick={() => setPending(null)} disabled={busy} autoFocus>
+              취소
+            </Button>
+            <Button busy={busy} onClick={() => saveRecord(pending.relationshipId, pending.entry, true)}>
+              기록 바꾸기
+            </Button>
+          </div>
+        </InsightDialog>
+      )}
       {adding && (
         <AddRelationship
           people={people}
           chapter={chapter}
           onCancel={() => setAdding(false)}
           onSubmit={async (input) => {
-            const r = await withAuth((t) => api.createRelationship(t, projectId, input))
+            const item = await withAuth((token) => api.createRelationship(token, projectId, input, manuscriptId))
+            if (!active.current) return
+            rels.setData((old) => [...(old ?? []).filter((row) => row.relationship_id !== item.relationship_id), item])
             setAdding(false)
-            rels.reload()
-            set({ rel: r.relationship_id })
+            set({
+              character: item.source_character_id,
+              rel: item.relationship_id,
+              chapter: String(input.initial_history.chapter),
+              page: null,
+            })
           }}
         />
       )}
-
       {confirmDelete && selected && (
-        <ConfirmDialog
-          title="관계를 삭제할까요?"
-          body={`${nameOf(selected.source_character_id)} ↔ ${nameOf(selected.target_character_id)}의 기록 ${selected.history.length}건이 모두 사라지고 되돌릴 수 없어요.`}
-          confirmLabel="삭제"
-          busy={busy}
-          onConfirm={removeRelationship}
-          onCancel={() => setConfirmDelete(false)}
-        />
+        <InsightDialog title="관계를 삭제할까요?" busy={busy} onClose={() => setConfirmDelete(false)}>
+          <p>
+            {nameOf(selected.source_character_id)}와 {nameOf(selected.target_character_id)}의 모든 원고에 걸친 관계
+            기록이 사라져요.
+          </p>
+          {error && <p role="alert">{error}</p>}
+          <div className="insight-actions">
+            <Button tone="outline" onClick={() => setConfirmDelete(false)} disabled={busy} autoFocus>
+              취소
+            </Button>
+            <Button tone="error" onClick={removeRelationship} busy={busy}>
+              삭제
+            </Button>
+          </div>
+        </InsightDialog>
       )}
     </div>
   )
 }
-
-/** 가장 많이 연결된 인물을 가운데, 나머지를 원형으로 배치한 관계도 */
-function Mindmap({ graph, selectedId, onSelectEdge, onSelectNode }: { graph: MindmapGraph; selectedId: string | null; onSelectEdge: (id: string) => void; onSelectNode: (id: string) => void }) {
-  const W = 760
-  const H = 380
-  const degree = (id: string) => graph.edges.filter((e) => e.source_character_id === id || e.target_character_id === id).length
-  const nodes = [...graph.nodes].sort((a, b) => degree(b.character_id) - degree(a.character_id))
-  const [center, ...rest] = nodes
-  const pos = new Map<string, { x: number; y: number }>()
-  if (center) pos.set(center.character_id, { x: W / 2, y: H / 2 })
-  rest.forEach((n, i) => {
-    const angle = -Math.PI / 2 + (i * 2 * Math.PI) / Math.max(rest.length, 1)
-    pos.set(n.character_id, { x: W / 2 + Math.cos(angle) * 290, y: H / 2 + Math.sin(angle) * 140 })
-  })
-
-  return (
-    <svg className="mindmap" viewBox={`0 0 ${W} ${H}`} role="group" aria-label={`${graph.chapter}장 관계도`}>
-      {graph.edges.map((e) => {
-        const a = pos.get(e.source_character_id)
-        const b = pos.get(e.target_character_id)
-        if (!a || !b) return null
-        const mx = (a.x + b.x) / 2
-        const my = (a.y + b.y) / 2
-        const selected = e.relationship_id === selectedId
-        return (
-          <g
-            key={e.relationship_id}
-            className={`mindmap__edge state--${stateClass(e.state)}${selected ? ' is-selected' : ''}`}
-            role="button"
-            tabIndex={0}
-            aria-pressed={selected}
-            aria-label={`관계 ${e.state} ${e.trust ?? ''}${e.is_carried_forward ? ` (${e.resolved_chapter}장 기록 이어받음)` : ''}`}
-            onClick={() => onSelectEdge(e.relationship_id)}
-            onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && (ev.preventDefault(), onSelectEdge(e.relationship_id))}
-          >
-            <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
-            <line className="mindmap__hit" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
-            <rect x={mx - 38} y={my - 13} width={76} height={26} rx={13} />
-            <text x={mx} y={my + 4} textAnchor="middle">
-              {e.state} {e.trust ?? ''}
-            </text>
-          </g>
-        )
-      })}
-      {nodes.map((n, i) => {
-        const p = pos.get(n.character_id)!
-        const isCenter = i === 0
-        return (
-          <g
-            key={n.character_id}
-            className={isCenter ? 'mindmap__node is-center' : 'mindmap__node'}
-            role="button"
-            tabIndex={0}
-            aria-label={`${n.name} 중심으로 보기`}
-            onClick={() => onSelectNode(n.character_id)}
-            onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && (ev.preventDefault(), onSelectNode(n.character_id))}
-          >
-            <rect x={p.x - 62} y={p.y - 26} width={124} height={52} rx={10} />
-            <text x={p.x} y={p.y - 2} textAnchor="middle" className="mindmap__name">
-              {n.name}
-            </text>
-            <text x={p.x} y={p.y + 16} textAnchor="middle" className="mindmap__role">
-              {n.role_label}
-            </text>
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
-
-function Timeline({ rel, max, current, onPick }: { rel: Relationship; max: number; current: number; onPick: (chapter: number) => void }) {
-  const pct = (c: number) => (max <= 1 ? 50 : ((c - 1) / (max - 1)) * 100)
-  return (
-    <div className="timeline">
-      <div className="timeline__track" aria-hidden="true">
-        <span className="timeline__now" style={{ left: `${pct(current)}%` }} />
-      </div>
-      <ol className="timeline__points">
-        {rel.history.map((h, i) => {
-          const prev = rel.history[i - 1]
-          const changed = prev && prev.state !== h.state
-          return (
-            <li key={h.chapter} style={{ left: `${pct(h.chapter)}%` }}>
-              <button type="button" className={`timeline__point state--${stateClass(h.state)}${h.chapter === current ? ' is-current' : ''}`} onClick={() => onPick(h.chapter)}>
-                <span className="timeline__chapter">{h.chapter}장</span>
-                <span className="timeline__value">
-                  {h.state} {h.trust ?? ''}
-                </span>
-                {changed && <span className="timeline__change">변화</span>}
-              </button>
-            </li>
-          )
-        })}
-      </ol>
-      <div className="timeline__axis" aria-hidden="true">
-        <span>1장</span>
-        <span>{max}장</span>
-      </div>
-    </div>
-  )
-}
-
-function RecordForm({ chapter, initial, busy, onCancel, onSubmit }: { chapter: number; initial: { state: string; trust: number | null; event_title: string | null } | null; busy: boolean; onCancel: () => void; onSubmit: (e: api.EntryInput) => void }) {
+function RecordForm({
+  chapter,
+  initial,
+  busy,
+  onCancel,
+  onSubmit,
+}: {
+  chapter: number
+  initial: { state: string; trust: number | null; event_title: string | null } | null
+  busy: boolean
+  onCancel: () => void
+  onSubmit: (e: api.EntryInput) => void
+}) {
   const [state, setState] = useState(initial?.state ?? '신뢰')
   const [trust, setTrust] = useState(String(initial?.trust ?? 50))
   const [event, setEvent] = useState(initial?.event_title ?? '')
   function submit(e: FormEvent) {
     e.preventDefault()
+    if (busy) return
     onSubmit({ chapter, state, trust: trust === '' ? null : Number(trust), event_title: event.trim() || undefined })
   }
   return (
-    <form className="record-form" onSubmit={submit} noValidate>
+    <form className="record-form" onSubmit={submit}>
       <p className="field__label">{chapter}장 상태 기록</p>
       <div className="two-col" style={{ gap: 8 }}>
         <label className="field">
@@ -427,12 +483,24 @@ function RecordForm({ chapter, initial, busy, onCancel, onSubmit }: { chapter: n
         </label>
         <label className="field">
           <span className="field__label">신뢰도 · 0~100</span>
-          <input className="char-search" type="number" min={0} max={100} value={trust} onChange={(e) => setTrust(e.target.value)} />
+          <input
+            className="char-search"
+            type="number"
+            min={0}
+            max={100}
+            value={trust}
+            onChange={(e) => setTrust(e.target.value)}
+          />
         </label>
       </div>
       <label className="field">
-        <span className="field__label">원인 사건 · 선택</span>
-        <input className="char-search" value={event} onChange={(e) => setEvent(e.target.value)} placeholder="붉은 문 앞의 다툼" />
+        <span className="field__label">관계 변화 메모 · 선택</span>
+        <input
+          className="char-search"
+          value={event}
+          onChange={(e) => setEvent(e.target.value)}
+          placeholder="붉은 문 앞의 다툼"
+        />
       </label>
       <div className="actions-row">
         <Button tone="outline" onClick={onCancel}>
@@ -455,7 +523,11 @@ function AddRelationship({
   people: Array<{ character_id: string; name: string }>
   chapter: number
   onCancel: () => void
-  onSubmit: (input: { source_character_id: string; target_character_id: string; initial_history: api.EntryInput }) => Promise<void>
+  onSubmit: (input: {
+    source_character_id: string
+    target_character_id: string
+    initial_history: api.EntryInput
+  }) => Promise<void>
 }) {
   const [a, setA] = useState(people[0]?.character_id ?? '')
   const [b, setB] = useState(people[1]?.character_id ?? '')
@@ -467,11 +539,16 @@ function AddRelationship({
 
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (busy) return
     if (a === b) return setError('서로 다른 두 인물을 골라 주세요.')
     setBusy(true)
     setError(null)
     try {
-      await onSubmit({ source_character_id: a, target_character_id: b, initial_history: { chapter: Number(first), state, trust: Number(trust) } })
+      await onSubmit({
+        source_character_id: a,
+        target_character_id: b,
+        initial_history: { chapter: Number(first), state, trust: trust === '' ? null : Number(trust) },
+      })
     } catch (err) {
       setError(describeError(err))
       setBusy(false)
@@ -479,11 +556,8 @@ function AddRelationship({
   }
 
   return (
-    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && onCancel()}>
-      <form className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-rel-title" onSubmit={submit} onKeyDown={(e) => e.key === 'Escape' && onCancel()} noValidate>
-        <h2 id="add-rel-title" className="panel__title">
-          관계 추가
-        </h2>
+    <InsightDialog title="관계 추가" onClose={onCancel} busy={busy}>
+      <form className="insight-form" onSubmit={submit}>
         <div className="two-col" style={{ gap: 8 }}>
           {[
             ['인물 A', a, setA],
@@ -491,7 +565,11 @@ function AddRelationship({
           ].map(([label, value, setter]) => (
             <label key={label as string} className="field">
               <span className="field__label">{label as string}</span>
-              <select className="nl-select" value={value as string} onChange={(e) => (setter as (v: string) => void)(e.target.value)}>
+              <select
+                className="nl-select"
+                value={value as string}
+                onChange={(e) => (setter as (v: string) => void)(e.target.value)}
+              >
                 {people.map((p) => (
                   <option key={p.character_id} value={p.character_id}>
                     {p.name}
@@ -502,7 +580,14 @@ function AddRelationship({
           ))}
           <label className="field">
             <span className="field__label">첫 기록 장</span>
-            <input className="char-search" type="number" min={1} value={first} onChange={(e) => setFirst(e.target.value)} />
+            <input
+              className="char-search"
+              type="number"
+              min={1}
+              required
+              value={first}
+              onChange={(e) => setFirst(e.target.value)}
+            />
           </label>
           <label className="field">
             <span className="field__label">관계 상태</span>
@@ -514,7 +599,14 @@ function AddRelationship({
           </label>
           <label className="field">
             <span className="field__label">신뢰도 · 0~100</span>
-            <input className="char-search" type="number" min={0} max={100} value={trust} onChange={(e) => setTrust(e.target.value)} />
+            <input
+              className="char-search"
+              type="number"
+              min={0}
+              max={100}
+              value={trust}
+              onChange={(e) => setTrust(e.target.value)}
+            />
           </label>
         </div>
         {error && <p className="notice notice--error">{error}</p>}
@@ -527,6 +619,6 @@ function AddRelationship({
           </Button>
         </div>
       </form>
-    </div>
+    </InsightDialog>
   )
 }

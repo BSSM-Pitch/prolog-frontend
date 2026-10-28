@@ -1,396 +1,446 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { IconChevronDown } from '@tabler/icons-react'
 import { ApiError } from '../../api/client'
-import * as foreshadowingsApi from '../../api/foreshadowings'
+import { IS_REAL } from '../../api/config'
 import * as manuscriptsApi from '../../api/manuscripts'
 import * as api from '../../api/story'
-import type { StructureAnalysis, StructureMap, StructureNode } from '../../api/types'
+import type { Manuscript, StructureMap, StructureNode } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
+import { TextArea } from '../../components/TextArea'
 import { describeError } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
-import '../characters/characters.css'
-import '../manuscripts/answer.css'
-import '../relationships/relationships.css'
-import '../world/world.css'
+import { EVENTS_PER_PAGE, eventConnections, eventPage, keyEvents, orderedEvents } from './storyModel'
+import { useStoryAnalysis } from './useStoryAnalysis'
+import { InsightNav } from '../insights/InsightNav'
 import './story.css'
-import { TextArea } from '../../components/TextArea'
 
 const TYPE_LABEL = { event: '사건', turning_point: '전환점', climax: '절정' } as const
+const chapterLabel = (node: StructureNode) => (node.chapter > 0 ? `${node.chapter}장` : '위치 미정')
 
-// Figma 843:1243 · 03 스토리 지도 (+ 상태 명세 1264:2911 스토리 지도 행)
 export function StoryMapPage() {
-  // 작품을 옮기면 지도·분석 상태를 처음부터 다시 불러온다
   const project = useProject()
-  return <StoryMap key={project?.project_id ?? ''} />
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
+  return (
+    <StoryManuscripts key={project.project_id} projectId={project.project_id} canEdit={project.my_role !== 'viewer'} />
+  )
 }
 
-function StoryMap() {
-  const project = useProject()
+function StoryManuscripts({ projectId, canEdit }: { projectId: string; canEdit: boolean }) {
   const [params, setParams] = useSearchParams()
-  const { withAuth } = useSession()
-  const projectId = project?.project_id ?? ''
-
-  const manuscripts = useResource(project ? (t) => manuscriptsApi.listManuscripts(t, projectId) : null, [projectId])
-  // 기본은 장이 가장 많은 원고(본편). 메모·외전 같은 짧은 원고는 직접 골라 분석한다
-  const ready = [...(manuscripts.data ?? [])].filter((m) => m.status === 'ready').sort((a, b) => b.chapter_count - a.chapter_count)
-  const [pickedId, setPickedId] = useState<string | null>(null)
-  const latest = ready.find((m) => m.manuscript_id === pickedId) ?? ready[0] ?? null
-  const msId = latest?.manuscript_id ?? ''
-  const [reloadKey, setReloadKey] = useState(0)
-  const map = useResource(msId ? (t) => api.getStructureMap(t, projectId, msId) : null, [projectId, msId, reloadKey])
-  const foreshadowings = useResource(project ? (t) => foreshadowingsApi.listForeshadowings(t, projectId) : null, [projectId])
-
-  const [job, setJob] = useState<StructureAnalysis | null>(null)
-  const [tooShort, setTooShort] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [zoom, setZoom] = useState(1)
-  const [editing, setEditing] = useState(false)
-  const running = job?.status === 'queued' || job?.status === 'analyzing'
-  const jobId = job?.analysis_id
-
-  // 분석이 끝날 때까지 1초마다 확인 (SSM 4.2)
-  useEffect(() => {
-    if (!running || !jobId || !msId) return
-    const id = window.setInterval(() => {
-      withAuth((t) => api.getAnalysis(t, projectId, msId, jobId))
-        .then((next) => {
-          setJob(next)
-          if (next.status === 'completed') setReloadKey((k) => k + 1)
-        })
-        .catch((e) => setError(describeError(e)))
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [running, jobId, msId, projectId, withAuth])
-
-  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
-  const canEdit = project.my_role !== 'viewer'
-  // 다른 원고를 고르면 이전 원고의 지도는 보이지 않게 한다
-  const data: StructureMap | null = map.data?.manuscript_id === msId ? map.data : null
-  const notAnalyzed = map.error !== null && !data
-  const nodes = data?.nodes ?? []
-  const selected = nodes.find((n) => n.node_id === params.get('node')) ?? nodes.find((n) => n.type === 'turning_point') ?? nodes[0] ?? null
-
-  async function analyze(simulateFailure = false) {
-    if (!msId) return
-    setError(null)
-    setTooShort(null)
-    try {
-      setJob(await withAuth((t) => api.analyzeStructure(t, projectId, msId, simulateFailure)))
-    } catch (e) {
-      if (e instanceof ApiError && e.code === 'MANUSCRIPT_TOO_SHORT') setTooShort(e.message)
-      else setError(describeError(e))
-    }
-  }
-
-  const links = (node: StructureNode) => {
-    const byId = (id: string) => nodes.find((n) => n.node_id === id)
-    const causes = (data?.edges ?? []).filter((e) => e.to_node_id === node.node_id).map((e) => byId(e.from_node_id)).filter(Boolean) as StructureNode[]
-    const effects = (data?.edges ?? []).filter((e) => e.from_node_id === node.node_id).map((e) => byId(e.to_node_id)).filter(Boolean) as StructureNode[]
-    // 복선의 장 번호는 본편 기준이라 본편 지도에서만 잇는다
-    const fs = (latest !== ready[0] ? [] : foreshadowings.data ?? []).filter((f) => f.setup_chapter === node.chapter || f.linked_chapters.includes(node.chapter) || f.payoff_chapter === node.chapter)
-    return { causes, effects, fs }
-  }
+  const manuscripts = useResource((token) => manuscriptsApi.listManuscripts(token, projectId), [projectId])
+  const ready = [...(manuscripts.data ?? [])]
+    .filter((m) => m.status === 'ready')
+    .sort((a, b) => b.chapter_count - a.chapter_count)
+  const current = ready.find((m) => m.manuscript_id === params.get('manuscript')) ?? ready[0]
 
   return (
     <div className="story">
-      <header className="world__header">
-        <div>
-          <p className="page-crumb">AI 원고 분석 / 이야기 구조</p>
-          <h1 className="page-title">스토리 지도</h1>
-          <p className="page-desc">사건의 원인과 선택, 아직 해결되지 않은 이야기 줄기를 탐색하세요.</p>
-        </div>
-        {ready.length > 1 && (
-          <label className="story__pick">
-            <span className="panel__label">분석 원고</span>
-            <select className="nl-select" value={latest?.manuscript_id ?? ''} onChange={(e) => (setPickedId(e.target.value), setJob(null), setTooShort(null))}>
-              {ready.map((m) => (
-                <option key={m.manuscript_id} value={m.manuscript_id}>
-                  {m.title} · {m.chapter_count}장
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+      <header className="story__header">
+        <h1 className="page-title">이야기 흐름</h1>
+        {current &&
+          (ready.length > 1 ? (
+            <label className="story__pick">
+              <span className="visually-hidden">분석할 원고</span>
+              <select
+                value={current.manuscript_id}
+                onChange={(e) => setParams({ manuscript: e.target.value }, { replace: true })}
+              >
+                {ready.map((m) => (
+                  <option key={m.manuscript_id} value={m.manuscript_id}>
+                    {m.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <p className="story__manuscript">{current.title}</p>
+          ))}
       </header>
-
-      {manuscripts.data && !latest && (
-        <div className="state-block">
-          <p className="answer__title">분석할 원고가 없어요</p>
-          <p className="answer__body">원고를 올리거나 편집기에서 쓴 뒤 이야기 구조를 분석할 수 있어요.</p>
+      <InsightNav projectId={projectId} />
+      {manuscripts.loading && !current && (
+        <p className="story__status" role="status">
+          원고를 불러오고 있어요.
+        </p>
+      )}
+      {manuscripts.error && (
+        <div className="story__status" role="alert">
+          <p>{manuscripts.error}</p>
+          <Button tone="outline" onClick={manuscripts.reload}>
+            다시 불러오기
+          </Button>
+        </div>
+      )}
+      {!manuscripts.loading && !manuscripts.error && !current && (
+        <div className="story__empty">
+          <h2>먼저 원고를 써 보세요.</h2>
           <Link className="btn btn--primary" to={projectPath(projectId, 'manuscripts')}>
-            원고 추가하기
+            원고 열기
           </Link>
         </div>
       )}
+      {current && (
+        <StoryFlow key={current.manuscript_id} projectId={projectId} manuscript={current} canEdit={canEdit} />
+      )}
+    </div>
+  )
+}
 
-      {running && (
-        <div className="state-block" role="status">
-          <span className="answer__spinner" aria-hidden="true" />
-          <p className="answer__title">이야기 구조를 분석하고 있어요</p>
-          <p className="answer__body">원고 길이에 따라 1–2분 걸릴 수 있어요. 창을 닫아도 분석은 계속돼요.</p>
+function StoryFlow({
+  projectId,
+  manuscript,
+  canEdit,
+}: {
+  projectId: string
+  manuscript: Manuscript
+  canEdit: boolean
+}) {
+  const { withAuth } = useSession()
+  const [params, setParams] = useSearchParams()
+  const manuscriptId = manuscript.manuscript_id
+  const map = useResource(
+    async (token) => {
+      try {
+        return await api.getStructureMap(token, projectId, manuscriptId)
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'STRUCTURE_MAP_NOT_FOUND') return null
+        throw e
+      }
+    },
+    [projectId, manuscriptId],
+  )
+  const chapters = useResource(
+    (token) => manuscriptsApi.listChapters(token, projectId, manuscriptId),
+    [projectId, manuscriptId],
+  )
+  const analysis = useStoryAnalysis(projectId, manuscriptId, map.reload)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [focusId, setFocusId] = useState<string | null>(null)
+  const timeline = useRef<HTMLOListElement>(null)
+  const data = map.data
+  const all = orderedEvents(data?.nodes ?? [])
+  const main = keyEvents(all)
+  const requestedNode =
+    all.find((node) => node.node_id === params.get('node')) ??
+    (params.has('node') ? null : all.find((node) => node.chapter === Number(params.get('chapter'))))
+  const showAll =
+    params.get('view') === 'all' || (!!requestedNode && !main.some((node) => node.node_id === requestedNode.node_id))
+  const filtered = showAll ? all : main
+  const selectedIndex = filtered.findIndex((node) => node.node_id === requestedNode?.node_id)
+  const page = eventPage(
+    filtered,
+    selectedIndex >= 0 ? Math.floor(selectedIndex / EVENTS_PER_PAGE) + 1 : Number(params.get('page') ?? 1),
+  )
+  const selected = page.nodes.find((node) => node.node_id === requestedNode?.node_id)
+  const editorPath = projectPath(projectId, `manuscripts/${manuscriptId}`)
+  const returnChapter = Number(params.get('chapter'))
+  const returnTo = chapters.data?.some((chapter) => chapter.chapter_no === returnChapter)
+    ? `${editorPath}?chapter=${returnChapter}`
+    : editorPath
+
+  useEffect(() => {
+    if (!focusId || editingId) return
+    const button = Array.from(timeline.current?.querySelectorAll<HTMLButtonElement>('[data-event-id]') ?? []).find(
+      (el) => el.dataset.eventId === focusId,
+    )
+    button?.focus({ preventScroll: true })
+    button?.scrollIntoView({ block: 'nearest' })
+  }, [focusId, editingId, params])
+
+  function updateView(changes: { node?: string; view?: string; page?: string }) {
+    const next = new URLSearchParams(params)
+    next.set('manuscript', manuscriptId)
+    for (const [key, value] of Object.entries(changes)) {
+      if (value || key === 'node') next.set(key, value)
+      else next.delete(key)
+    }
+    setEditingId(null)
+    setFocusId(null)
+    setParams(next, { replace: true })
+  }
+
+  function selectNode(node: StructureNode, focus = false) {
+    // 빈 node 값은 편집기에서 전달한 장의 초기 선택도 해제한다.
+    const next = new URLSearchParams(params)
+    next.set('manuscript', manuscriptId)
+    next.set('node', !focus && selected?.node_id === node.node_id ? '' : node.node_id)
+    if (showAll || !filtered.some((item) => item.node_id === node.node_id)) next.set('view', 'all')
+    next.set('page', String(page.page))
+    setEditingId(null)
+    setFocusId(focus ? node.node_id : null)
+    setParams(next, { replace: true })
+  }
+
+  return (
+    <>
+      <div className="story__toolbar">
+        {all.length > 0 ? (
+          <div className="story__views" role="group" aria-label="보여줄 사건">
+            <button type="button" aria-pressed={!showAll} onClick={() => updateView({ view: '', node: '', page: '' })}>
+              주요 사건
+            </button>
+            <button
+              type="button"
+              aria-pressed={showAll}
+              onClick={() => updateView({ view: 'all', node: '', page: '' })}
+            >
+              모든 사건
+            </button>
+          </div>
+        ) : (
+          <span className="story__origin">{IS_REAL ? 'AI 원고 분석' : '시연용 원고 분석'}</span>
+        )}
+        <Link className="text-link story__return" to={returnTo}>
+          원고로 돌아가기
+        </Link>
+      </div>
+
+      {analysis.running && !analysis.pollError && (
+        <p className="story__status" role="status">
+          이야기의 흐름을 읽고 있어요. 원고를 쓰며 기다려도 좋아요.
+        </p>
+      )}
+      {analysis.pollError && (
+        <div className="story__status" role="alert">
+          <p>분석 상태를 확인하지 못했어요. {analysis.pollError}</p>
+          <Button tone="outline" onClick={analysis.resume}>
+            상태 다시 확인
+          </Button>
         </div>
       )}
-      {job?.status === 'failed' && (
-        <div className="state-block state-block--error" role="alert">
-          <p className="answer__title">구조를 분석하지 못했어요</p>
-          <p className="answer__body">잠시 뒤 다시 시도해 주세요. 이전 분석 결과가 있다면 그대로 보여 드려요.</p>
-          <Button onClick={() => analyze()}>다시 분석</Button>
+      {analysis.failed && !analysis.running && (
+        <p className="story__status" role="alert">
+          분석을 마치지 못했어요. {data ? '이전 결과는 그대로 남아 있어요.' : '다시 시도해 주세요.'}
+        </p>
+      )}
+      {analysis.error && (
+        <p className="story__status" role="alert">
+          {analysis.error}
+        </p>
+      )}
+      {map.loading && !data && (
+        <p className="story__status" role="status">
+          흐름을 불러오고 있어요.
+        </p>
+      )}
+      {map.error && (
+        <div className="story__status" role="alert">
+          <p>{map.error}</p>
+          <Button tone="outline" onClick={map.reload}>
+            다시 불러오기
+          </Button>
         </div>
       )}
-      {tooShort && (
-        <div className="state-block" role="status">
-          <p className="answer__title">원고가 조금 더 필요해요</p>
-          <p className="answer__body">{tooShort} 몇 장 더 쓴 뒤 분석해 보세요.</p>
-          {latest && (
-            <Link className="btn btn--primary" to={projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}>
-              원고 쓰러 가기
-            </Link>
+
+      {!map.loading && !map.error && all.length === 0 && !analysis.running && (
+        <div className="story__empty">
+          <h2>{data ? '아직 찾은 사건이 없어요.' : '아직 분석한 흐름이 없어요.'}</h2>
+          <p>{data ? '원고에 이야기를 더한 뒤 다시 분석해 보세요.' : '원고에서 주요 사건과 그 연결을 정리해요.'}</p>
+          {canEdit ? (
+            <Button onClick={analysis.analyze} disabled={analysis.running}>
+              {data ? '다시 분석' : '원고 분석하기'}
+            </Button>
+          ) : (
+            <p>작품을 편집할 수 있는 사람이 분석을 시작할 수 있어요.</p>
           )}
         </div>
       )}
-      {error && (
-        <p className="notice notice--error" role="alert">
-          {error}
-        </p>
-      )}
 
-      {latest && notAnalyzed && !running && !tooShort && (
-        <div className="state-block">
-          <p className="answer__title">아직 스토리 지도가 없어요</p>
-          <p className="answer__body">“{latest.title}”을 분석해 막 구조와 주요 사건, 인과 관계를 정리해 드려요.</p>
-          {canEdit && <Button onClick={() => analyze()}>스토리 지도 만들기</Button>}
-        </div>
-      )}
-
-      {data && (
+      {data && all.length > 0 && (
         <>
-          <section className="panel" aria-labelledby="acts-title">
-            <div className="world__list-head">
-              <h2 id="acts-title" className="panel__title">
-                막 구조
-              </h2>
-              {canEdit && (
-                <Button tone="soft" onClick={() => analyze()} busy={running}>
-                  다시 분석
-                </Button>
-              )}
-            </div>
-            <ActsBar acts={data.acts} />
-          </section>
-
-          <div className="story__layout">
-            <section className="panel" aria-labelledby="scenes-title">
-              <h2 id="scenes-title" className="panel__title">
-                장면 탐색
-              </h2>
-              <ul className="char-list">
-                {nodes.map((n) => (
-                  <li key={n.node_id}>
-                    <button type="button" className="char-item" aria-current={selected?.node_id === n.node_id || undefined} onClick={() => (setEditing(false), setParams({ node: n.node_id }, { replace: true }))}>
-                      <span className="char-item__name">
-                        {n.chapter}장 · {n.title}
-                      </span>
-                      <span className="char-item__meta">{TYPE_LABEL[n.type]}</span>
+          <ol className="story__timeline" ref={timeline} aria-label={showAll ? '모든 사건의 흐름' : '주요 사건의 흐름'}>
+            {page.nodes.map((node) => {
+              const open = selected?.node_id === node.node_id
+              return (
+                <li key={node.node_id} className={`story__event${open ? ' is-open' : ''}`}>
+                  <h2>
+                    <button
+                      type="button"
+                      className="story__event-toggle"
+                      data-event-id={node.node_id}
+                      aria-expanded={open}
+                      aria-controls={`event-detail-${node.node_id}`}
+                      onClick={() => selectNode(node)}
+                    >
+                      <span className="story__chapter">{chapterLabel(node)}</span>
+                      <span className="story__event-title">{node.title}</span>
+                      <IconChevronDown size={18} stroke={1.8} className="story__chevron" aria-hidden="true" />
                     </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-
-            <section className="panel" aria-labelledby="causal-title">
-              <div className="world__list-head">
-                <h2 id="causal-title" className="panel__title">
-                  인과 지도{selected ? ` / ${selected.chapter}장 선택` : ''}
-                </h2>
-                <div className="zoom" role="group" aria-label="확대·축소">
-                  <button type="button" onClick={() => setZoom((z) => Math.max(0.6, +(z - 0.2).toFixed(1)))} aria-label="축소">
-                    −
-                  </button>
-                  <span>{Math.round(zoom * 100)}%</span>
-                  <button type="button" onClick={() => setZoom((z) => Math.min(2, +(z + 0.2).toFixed(1)))} aria-label="확대">
-                    +
-                  </button>
-                  <button type="button" onClick={() => setZoom(1)}>
-                    전체 보기
-                  </button>
-                </div>
-              </div>
-              <CausalMap map={data} zoom={zoom} selectedId={selected?.node_id ?? null} onSelect={(id) => (setEditing(false), setParams({ node: id }, { replace: true }))} />
-            </section>
-
-            {selected && (
-              <section className="panel story__detail" aria-labelledby="node-title">
-                <p className="panel__label">
-                  {TYPE_LABEL[selected.type]} · {selected.chapter}장
-                </p>
-                {editing ? (
-                  <NodeForm
-                    node={selected}
-                    onCancel={() => setEditing(false)}
-                    onSubmit={async (input) => {
-                      const updated = await withAuth((t) => api.updateNode(t, projectId, msId, selected.node_id, input))
-                      map.setData((prev) => (prev ? { ...prev, nodes: prev.nodes.map((n) => (n.node_id === updated.node_id ? updated : n)) } : prev))
-                      setEditing(false)
-                    }}
-                  />
-                ) : (
-                  <>
-                    <h2 id="node-title" className="page-title">
-                      {selected.title}
-                    </h2>
-                    <div>
-                      <p className="panel__label">선택한 사건</p>
-                      <p className="page-desc">{selected.summary}</p>
-                    </div>
-                    {selected.characters.length > 0 && (
-                      <div>
-                        <p className="panel__label">관련 인물</p>
-                        <p className="page-desc">{selected.characters.join(', ')}</p>
+                  </h2>
+                  <div id={`event-detail-${node.node_id}`} hidden={!open}>
+                    {open && (
+                      <div className="story__detail">
+                        {editingId === node.node_id ? (
+                          <NodeForm
+                            key={node.node_id}
+                            node={node}
+                            onCancel={() => {
+                              setEditingId(null)
+                              setFocusId(node.node_id)
+                            }}
+                            onSubmit={async (input) => {
+                              const updated = await withAuth((token) =>
+                                api.updateNode(token, projectId, manuscriptId, node.node_id, input),
+                              )
+                              map.setData((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      nodes: prev.nodes.map((item) =>
+                                        item.node_id === updated.node_id ? updated : item,
+                                      ),
+                                    }
+                                  : prev,
+                              )
+                              setEditingId((current) => (current === node.node_id ? null : current))
+                            }}
+                          />
+                        ) : (
+                          <>
+                            <p className="story__context">
+                              {TYPE_LABEL[node.type]}
+                              {node.characters.length > 0 ? ` · ${node.characters.join(', ')}` : ''}
+                            </p>
+                            {node.summary && <p className="story__summary">{node.summary}</p>}
+                            <Connections
+                              key={node.node_id}
+                              map={data}
+                              node={node}
+                              onSelect={(target) => selectNode(target, true)}
+                            />
+                            <div className="story__detail-actions">
+                              {chapters.data?.some((chapter) => chapter.chapter_no === node.chapter) && (
+                                <Link className="text-link" to={`${editorPath}?chapter=${node.chapter}`}>
+                                  {node.chapter}장 원문 읽기
+                                </Link>
+                              )}
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  className="text-link"
+                                  disabled={analysis.running}
+                                  onClick={() => {
+                                    setFocusId(node.node_id)
+                                    setEditingId(node.node_id)
+                                  }}
+                                >
+                                  요약 수정
+                                </button>
+                              )}
+                            </div>
+                            {chapters.error && (
+                              <p className="story__context">
+                                원문 위치를 불러오지 못했어요.{' '}
+                                <button type="button" className="text-link" onClick={chapters.reload}>
+                                  다시 확인
+                                </button>
+                              </p>
+                            )}
+                          </>
+                        )}
                       </div>
                     )}
-                    <div>
-                      <p className="panel__label">연결</p>
-                      <ul className="changes">
-                        {links(selected).causes.map((n) => (
-                          <li key={`c-${n.node_id}`}>
-                            <strong>원인</strong> {n.chapter}장 {n.title}
-                          </li>
-                        ))}
-                        {links(selected).effects.map((n) => (
-                          <li key={`e-${n.node_id}`}>
-                            <strong>영향</strong> {n.chapter}장 {n.title}
-                          </li>
-                        ))}
-                        {links(selected).fs.map((f) => (
-                          <li key={f.foreshadowing_id}>
-                            <strong>복선</strong>{' '}
-                            <Link className="text-link" to={`${projectPath(projectId, 'foreshadowings')}?selected=${f.foreshadowing_id}`}>
-                              {f.code} {f.title}
-                            </Link>
-                          </li>
-                        ))}
-                        {Object.values(links(selected)).every((l) => l.length === 0) && <li>연결된 사건이 없어요.</li>}
-                      </ul>
-                    </div>
-                    <div className="actions-row">
-                      {latest && (
-                        <Link className="btn btn--outline" to={`${projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}?chapter=${selected.chapter}`}>
-                          원문 보기
-                        </Link>
-                      )}
-                      {canEdit && (
-                        <Button tone="outline" onClick={() => setEditing(true)}>
-                          사건 수정
-                        </Button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </section>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+          {page.count > 1 && (
+            <nav className="story__pagination" aria-label="사건 목록 페이지">
+              <Button
+                tone="outline"
+                disabled={page.page === 1}
+                onClick={() => updateView({ page: String(page.page - 1), node: '' })}
+              >
+                이전 사건
+              </Button>
+              <span aria-live="polite">
+                {page.page} / {page.count}
+              </span>
+              <Button
+                tone="outline"
+                disabled={page.page === page.count}
+                onClick={() => updateView({ page: String(page.page + 1), node: '' })}
+              >
+                다음 사건
+              </Button>
+            </nav>
+          )}
+          <footer className="story__footer">
+            <span>{IS_REAL ? 'AI가 정리한 흐름' : '시연용 분석 결과'}</span>
+            {canEdit && (
+              <button
+                type="button"
+                className="text-link"
+                disabled={analysis.running || editingId !== null}
+                onClick={analysis.analyze}
+              >
+                다시 분석
+              </button>
             )}
-          </div>
+          </footer>
         </>
+      )}
+    </>
+  )
+}
+
+function Connections({
+  map,
+  node,
+  onSelect,
+}: {
+  map: StructureMap
+  node: StructureNode
+  onSelect: (node: StructureNode) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const connections = eventConnections(map, node.node_id)
+  if (!connections.length) return null
+  return (
+    <div className="story__connections">
+      <ul aria-label="연결된 사건">
+        {(expanded ? connections : connections.slice(0, 2)).map(({ node: target, label, key }) => (
+          <li key={key}>
+            <button type="button" onClick={() => onSelect(target)}>
+              <span className="story__connection-label">{label}</span>
+              <span className="story__connection-title">
+                {target.title} <span>{chapterLabel(target)}</span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {connections.length > 2 && (
+        <button type="button" className="text-link" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+          {expanded ? '연결 접기' : `연결 ${connections.length - 2}개 더 보기`}
+        </button>
       )}
     </div>
   )
 }
 
-function ActsBar({ acts }: { acts: StructureMap['acts'] }) {
-  const total = Math.max(1, ...acts.map((a) => a.chapter_to)) - Math.min(...acts.map((a) => a.chapter_from)) + 1
-  return (
-    <ol className="acts">
-      {acts.map((a, i) => (
-        <li key={a.act_name} className={`acts__item acts__item--${i === acts.length - 1 ? 3 : i}`} style={{ flexGrow: a.chapter_to - a.chapter_from + 1, flexBasis: `${((a.chapter_to - a.chapter_from + 1) / total) * 100}%` }} title={a.summary}>
-          <strong>{a.act_name}</strong>
-          <span>
-            {a.chapter_from}–{a.chapter_to}장
-          </span>
-        </li>
-      ))}
-    </ol>
-  )
-}
-
-/** 장을 가로축으로 둔 인과 지도. 카드는 두 줄에 번갈아 놓아 겹치지 않게 한다 */
-function CausalMap({ map, zoom, selectedId, onSelect }: { map: StructureMap; zoom: number; selectedId: string | null; onSelect: (id: string) => void }) {
-  // 100%일 때 패널 너비에 꼭 맞춘다. 확대하면 가로로 스크롤한다
-  const box = useRef<HTMLDivElement>(null)
-  const [fit, setFit] = useState(720)
-  useEffect(() => {
-    const el = box.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => setFit(Math.max(320, Math.floor(entry.contentRect.width))))
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-  const sorted = [...map.nodes].sort((a, b) => a.chapter - b.chapter)
-  // 장 간격이 들쭉날쭉해도 카드가 겹치지 않도록 사건 순서대로 고르게 놓는다
-  const W = Math.round(Math.max(fit, sorted.length * 58 + 130) * zoom)
-  const H = 300
-  const pad = 60
-  const x = (i: number) => pad + (sorted.length > 1 ? (i / (sorted.length - 1)) * (W - pad * 2) : (W - pad * 2) / 2)
-  const pos = new Map(sorted.map((n, i) => [n.node_id, { x: x(i), y: i % 2 === 0 ? 90 : 190 }]))
-
-  return (
-    <div className="causal" ref={box}>
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="group" aria-label="사건 인과 지도">
-        <defs>
-          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" className="causal__arrowhead" />
-          </marker>
-        </defs>
-        <line className="causal__axis" x1={pad} x2={W - pad} y1={H - 30} y2={H - 30} />
-        {sorted.map((n, i) => (
-          <text key={`t-${n.node_id}`} className="causal__tick" x={x(i)} y={H - 10} textAnchor="middle">
-            {n.chapter}장
-          </text>
-        ))}
-        {map.edges.map((e) => {
-          const a = pos.get(e.from_node_id)
-          const b = pos.get(e.to_node_id)
-          if (!a || !b) return null
-          return <path key={`${e.from_node_id}-${e.to_node_id}`} className={`causal__edge causal__edge--${e.relation}`} d={`M${a.x + 50},${a.y} C${(a.x + b.x) / 2},${a.y} ${(a.x + b.x) / 2},${b.y} ${b.x - 52},${b.y}`} markerEnd="url(#arrow)" />
-        })}
-        {sorted.map((n) => {
-          const p = pos.get(n.node_id)!
-          const selected = n.node_id === selectedId
-          return (
-            <g
-              key={n.node_id}
-              className={`causal__node causal__node--${n.type}${selected ? ' is-selected' : ''}`}
-              role="button"
-              tabIndex={0}
-              aria-pressed={selected}
-              aria-label={`${n.chapter}장 ${n.title} (${TYPE_LABEL[n.type]})`}
-              onClick={() => onSelect(n.node_id)}
-              onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && (ev.preventDefault(), onSelect(n.node_id))}
-            >
-              <rect x={p.x - 50} y={p.y - 24} width={100} height={48} rx={8} />
-              <text x={p.x} y={p.y - 4} textAnchor="middle" className="causal__label">
-                {n.title.length > 8 ? `${n.title.slice(0, 7)}…` : n.title}
-              </text>
-              <text x={p.x} y={p.y + 14} textAnchor="middle" className="causal__type">
-                {TYPE_LABEL[n.type]}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
-    </div>
-  )
-}
-
-function NodeForm({ node, onCancel, onSubmit }: { node: StructureNode; onCancel: () => void; onSubmit: (i: { title: string; summary: string }) => Promise<void> }) {
+function NodeForm({
+  node,
+  onCancel,
+  onSubmit,
+}: {
+  node: StructureNode
+  onCancel: () => void
+  onSubmit: (input: { title: string; summary: string }) => Promise<void>
+}) {
   const [title, setTitle] = useState(node.title)
   const [summary, setSummary] = useState(node.summary)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault()
+    if (busy) return
     if (!title.trim()) return setError('사건 제목을 입력해 주세요.')
     setBusy(true)
+    setError(null)
     try {
       await onSubmit({ title: title.trim(), summary: summary.trim() })
     } catch (err) {
@@ -399,23 +449,22 @@ function NodeForm({ node, onCancel, onSubmit }: { node: StructureNode; onCancel:
     }
   }
   return (
-    <form className="record-form" onSubmit={submit} noValidate>
-      <label className="field">
-        <span className="field__label">사건 제목</span>
-        <input className="char-search" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus />
+    <form className="story__form" onSubmit={submit}>
+      <label>
+        <span>사건 제목</span>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} autoFocus disabled={busy} />
       </label>
-      <label className="field">
-        <span className="field__label">요약</span>
-        <TextArea className="nl-textarea" style={{ minHeight: 80 }} value={summary} onChange={(e) => setSummary(e.target.value)} />
+      <label>
+        <span>요약</span>
+        <TextArea rows={4} value={summary} onChange={(e) => setSummary(e.target.value)} disabled={busy} />
       </label>
-      <p className="panel__label">AI 분석 결과를 직접 고치면 다시 분석해도 유지돼요.</p>
-      {error && <p className="notice notice--error">{error}</p>}
-      <div className="actions-row">
-        <Button tone="outline" onClick={onCancel}>
-          취소
-        </Button>
-        <Button type="submit" busy={busy}>
+      {error && <p role="alert">{error}</p>}
+      <div className="story__detail-actions">
+        <Button type="submit" busy={busy} disabled={busy}>
           저장
+        </Button>
+        <Button tone="outline" onClick={onCancel} disabled={busy}>
+          취소
         </Button>
       </div>
     </form>

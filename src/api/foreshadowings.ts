@@ -33,7 +33,7 @@ export function deleteForeshadowing(token: string, projectId: string, id: string
 
 export async function addLinkedChapter(token: string, projectId: string, id: string, chapter: number) {
   if (!IS_REAL) return request<Foreshadowing>('POST', `${one(projectId, id)}/linked-chapters`, { body: { chapter }, accessToken: token })
-  const ctx = await real.context(token, projectId)
+  const ctx = await real.context(token, projectId, id)
   await request<BackendForeshadowing>('POST', `${one(projectId, id)}/linked-chapters`, { body: { chapter_id: ctx.chapterId(chapter) }, accessToken: token })
   return real.find(token, projectId, id)
 }
@@ -50,7 +50,7 @@ export async function removeLinkedChapter(token: string, projectId: string, id: 
 /** 4.8 회수 처리 — 설치 장보다 앞이면 400 INVALID_PAYOFF_CHAPTER */
 export async function setPayoff(token: string, projectId: string, id: string, payoff_chapter: number) {
   if (!IS_REAL) return request<Foreshadowing>('PUT', `${one(projectId, id)}/payoff`, { body: { payoff_chapter }, accessToken: token })
-  const ctx = await real.context(token, projectId)
+  const ctx = await real.context(token, projectId, id)
   await request<BackendForeshadowing>('PUT', `${one(projectId, id)}/payoff`, { body: { payoff_chapter_id: ctx.chapterId(payoff_chapter) }, accessToken: token })
   return real.find(token, projectId, id)
 }
@@ -74,17 +74,20 @@ export async function listAdvisories(token: string, projectId: string, currentCh
 // 관련 인물은 이름으로 다루고 백엔드 인물 ID와 바꾼다. 사건 연결은 백엔드에 아직 없다(SCDS 이후).
 
 const real = {
-  async context(token: string, projectId: string) {
-    const [manuscripts, chapters, characters] = await Promise.all([
+  async context(token: string, projectId: string, foreshadowingId?: string) {
+    const [manuscripts, chapters, characters, existing] = await Promise.all([
       requestAll<BackendManuscript>(`/projects/${projectId}/manuscripts`, { accessToken: token }),
       requestAll<BackendChapter>(`/projects/${projectId}/chapters`, { accessToken: token }),
       requestAll<BackendCharacter>(`/projects/${projectId}/characters`, { accessToken: token }),
+      foreshadowingId ? request<BackendForeshadowing>('GET', one(projectId, foreshadowingId), { accessToken: token }) : Promise.resolve(null),
     ])
     // 화면(toManuscript)과 같은 기준의 ready — 편집기 원고는 draft여도 ready로 본다
     const main = manuscripts.find((m) => m.status === 'ready' || (m.status === 'draft' && m.source_type === 'editor'))
+    const setupId = existing?.chapters.find((chapter) => chapter.role === 'setup')?.chapter_id
+    const ownerId = setupId ? chapters.find((chapter) => chapter.chapter_id === setupId)?.manuscript_id : main?.manuscript_id
     return {
       chapterId(no: number) {
-        const c = chapters.find((x) => x.manuscript_id === main?.manuscript_id && x.chapter_no === no) ?? chapters.find((x) => x.chapter_no === no)
+        const c = chapters.find((x) => x.manuscript_id === ownerId && x.chapter_no === no)
         if (!c) throw new ApiError(400, { code: 'INVALID_INPUT', message: `${no}장이 없어요. 원고에 있는 장을 골라 주세요.`, details: { field: 'chapter' } })
         return c.chapter_id
       },
@@ -95,7 +98,7 @@ const real = {
     }
   },
 
-  toForeshadowing(f: BackendForeshadowing, code: string, nameOf: Map<string, string>): Foreshadowing {
+  toForeshadowing(f: BackendForeshadowing, code: string, nameOf: Map<string, string>, chapters: BackendChapter[]): Foreshadowing {
     return {
       foreshadowing_id: f.foreshadowing_id,
       code,
@@ -107,17 +110,22 @@ const real = {
       status: f.status,
       linked_characters: f.linked_character_ids.map((id) => nameOf.get(id)).filter((n): n is string => Boolean(n)),
       linked_events: [],
+      chapter_locations: f.chapters.flatMap((ref) => {
+        const chapter = chapters.find((item) => item.chapter_id === ref.chapter_id)
+        return chapter ? [{ role: ref.role, chapter: chapter.chapter_no, manuscript_id: chapter.manuscript_id }] : []
+      }),
     }
   },
 
   async list(token: string, projectId: string) {
-    const [rows, characters] = await Promise.all([
+    const [rows, characters, chapters] = await Promise.all([
       requestAll<BackendForeshadowing>(base(projectId), { accessToken: token }),
       requestAll<BackendCharacter>(`/projects/${projectId}/characters`, { accessToken: token }),
+      requestAll<BackendChapter>(`/projects/${projectId}/chapters`, { accessToken: token }),
     ])
     const codes = codesByCreation(rows, (f) => f.foreshadowing_id, 'F')
     const nameOf = new Map(characters.map((c) => [c.character_id, c.name]))
-    return rows.map((f) => real.toForeshadowing(f, codes.get(f.foreshadowing_id)!, nameOf))
+    return rows.map((f) => real.toForeshadowing(f, codes.get(f.foreshadowing_id)!, nameOf, chapters))
   },
 
   async find(token: string, projectId: string, id: string) {
@@ -148,7 +156,7 @@ const real = {
 
   /** 제목·설명·설치 장은 PATCH, 관련 인물은 연결을 더하고 푸는 것으로 맞춘다 */
   async update(token: string, projectId: string, id: string, input: UpdateInput) {
-    const [ctx, current] = await Promise.all([real.context(token, projectId), request<BackendForeshadowing>('GET', one(projectId, id), { accessToken: token })])
+    const [ctx, current] = await Promise.all([real.context(token, projectId, id), request<BackendForeshadowing>('GET', one(projectId, id), { accessToken: token })])
     const body: Record<string, unknown> = {}
     if (input.title !== undefined) body.title = input.title
     if (input.description !== undefined) body.description = input.description || null

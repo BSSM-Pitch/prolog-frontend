@@ -1,0 +1,197 @@
+.insight-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1080px;
+}
+.insight-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.insight-header h2 {
+  font-size: 25px;
+  line-height: 1.4;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+}
+.insight-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 30px;
+  border-bottom: 2px solid var(--itda-ink);
+}
+.insight-nav a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  color: var(--itda-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+}
+.insight-nav a.active {
+  color: var(--itda-ink);
+  font-weight: 800;
+}
+.insight-nav a.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: var(--itda-ink);
+}
+.insight-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--itda-muted);
+}
+.insight-field select {
+  max-width: 100%;
+  min-width: 100px;
+  min-height: 44px;
+  padding: 8px 28px 8px 12px;
+  border: 1px solid var(--stroke);
+  background: var(--itda-surface);
+  color: var(--itda-ink);
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.insight-state {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 16px;
+  padding: 44px 0;
+  line-height: 1.8;
+}
+.insight-state h2 {
+  font-size: 22px;
+  font-weight: 750;
+}
+.insight-state p,
+.insight-note {
+  font-size: 14px;
+  line-height: 1.8;
+}
+.insight-note[role='alert'],
+.insight-state[role='alert'] {
+  color: var(--prolog-review-ink);
+}
+.insight-caption {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--itda-muted);
+}
+.insight-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.insight-actions .text-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+.insight-disclosure {
+  font-size: 13px;
+}
+.insight-disclosure summary {
+  display: list-item;
+  min-height: 44px;
+  padding: 12px 0;
+  cursor: pointer;
+  font-weight: 650;
+}
+.insight-disclosure[open] > summary {
+  margin-bottom: 12px;
+}
+.insight-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  font-size: 13px;
+}
+.insight-dialog {
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 28px;
+  margin: auto;
+  border: 1px solid var(--itda-ink);
+  border-top: 3px solid var(--itda-ink);
+  border-radius: 2px;
+  background: var(--itda-surface);
+  color: var(--itda-ink);
+  overflow: auto;
+}
+.insight-dialog::backdrop {
+  background: rgb(0 0 0 / 30%);
+}
+.insight-dialog > * + * {
+  margin-top: 22px;
+}
+.insight-form,
+.record-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.insight-page .record-form {
+  padding: 20px 0;
+}
+.insight-form :is(input, select),
+.record-form :is(input, select) {
+  min-height: 44px;
+}
+.insight-page :is(button, a, select, input, summary):focus-visible,
+.insight-dialog :is(button, a, select, input, summary):focus-visible,
+.insight-nav a:focus-visible {
+  outline: 2px solid var(--itda-ink);
+  outline-offset: 4px;
+}
+.insight-page button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.story .story__toolbar {
+  border-top: 0;
+}
+@media (max-width: 600px) {
+  .insight-page {
+    gap: 20px;
+  }
+  .insight-nav {
+    column-gap: 22px;
+  }
+  .insight-nav a {
+    font-size: 13px;
+    min-height: 48px;
+  }
+  .insight-header h2 {
+    font-size: 22px;
+  }
+  .insight-dialog {
+    padding: 20px;
+  }
+  .insight-dialog .two-col,
+  .record-form .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+.world.insight-page {
+  max-width: 1080px;
+}
+.insight-page .conflict-layout--closed {
+  grid-template-columns: minmax(0, 1fr);
+}

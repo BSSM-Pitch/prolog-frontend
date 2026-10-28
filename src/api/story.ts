@@ -41,8 +41,8 @@ export async function getStructureMap(token: string, projectId: string, manuscri
     manuscript_id: map.manuscript_id,
     acts: map.acts,
     nodes: map.nodes.map((n) => toNode(n, names)),
-    // 백엔드 관계는 자유 문자열이다. 화면은 원인(causes)·영향(affects)만 구분한다
-    edges: map.edges.map((e) => ({ ...e, relation: e.relation === 'affects' ? 'affects' : 'causes' })),
+    // 자유 문자열인 관계를 보존한다. 알 수 없는 연결을 인과관계로 단정하지 않는다.
+    edges: map.edges,
   } satisfies StructureMap
 }
 

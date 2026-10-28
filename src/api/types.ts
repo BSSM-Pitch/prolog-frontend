@@ -141,7 +141,13 @@ export interface Notification {
    * 관련 리소스. parent_id(초대가 속한 팀·프로젝트), status·expires_at(초대 상태)은 명세 미정의 —
    * 알림 화면에서 바로 "참가"하고 "만료까지 6일"을 보여 주려고 추가
    */
-  related_ref: { type: string; id: string; parent_id?: string; status?: InvitationStatus; expires_at?: string | null } | null
+  related_ref: {
+    type: string
+    id: string
+    parent_id?: string
+    status?: InvitationStatus
+    expires_at?: string | null
+  } | null
   channels_sent: Array<'in_app' | 'email'>
   read_at: string | null
   created_at: string
@@ -381,6 +387,8 @@ export type RuleExtraction = ConflictCheck
 // RCV 명세 — 관계 변화
 
 export interface RelationshipHistoryEntry {
+  chapter_id?: string
+  manuscript_id?: string
   chapter: number
   state: string
   trust: number | null
@@ -436,6 +444,8 @@ export interface Foreshadowing {
   /** (명세 미정의) 명세는 linked_character_ids·linked_event_ids — 목업은 이름으로 보관 */
   linked_characters: string[]
   linked_events: string[]
+  /** 실제 서버의 장 ID로 확인한 원문 위치. 번호가 같은 다른 원고로 이동하지 않는다. */
+  chapter_locations?: Array<{ role: 'setup' | 'linked' | 'payoff'; chapter: number; manuscript_id: string }>
 }
 
 export interface Advisory {
@@ -471,7 +481,7 @@ export interface StructureMap {
   manuscript_id: string
   acts: Array<{ act_name: string; chapter_from: number; chapter_to: number; summary: string }>
   nodes: StructureNode[]
-  edges: Array<{ from_node_id: string; to_node_id: string; relation: 'causes' | 'affects' }>
+  edges: Array<{ from_node_id: string; to_node_id: string; relation: string }>
 }
 
 export interface StructureAnalysis {
@@ -490,7 +500,13 @@ export interface ProjectOverview {
     center: { character_id: string; name: string; role_label: string }
     edges: Array<{ character_id: string; name: string; state: string; trust: number }>
   } | null
-  priority: { conflict_id: string; index: number; title: string; severity: 'high' | 'medium' | 'low'; chapters: number[] } | null
+  priority: {
+    conflict_id: string
+    index: number
+    title: string
+    severity: 'high' | 'medium' | 'low'
+    chapters: number[]
+  } | null
 }
 
 export interface ApiErrorBody {

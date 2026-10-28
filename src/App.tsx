@@ -26,6 +26,9 @@ import { MembersPage } from './features/projects/MembersPage'
 import { NewProjectPage } from './features/projects/NewProjectPage'
 import { OverviewPage } from './features/projects/OverviewPage'
 import { ProjectsPage } from './features/projects/ProjectsPage'
+import { StoryMapPage } from './features/story/StoryMapPage'
+import { RelationshipsPage } from './features/relationships/RelationshipsPage'
+import { ForeshadowingsPage } from './features/foreshadowings/ForeshadowingsPage'
 import { NewTeamPage } from './features/teams/NewTeamPage'
 import { TeamMembersPage } from './features/teams/TeamMembersPage'
 import { TeamPage } from './features/teams/TeamPage'
@@ -102,7 +105,9 @@ export default function App() {
               <Route path="characters/drafts/:draftId" element={<DraftPage />} />
               <Route path="rules" element={<RulesPage />} />
               <Route path="conflicts" element={<ConflictsPage />} />
-              {/* 관계 변화 그래프·복선 추적·스토리 맵은 아직 열지 않는다. 주소로 들어와도 아래 *에 걸려 개요로 간다 */}
+              <Route path="story-map" element={<StoryMapPage />} />
+              <Route path="relationships" element={<RelationshipsPage />} />
+              <Route path="foreshadowings" element={<ForeshadowingsPage />} />
               <Route path="members" element={<MembersPage />} />
               <Route path="*" element={<Navigate to=".." replace />} />
             </Route>

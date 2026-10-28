@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test:story": "node --experimental-strip-types --test tests/storyModel.test.mjs",
+    "test:insights": "node --experimental-strip-types --test tests/*Model.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

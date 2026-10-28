@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
 import type { Chapter, Citation } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -27,6 +27,7 @@ export function EditorPage() {
   const project = useProject()
   const { manuscriptId = '' } = useParams()
   const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
   const highlight = (useLocation().state as { highlight?: string } | null)?.highlight
   const { withAuth } = useSession()
   const projectId = project?.project_id ?? ''
@@ -49,26 +50,47 @@ export function EditorPage() {
   const [adding, setAdding] = useState(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
   const pendingSave = useRef<{ chapterId: string; content: string } | null>(null)
+  const saving = useRef<Promise<boolean> | null>(null)
 
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
 
-  async function flush() {
+  async function flush(): Promise<boolean> {
+    // 편집기를 떠나는 동작도 blur에서 시작한 저장을 기다린다.
+    if (saving.current) {
+      const success = await saving.current
+      return success && (pendingSave.current ? flush() : true)
+    }
     const job = pendingSave.current
-    if (!job || !project) return
+    if (!job || !project) return true
     pendingSave.current = null
     setSave({ kind: 'saving' })
-    try {
-      const saved = await withAuth((t) =>
-        api.saveChapter(t, projectId, manuscriptId, job.chapterId, { content: job.content }),
-      )
-      chapters.setData((prev) => prev?.map((c) => (c.chapter_id === saved.chapter_id ? saved : c)) ?? null)
-      setSave(
-        pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at ?? new Date().toISOString() },
-      )
-    } catch (e) {
-      pendingSave.current = pendingSave.current ?? job
-      setSave({ kind: 'error', message: describeError(e) })
-    }
+    saving.current = (async () => {
+      try {
+        const saved = await withAuth((t) =>
+          api.saveChapter(t, projectId, manuscriptId, job.chapterId, { content: job.content }),
+        )
+        chapters.setData((prev) => prev?.map((c) => (c.chapter_id === saved.chapter_id ? saved : c)) ?? null)
+        setSave(
+          pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at ?? new Date().toISOString() },
+        )
+        return true
+      } catch (e) {
+        pendingSave.current = pendingSave.current ?? job
+        setSave({ kind: 'error', message: describeError(e) })
+        return false
+      } finally {
+        saving.current = null
+      }
+    })()
+    return saving.current
+  }
+
+  async function openStory() {
+    if (!(await flush())) return
+    if (pendingSave.current && !(await flush())) return
+    const query = new URLSearchParams({ manuscript: manuscriptId })
+    if (chapter) query.set('chapter', String(chapter.chapter_no))
+    navigate(`${projectPath(projectId, 'story-map')}?${query}`)
   }
 
   // 입력이 멈추고 잠시 뒤 자동 저장
@@ -112,7 +134,7 @@ export function EditorPage() {
   }
 
   async function goToChapter(no: number, select?: string) {
-    await flush()
+    if (!(await flush())) return
     setParams({ chapter: String(no) }, { replace: true })
     if (select) {
       // 장이 바뀐 뒤 근거 문장을 선택해 보여 준다
@@ -129,7 +151,7 @@ export function EditorPage() {
   }
 
   async function addChapter() {
-    await flush()
+    if (!(await flush())) return
     setAdding(true)
     try {
       const c = await withAuth((t) => api.addChapter(t, projectId, manuscriptId))
@@ -149,11 +171,18 @@ export function EditorPage() {
 
   return (
     <div className="editor">
-      <header>
-        <p className="page-crumb">
-          <Link to={projectPath(projectId)}>{project.title}</Link> / 원고
-        </p>
-        <h1 className="page-title">{ms?.title ?? '원고'}</h1>
+      <header className="editor__page-head">
+        <div>
+          <p className="page-crumb">
+            <Link to={projectPath(projectId)}>{project.title}</Link> / 원고
+          </p>
+          <h1 className="page-title">{ms?.title ?? '원고'}</h1>
+        </div>
+        {ms?.status === 'ready' && (
+          <Button tone="outline" onClick={openStory}>
+            작품 살펴보기
+          </Button>
+        )}
       </header>
 
       {loadError && !ms && (
@@ -274,7 +303,7 @@ interface AskPanelProps {
   manuscriptId: string
   chapter: Chapter | null
   textRef: RefObject<HTMLTextAreaElement | null>
-  beforeAsk: () => Promise<void>
+  beforeAsk: () => Promise<boolean>
   onOpenCitation: (c: Citation) => void
 }
 
@@ -320,7 +349,11 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
     setSending(true)
     setError(null)
     try {
-      await beforeAsk() // 선택 범위가 저장된 본문과 맞도록 먼저 저장
+      // 선택 범위가 저장된 본문과 맞도록 먼저 저장한다.
+      if (!(await beforeAsk())) {
+        setError('원고를 저장하지 못했어요. 저장을 마친 뒤 다시 질문해 주세요.')
+        return
+      }
       const res = await withAuth((t) =>
         api.createThread(
           t,

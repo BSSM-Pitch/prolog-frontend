@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError } from '../api/client'
+import { IS_REAL } from '../api/config'
 import * as authApi from '../api/auth'
 import type { AuthResult, AuthTokens, User } from '../api/types'
 
-const TOKEN_KEY = 'prolog.auth.tokens'
+const TOKEN_KEY = IS_REAL ? 'prolog.auth.tokens.real' : 'prolog.auth.tokens'
 
 function readTokens(): AuthTokens | null {
   try {

@@ -8,7 +8,7 @@ const P = '^\\/projects\\/[^/]+'
 const r = (source: string) => new RegExp(source.replaceAll('{P}', P).replaceAll('{ID}', ID))
 
 /**
- * prolog-backend(06b8928)에 있는 API. 경로는 /v1을 뺀 형태.
+ * prolog-backend 기본 API와 RCV 통합 브랜치의 API. 경로는 /v1을 뺀 형태.
  * 여기에 없는 요청은 real 모드에서도 목업이 받는다.
  */
 const BACKEND_ROUTES: Array<[string, RegExp]> = [
@@ -43,6 +43,13 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['GET|POST', r('{P}\\/world-rules$')],
   ['PATCH|DELETE', r('{P}\\/world-rules\\/{ID}$')],
   // FTS (사건 연결 제외 전부)
+  // RCV — 원고별 실제 관계 기록 (chapter_id로 저장)
+  ['GET|POST', /^\/projects\/[^/]+\/relationships$/],
+  ['GET|DELETE', /^\/projects\/[^/]+\/relationships\/[^/]+$/],
+  ['POST', /^\/projects\/[^/]+\/relationships\/[^/]+\/history$/],
+  ['DELETE', /^\/projects\/[^/]+\/relationships\/[^/]+\/history\/[^/]+$/],
+  ['GET', /^\/projects\/[^/]+\/relationships\/[^/]+\/snapshot$/],
+  ['GET', /^\/projects\/[^/]+\/relationship-mindmap$/],
   ['GET|POST', /^\/projects\/[^/]+\/foreshadowings$/],
   ['GET', /^\/projects\/[^/]+\/foreshadowings\/unresolved(\/advisories)?$/],
   ['GET|PATCH|DELETE', /^\/projects\/[^/]+\/foreshadowings\/[^/]+$/],

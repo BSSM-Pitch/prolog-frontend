@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
 import type { Conflict } from '../../api/types'
@@ -13,23 +13,49 @@ import '../characters/characters.css'
 import '../manuscripts/answer.css'
 import './world.css'
 import { TextArea } from '../../components/TextArea'
+import { InsightNav } from '../insights/InsightNav'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
 const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
 const pad = (n: number) => String(n).padStart(2, '0')
 
 type SkipInfo = { title: string; body: string; action: string; to: string }
-const NO_REFERENCE: SkipInfo = { title: '비교할 설정이 아직 없어요', body: '확정된 인물 설정이나 규칙이 생기면 새 장면과 비교해 드려요.', action: '인물 설계하기', to: 'characters/new' }
+const NO_REFERENCE: SkipInfo = {
+  title: '비교할 설정이 아직 없어요',
+  body: '확정된 인물 설정이나 규칙이 생기면 새 장면과 비교해 드려요.',
+  action: '인물 설계하기',
+  to: 'characters/new',
+}
 /** 검사를 건너뛴 이유별 안내 — 무엇이 빠졌는지 정확히 알려 준다 */
 const SKIPPED: Record<string, SkipInfo> = {
-  NO_MANUSCRIPT: { title: '검사할 원고가 없어요', body: '원고를 올리거나 편집기에서 장면을 쓴 뒤 다시 검사해 주세요.', action: '원고 쓰기', to: 'manuscripts' },
-  NO_CHARACTERS: { title: '확정된 인물이 없어요', body: '충돌은 인물의 행동을 규칙과 비교해 찾아요. 인물 초안을 확정한 뒤 다시 검사해 주세요.', action: '인물 설계하기', to: 'characters/new' },
-  NO_RULES: { title: '확정된 설정 규칙이 없어요', body: '규칙의 위반 판정 키워드로 원고 문장을 찾아요. 규칙을 추가하거나 후보를 확정한 뒤 다시 검사해 주세요.', action: '설정 규칙 보기', to: 'rules' },
+  NO_MANUSCRIPT: {
+    title: '검사할 원고가 없어요',
+    body: '원고를 올리거나 편집기에서 장면을 쓴 뒤 다시 검사해 주세요.',
+    action: '원고 쓰기',
+    to: 'manuscripts',
+  },
+  NO_CHARACTERS: {
+    title: '확정된 인물이 없어요',
+    body: '충돌은 인물의 행동을 규칙과 비교해 찾아요. 인물 초안을 확정한 뒤 다시 검사해 주세요.',
+    action: '인물 설계하기',
+    to: 'characters/new',
+  },
+  NO_RULES: {
+    title: '확정된 설정 규칙이 없어요',
+    body: '규칙의 위반 판정 키워드로 원고 문장을 찾아요. 규칙을 추가하거나 후보를 확정한 뒤 다시 검사해 주세요.',
+    action: '설정 규칙 보기',
+    to: 'rules',
+  },
 }
 const skipInfo = (reason: string | null) => SKIPPED[reason ?? ''] ?? NO_REFERENCE
 
 // Figma 843:1781 · 05 설정 충돌 검토 (+ 상태 명세 1264:2911 설정 충돌 검토 행)
 export function ConflictsPage() {
+  const project = useProject()
+  return <ConflictReview key={project?.project_id ?? ''} />
+}
+
+function ConflictReview() {
   const project = useProject()
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
@@ -42,12 +68,22 @@ export function ConflictsPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const detail = useRef<HTMLElement>(null)
+  const focusedId = params.get('focus')
+  useEffect(() => {
+    if (!focusedId) return
+    detail.current?.scrollIntoView({ block: 'nearest' })
+    detail.current?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true })
+  }, [focusedId, showResolved, conflicts.data])
 
   const check = useJob(
     (t, id) => api.getConflictCheck(t, projectId, id),
     (job) => {
       conflicts.reload()
-      if (job.status === 'completed') setNotice(job.result_ids.length ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.` : '새로 찾은 충돌이 없어요.')
+      if (job.status === 'completed')
+        setNotice(
+          job.result_ids.length ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.` : '새로 찾은 충돌이 없어요.',
+        )
     },
   )
 
@@ -58,14 +94,24 @@ export function ConflictsPage() {
   const resolved = all.filter((c) => c.status !== 'pending')
   const list = showResolved ? resolved : pending
   const focus = params.get('focus')
-  const selected = all.find((c) => c.conflict_id === focus) ?? list[0] ?? null
+  const selected = list.find((c) => c.conflict_id === focus) ?? null
   const latest = (manuscripts.data ?? []).filter((m) => m.status === 'ready')[0] ?? null
+
+  function focusConflict(id: string | null) {
+    const next = new URLSearchParams(params)
+    if (id) next.set('focus', id)
+    else next.delete('focus')
+    setEditing(null)
+    setParams(next, { replace: true })
+  }
 
   async function resolve(c: Conflict, action: 'accepted' | 'ignored' | 'modified', modified_content?: string) {
     setBusy(true)
     setError(null)
     try {
-      const updated = await withAuth((t) => api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content }))
+      const updated = await withAuth((t) =>
+        api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content }),
+      )
       conflicts.setData((prev) => prev?.map((x) => (x.conflict_id === updated.conflict_id ? updated : x)) ?? null)
       setEditing(null)
       setNotice(
@@ -77,7 +123,7 @@ export function ConflictsPage() {
       )
       // 다음 미검토 항목으로 넘어간다
       const next = pending.find((x) => x.conflict_id !== c.conflict_id)
-      setParams(next ? { focus: next.conflict_id } : {}, { replace: true })
+      focusConflict(next?.conflict_id ?? null)
     } catch (e) {
       setError(describeError(e))
     } finally {
@@ -107,12 +153,10 @@ export function ConflictsPage() {
   const job = check.job
 
   return (
-    <div className="world">
+    <div className="world insight-page">
       <header className="world__header">
         <div>
-          <p className="page-crumb">검토 / 미해결 {pending.length}건</p>
-          <h1 className="page-title">설정 충돌 검토</h1>
-          <p className="page-desc">충돌 후보의 두 근거와 변경 결과를 비교한 뒤 처리하세요.</p>
+          <h1 className="page-title">설정 검토</h1>
         </div>
         {canEdit && (
           <Button tone="secondary" onClick={() => startCheck()} busy={check.running}>
@@ -120,13 +164,16 @@ export function ConflictsPage() {
           </Button>
         )}
       </header>
+      <InsightNav projectId={projectId} />
 
       {check.running && (
         <div className="state-block" role="status">
           <span className="answer__spinner" aria-hidden="true" />
           <p className="answer__title">설정 충돌을 검토하고 있어요</p>
           <p className="answer__body">
-            {job?.status === 'analyzing' ? '기본 규칙 검사는 끝났고, AI가 문맥을 한 번 더 살펴보고 있어요.' : '확정된 규칙과 인물 설정을 원고와 비교하고 있어요.'}
+            {job?.status === 'analyzing'
+              ? '기본 규칙 검사는 끝났고, AI가 문맥을 한 번 더 살펴보고 있어요.'
+              : '확정된 규칙과 인물 설정을 원고와 비교하고 있어요.'}
           </p>
         </div>
       )}
@@ -152,16 +199,29 @@ export function ConflictsPage() {
         </p>
       )}
 
-      <div className="two-col two-col--list">
+      {conflicts.error && (
+        <div className="insight-state" role="alert">
+          <p>{conflicts.error}</p>
+          <Button tone="outline" onClick={conflicts.reload}>
+            다시 불러오기
+          </Button>
+        </div>
+      )}
+      <div className={`two-col two-col--list${selected ? '' : ' conflict-layout--closed'}`}>
         <section className="panel" aria-labelledby="conflicts-title">
           <div className="world__list-head">
             <h2 id="conflicts-title" className="panel__title">
-              충돌 후보 {pending.length}건
+              {showResolved ? '처리한 후보' : '살펴볼 후보'} {list.length}건
             </h2>
             <label className="visually-hidden" htmlFor="conflict-filter">
               보기
             </label>
-            <select id="conflict-filter" className="nl-select" value={showResolved ? 'resolved' : 'pending'} onChange={(e) => setShowResolved(e.target.value === 'resolved')}>
+            <select
+              id="conflict-filter"
+              className="nl-select"
+              value={showResolved ? 'resolved' : 'pending'}
+              onChange={(e) => setShowResolved(e.target.value === 'resolved')}
+            >
               <option value="pending">미검토만</option>
               <option value="resolved">처리됨</option>
             </select>
@@ -170,7 +230,11 @@ export function ConflictsPage() {
           {conflicts.data && list.length === 0 && (
             <div className="state-block">
               <p className="answer__title">{showResolved ? '처리한 충돌이 없어요' : '검토할 충돌이 없어요'}</p>
-              <p className="answer__body">{showResolved ? '미검토 목록에서 충돌을 처리하면 여기로 옮겨져요.' : '새 장면을 쓴 뒤 원고 다시 검사를 눌러 보세요.'}</p>
+              <p className="answer__body">
+                {showResolved
+                  ? '미검토 목록에서 충돌을 처리하면 여기로 옮겨져요.'
+                  : '새 장면을 쓴 뒤 원고 다시 검사를 눌러 보세요.'}
+              </p>
             </div>
           )}
           <ul className="char-list">
@@ -180,13 +244,14 @@ export function ConflictsPage() {
                   type="button"
                   className="char-item"
                   aria-current={selected?.conflict_id === c.conflict_id || undefined}
-                  onClick={() => (setEditing(null), setParams({ focus: c.conflict_id }, { replace: true }))}
+                  onClick={() => focusConflict(selected?.conflict_id === c.conflict_id ? null : c.conflict_id)}
                 >
                   <span className="char-item__name">
                     {pad(c.index)} {c.title}
                   </span>
                   <span className="char-item__meta">
-                    <span className={`severity severity--${c.severity}`}>{SEVERITY[c.severity]}</span> · {c.evidence.map((e) => (e.chapter ? `${e.chapter}장` : '규칙')).join(' ↔ ')}
+                    <span className={`severity severity--${c.severity}`}>{SEVERITY[c.severity]}</span> ·{' '}
+                    {c.evidence.map((e) => (e.chapter ? `${e.chapter}장` : '규칙')).join(' ↔ ')}
                     {c.status !== 'pending' && ` · ${STATUS[c.status]}`}
                   </span>
                 </button>
@@ -201,12 +266,14 @@ export function ConflictsPage() {
         </section>
 
         {selected && (
-          <section className="panel" aria-labelledby="conflict-title">
+          <section className="panel" aria-labelledby="conflict-title" ref={detail}>
             <div className="world__list-head">
-              <h2 id="conflict-title" className="page-title">
+              <h2 id="conflict-title" className="page-title" tabIndex={-1}>
                 {selected.title}
               </h2>
-              <span className={selected.status === 'pending' ? 'badge badge--waiting' : 'badge badge--success'}>{STATUS[selected.status]}</span>
+              <span className={selected.status === 'pending' ? 'badge badge--waiting' : 'badge badge--success'}>
+                {STATUS[selected.status]}
+              </span>
             </div>
             <div className="evidence-pair">
               {selected.evidence.map((e, i) => (
@@ -217,23 +284,35 @@ export function ConflictsPage() {
                   </p>
                   <p className="evidence-card__quote">“{e.quote}”</p>
                   {latest && e.chapter > 0 && (
-                    <Link className="text-link" to={`${projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}?chapter=${e.chapter}`} state={{ highlight: e.quote }}>
+                    <Link
+                      className="text-link"
+                      to={`${projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}?chapter=${e.chapter}`}
+                      state={{ highlight: e.quote }}
+                    >
                       {e.chapter}장 원문 보기
                     </Link>
                   )}
                 </div>
               ))}
             </div>
-            <div className="advice">
-              <p className="panel__label">AI 조언</p>
+            <details className="insight-disclosure">
+              <summary>AI 조언</summary>
               <p>{selected.advice}</p>
-            </div>
+            </details>
             {selected.modified_content && <p className="check-note">고친 문장 · “{selected.modified_content}”</p>}
 
             {editing !== null && (
               <label className="field">
-                <span className="field__label">{selected.evidence[selected.evidence.length - 1].chapter}장 문장 고치기</span>
-                <TextArea className="nl-textarea" style={{ minHeight: 90 }} value={editing} onChange={(e) => setEditing(e.target.value)} autoFocus />
+                <span className="field__label">
+                  {selected.evidence[selected.evidence.length - 1].chapter}장 문장 고치기
+                </span>
+                <TextArea
+                  className="nl-textarea"
+                  style={{ minHeight: 90 }}
+                  value={editing}
+                  onChange={(e) => setEditing(e.target.value)}
+                  autoFocus
+                />
                 <span className="panel__label">저장하면 원고의 해당 문장이 이 내용으로 바뀌어요.</span>
               </label>
             )}
@@ -246,7 +325,10 @@ export function ConflictsPage() {
               <div className="actions-row">
                 {editing === null ? (
                   <>
-                    <Button tone="outline" onClick={() => setEditing(selected.evidence[selected.evidence.length - 1].quote)}>
+                    <Button
+                      tone="outline"
+                      onClick={() => setEditing(selected.evidence[selected.evidence.length - 1].quote)}
+                    >
                       직접 수정
                     </Button>
                     <Button tone="outline" onClick={() => resolve(selected, 'ignored')} disabled={busy}>
@@ -261,7 +343,14 @@ export function ConflictsPage() {
                     <Button tone="outline" onClick={() => setEditing(null)}>
                       취소
                     </Button>
-                    <Button onClick={() => (editing.trim() ? resolve(selected, 'modified', editing.trim()) : setError('고친 문장을 입력해 주세요.'))} busy={busy}>
+                    <Button
+                      onClick={() =>
+                        editing.trim()
+                          ? resolve(selected, 'modified', editing.trim())
+                          : setError('고친 문장을 입력해 주세요.')
+                      }
+                      busy={busy}
+                    >
                       고친 문장 저장
                     </Button>
                   </>

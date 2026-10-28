@@ -194,7 +194,7 @@ export async function requestAll<T>(path: string, options: Omit<RequestOptions, 
 
 /**
  * real 모드에서도 목업이 받게 한다. 먼저 그 프로젝트의 실제 데이터를 새로 옮겨 둔다.
- * 실제 데이터(인물·규칙)에 목업만 아는 것(관계 수·AI 후보)을 붙여 보여 줄 때 쓴다.
+ * 남아 있는 개요·후보 화면의 목업 응답에 실제 프로젝트 문맥이 필요할 때 쓴다.
  */
 export function requestMock<T>(method: string, path: string, options: RequestOptions = {}) {
   return requestWithMeta<T, unknown>(method, path, options, true).then((r) => r.data)

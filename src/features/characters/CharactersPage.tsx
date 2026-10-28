@@ -168,6 +168,9 @@ export function CharactersPage() {
               )}
             </div>
             <div className="actions-row">
+              <Link className="btn btn--outline" to={`${projectPath(projectId, 'relationships')}?character=${selected.character_id}`}>
+                관계 그래프
+              </Link>
               {canEdit && (
                 <Link className="btn btn--outline" to={`${projectPath(projectId, 'characters/new')}?target=${selected.character_id}`}>
                   인물 수정

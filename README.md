@@ -13,10 +13,12 @@ npm run dev
 
 ### 실제 백엔드(prolog-backend)에 붙이기 — 혼합 모드
 
+인물 관계는 RCV API가 포함된 백엔드가 필요하다. `codex/relationship-integration`에서 저장·조회·시점 API를 구현했다. 이전 서버에 연결하면 오류를 표시하며 관계를 목업으로 대체하지 않는다. 관계 쓰기는 실제 `chapter_id`, 조회는 선택한 `manuscript_id`를 사용한다. 인물 목록의 관계 수와 변화 기록도 서버에서 읽는다. 로컬 real/mock 인증 토큰은 분리한다.
+
 [prolog-backend](https://github.com/BSSM-Pitch/prolog-backend)(`06b8928`)에는 AUTH·TEAM·PRJ·원고/챕터·편집 이력·인앱 알림·알림 설정, 수동 경로(인물 초안·확정 인물·세계관 규칙 직접 입력·복선 추적), 그리고 AI 기능(자연어 인물 추출 NLCD·규칙 추출 REX·원고 질문 AIQ·설정 충돌 SCDS·스토리 지도 SSM)이 있다.
-`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(관계·개요 요약·이메일 연동)는 목업으로** 보낸다 (경로 목록은 `src/api/config.ts`).
-AI는 항상 백엔드가 한다. 백엔드에 LLM 키(`OPENROUTER_API_KEY`)가 없으면 AI가 빈 결과만 준다(`USE_FAKE_LLM=1`).
-목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장·인물·규칙·복선)를 목업 DB로 옮기므로 AI 기능도 실제 원고와 인물로 시연할 수 있다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
+`VITE_API_MODE=real`이면 **백엔드에 있는 API는 실제 서버로, 없는 API(일부 개요 요약·이메일 연동)는 목업으로** 보낸다 (경로 목록은 `src/api/config.ts`).
+AI는 백엔드가 처리하며 `OPENROUTER_API_KEY`가 필요하다. `USE_FAKE_LLM=1`은 빈 결과를 만드는 검증용 설정이고 실제 AI 연동 확인으로 취급하지 않는다.
+목업으로 보내기 전에 그 프로젝트의 실제 데이터(프로젝트·멤버·원고·장·인물·규칙·복선)를 목업 DB로 옮기므로 남은 목업 기능도 프로젝트 문맥을 유지한다 (`src/api/client.ts`, `src/api/mock/bridge.ts`).
 
 1. 백엔드 README대로 서버를 띄운다 (`docker compose up -d` → `uv run alembic upgrade head` → `uv run uvicorn app.main:app`). 초대 알림·업로드 추출·AI 작업은 워커(`worker.outbox_relay`·`worker.notifier`·`worker.extractor`·`worker.sweeper`·`worker.ai_worker`)가 있어야 한다. LLM 키가 없으면 `USE_FAKE_LLM=1 uv run python -m worker.ai_worker`
 2. 백엔드 `.env`의 `GOOGLE_REDIRECT_URI`를 이 앱의 `http://localhost:5173/auth/callback`으로 맞춘다
@@ -117,10 +119,10 @@ real 모드에서 달라지는 것:
 
 - 목록 API는 커서 페이지(기본 20 · 최대 100)라 끝까지 받아 쓴다 (`requestAll`)
 - 팀 프로젝트 멤버 목록의 팀원(`source: team`)은 "팀원으로 참여"로 보이고 역할 변경·내보내기가 없다(백엔드가 `MEMBER_NOT_FOUND`로 막는다 — 팀에서 처리)
-- 인물의 역할·상태 표시("인물 · 활동 중")와 관계 수·주요 변화는 백엔드에 없어 목업(관계)에서 채운다. 마지막 등장 장은 장 본문에 이름이 나오는 가장 뒤의 장
+- 인물의 역할·상태 표시는 "인물 · 확정됨"으로 표시하고, 관계 수·주요 변화는 실제 RCV 기록에서 계산한다. 마지막 등장 장은 장 본문에 이름이 나오는 가장 뒤의 장
 - 백엔드 초안·인물 항목은 카테고리별 배열이고, 영향 관계는 `value` 한 줄이다. 대상·유형·상태 입력은 "재현 · 신뢰 · 상태: 실종"처럼 합쳐 보낸다
 - 규칙 "R01"·복선 "F01" 번호는 백엔드에 없어 만든 순서로 매긴다. 백엔드 규칙은 `title`이 필수라 비워 두면 설명 앞 30자를 쓴다
-- 복선은 백엔드가 챕터 **ID**로 받는다. 화면의 장 번호는 복선 화면의 "현재 원고"(가장 최근에 만든 ready 원고)의 장으로 바꾼다. 관련 인물은 이름 ↔ 인물 ID로 바꾸고 연결/해제(`links`)로 맞춘다. 사건 연결은 백엔드에 없다. 설치 장이 지워진 복선(`orphaned`)은 "설치 장 삭제됨"
+- 복선은 백엔드가 챕터 **ID**로 받는다. 기존 복선의 연결·회수·수정은 설치 장이 속한 원고에서 번호를 찾고, 새 복선은 가장 최근의 ready 원고에 만든다. 원문 링크는 실제 장 ID로 원고를 확인한다. 관련 인물은 이름 ↔ 인물 ID로 바꾸고 연결/해제(`links`)로 맞춘다. 사건 연결은 백엔드에 없다. 설치 장이 지워진 복선(`orphaned`)은 "설치 장 삭제됨"
 - 비슷한 복선 후보(`meta.similar_candidates`)는 ID·제목만 와서 번호·장은 목록에서 채운다. 미회수 안내에 경과 장 수가 없어 현재 장 − 설치 장으로 계산한다
 - 편집 이력은 원고 전체 스냅샷이다(장 단위 아님). 단건 조회가 없어 목록에 딸려 오는 본문을 쓴다. `meta.total`이 없어 "스냅샷 N개"는 불러온 개수
 - 원고 본문은 편집기가 장을 이어 붙인 것으로 덮어쓴다. 장에 없는 본문(예: seed의 "(작가 메모)")은 첫 저장 때 사라진다 — 원고 본문과 장 본문의 관계를 백엔드 팀과 맞출 것
@@ -187,8 +189,8 @@ REX·SCDS (`src/api/world.ts`):
 
 RCV (`src/api/relationships.ts`):
 
-- 기록의 원인 사건을 `event_id` 대신 `event_title`(이름)로 받음 — 사건(Event) 리소스가 아직 없어서
-- 두 인물 사이에 관계가 이미 있으면 409 `RELATIONSHIP_EXISTS` (명세에 없음)
+- `event_title`은 사용자가 쓴 관계 변화 메모다. 사건 ID 연결과 구분하며 서버의 note에 저장한다.
+- 같은 원고에서 인물 쌍의 기록이 이미 있으면 real은 409 `DUPLICATE_RELATIONSHIP`, mock은 기존 `RELATIONSHIP_EXISTS`다. 새 원고의 첫 기록은 기존 쌍에 원고별로 추가한다.
 - 마인드맵 엣지에 `is_carried_forward`·`resolved_chapter`를 함께 돌려줌
 
 TEAM (`src/api/teams.ts`):
@@ -213,7 +215,7 @@ FTS (`src/api/foreshadowings.ts`):
 
 - `Foreshadowing.code`("F01") 표시 번호, 관련 인물·사건을 ID 대신 이름(`linked_characters`, `linked_events`)으로 보관
 - 미회수 안내에 `elapsed_chapters`를 함께 돌려줌. 현재 장은 가장 최근 원고의 장 수로 계산
-- 비슷한 복선 안내에서 "기존에 연결"을 고르면 새 복선을 지우고 설치 장을 기존 복선의 연결 장으로 옮김 (화면 쪽 처리)
+- 비슷한 복선 안내에서는 새 복선을 보존하고 기존 복선을 열어 비교한다. 자동 삭제·병합은 하지 않는다.
 
 SSM (`src/api/story.ts`):
 
@@ -221,6 +223,6 @@ SSM (`src/api/story.ts`):
 - 내용이 있는 장이 3개 미만이면 422 `MANUSCRIPT_TOO_SHORT` (최소 분량 기준은 명세에 없음)
 - 노드의 관련 인물을 `character_id` 대신 이름(`characters`)으로 돌려줌
 - 노드 수정(`PATCH …/structure-map/nodes/:nodeId`)은 제목·요약만 받음. 다시 분석해도 사용자가 고친 지도는 유지
-- 화면은 장이 가장 많은 원고를 기본 분석 대상으로 고르고, 복선 연결은 그 본편 지도에서만 보여 줌 (복선의 장 번호가 어느 원고 기준인지 명세에 없음)
+- 이야기 흐름은 장이 가장 많은 원고를 기본 분석 대상으로 고른다. 인물 관계·복선·설정 검토와 탭으로 연결되며, 각 화면의 선택한 항목만 펼친다. [시각화 UX와 API 범위](docs/story-visualization.md)를 참고한다.
 
 실사용 화면은 랜딩과 동일한 흰 바탕·먹색 제목·명조 원고를 사용한다. 서재 목록, 작품 홈, 원고 편집, 인물·세계관·설정 검토와 공통 사이드바에 적용했으며, 스타일 토큰은 `src/styles/tokens.css`에서 관리한다. 모바일 메뉴는 페이지 이동 시 접힌다.
