@@ -91,7 +91,7 @@
 }
 
 .evidence-card__quote {
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.95;
 }
@@ -138,7 +138,7 @@
 }
 .world .evidence-box {
   background: var(--prolog-highlight-setting);
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   line-height: 1.9;
 }
 .world .evidence-box .panel__label,

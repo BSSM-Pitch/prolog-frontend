@@ -33,8 +33,7 @@
   --auth-page-bg: #ffffff;
   --auth-panel-light: #ffffff;
 
-  --font-sans: 'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', system-ui, sans-serif;
-  --font-literary: 'Noto Serif KR', 'Batang', serif;
+  --font-sans: 'Pretendard Variable', 'Pretendard', 'Apple SD Gothic Neo', system-ui, sans-serif;
   --prolog-highlight-character: #eaf0f3;
   --prolog-highlight-setting: #f3f0df;
   --prolog-highlight-review: #f6eeea;

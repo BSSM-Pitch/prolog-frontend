@@ -316,7 +316,7 @@
   height: 28px;
   border-radius: 6px;
   color: #fff;
-  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 500;
 }

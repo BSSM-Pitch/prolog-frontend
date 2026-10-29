@@ -100,7 +100,7 @@
   border-left-color: #b7af86;
 }
 .citation__quote {
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.9;
 }
