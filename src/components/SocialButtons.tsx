@@ -1,4 +1,6 @@
 import type { OAuthProvider } from '../api/types'
+import googleLogo from '../assets/social/google.png'
+import naverLogo from '../assets/social/naver.png'
 import './ui.css'
 
 interface SocialButtonsProps {
@@ -7,9 +9,9 @@ interface SocialButtonsProps {
   disabled?: boolean
 }
 
-const PROVIDERS: Array<{ id: OAuthProvider; mark: string; name: string }> = [
-  { id: 'google', mark: 'G', name: 'Google' },
-  { id: 'naver', mark: 'N', name: '네이버' },
+const PROVIDERS: Array<{ id: OAuthProvider; logo: string; name: string }> = [
+  { id: 'google', logo: googleLogo, name: 'Google' },
+  { id: 'naver', logo: naverLogo, name: '네이버' },
 ]
 
 export function SocialButtons({ mode, onSelect, disabled }: SocialButtonsProps) {
@@ -18,9 +20,7 @@ export function SocialButtons({ mode, onSelect, disabled }: SocialButtonsProps) 
     <div className="social">
       {PROVIDERS.map((p) => (
         <button key={p.id} type="button" className="social__btn" disabled={disabled} onClick={() => onSelect(p.id)}>
-          <span className={`social__mark social__mark--${p.id}`} aria-hidden="true">
-            {p.mark}
-          </span>
+          <img className={`social__mark social__mark--${p.id}`} src={p.logo} alt="" aria-hidden="true" />
           {p.name}로 {suffix}
         </button>
       ))}
