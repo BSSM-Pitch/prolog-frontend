@@ -1,42 +1,47 @@
-import { useRef, useState, type DragEvent } from 'react'
+import { useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
-import type { Manuscript } from '../../api/types'
+import type { Manuscript, Project } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { describeError } from '../../lib/errors'
-import { formatBytes, formatCount } from '../../lib/format'
+import { formatCount } from '../../lib/format'
 import { relativeTime } from '../../lib/relativeTime'
 import { useInterval, useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
+import { ManuscriptFilePicker } from './ManuscriptFilePicker'
+import { MANUSCRIPT_ACCEPT, validateManuscriptFile } from './manuscriptUploadModel'
+import { useManuscriptUploads } from './useManuscriptUploads'
 import './ManuscriptsPage.css'
-
-const ACCEPT = '.docx,.txt,.pdf'
-const FORMATS = ['docx', 'txt', 'pdf']
-const baseName = (name: string) => name.replace(/\.[^.]+$/, '')
 
 const SOURCE_LABEL = { file: '파일 업로드본', editor: '편집기 작성본' } as const
 
 // Figma 841:376 · 18 원고 업로드
 export function ManuscriptsPage() {
   const project = useProject()
-  const navigate = useNavigate()
-  const notice = (useLocation().state as { notice?: string } | null)?.notice
-  const { withAuth } = useSession()
-  const fileInput = useRef<HTMLInputElement>(null)
-  const retryTarget = useRef<string | null>(null)
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
+  return <ProjectManuscripts key={project.project_id} project={project} />
+}
 
-  const projectId = project?.project_id ?? ''
-  const list = useResource(project ? (token) => api.listManuscripts(token, projectId) : null, [projectId])
+function ProjectManuscripts({ project }: { project: Project }) {
+  const navigate = useNavigate()
+  const locationState = useLocation().state as { notice?: string; uploadedIds?: string[] } | null
+  const notice = locationState?.notice
+  const { withAuth } = useSession()
+  const replacementInput = useRef<HTMLInputElement>(null)
+  const retryTarget = useRef<string | null>(null)
+  const replacingRef = useRef(false)
+  const uploads = useManuscriptUploads()
+
+  const projectId = project.project_id
+  const list = useResource((token) => api.listManuscripts(token, projectId), [projectId])
   const manuscripts = list.data ?? []
 
-  const [picked, setPicked] = useState<File[]>([])
-  const [pickError, setPickError] = useState<string | null>(null)
-  const [dragging, setDragging] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [replacing, setReplacing] = useState(false)
+  const uploading = uploads.uploading || replacing
   const [uploadError, setUploadError] = useState<string | null>(null)
-  const [sessionIds, setSessionIds] = useState<string[]>([])
+  const [sessionIds, setSessionIds] = useState<string[]>(locationState?.uploadedIds ?? [])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Manuscript | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -46,47 +51,44 @@ export function ManuscriptsPage() {
   const processing = manuscripts.some((m) => m.status === 'processing')
   useInterval(list.reload, 1500, processing)
 
-  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
-
-  const ready = manuscripts.filter((m) => m.status === 'ready')
+  const canEdit = project.my_role !== 'viewer'
+  const waitingIds = new Set(uploads.items.filter((item) => item.status !== 'uploaded').map((item) => item.manuscriptId))
+  const remaining = uploads.items.filter((item) => item.status !== 'uploaded').length
+  const ready = manuscripts.filter((m) => m.status === 'ready' && !waitingIds.has(m.manuscript_id))
   const selected = ready.find((m) => m.manuscript_id === selectedId) ?? ready[0] ?? null
   // "업로드 진행"에는 이번에 올린 파일과, 아직 처리 중이거나 실패한 파일을 보여 준다
-  const progress = manuscripts.filter((m) => m.source_type === 'file' && (sessionIds.includes(m.manuscript_id) || m.status !== 'ready'))
+  const progress = manuscripts.filter((m) => m.source_type === 'file' && !waitingIds.has(m.manuscript_id) && (sessionIds.includes(m.manuscript_id) || m.status !== 'ready'))
 
-  function pick(files: FileList | File[] | null) {
-    if (!files) return
-    const all = Array.from(files)
-    const ok = all.filter((f) => FORMATS.includes(f.name.split('.').pop()?.toLowerCase() ?? ''))
-    setPickError(ok.length < all.length ? 'DOCX · TXT · PDF 파일만 올릴 수 있어요. 다른 형식은 뺐어요.' : null)
-    setPicked(ok)
-  }
-
-  function onDrop(e: DragEvent) {
-    e.preventDefault()
-    setDragging(false)
-    pick(e.dataTransfer.files)
-  }
-
-  async function upload(files: File[], replaceId: string | null) {
-    setUploading(true)
-    setUploadError(null)
-    const errors: string[] = []
-    for (const file of files) {
-      try {
-        const id =
-          replaceId ??
-          (await withAuth((t) => api.createManuscript(t, projectId, { title: baseName(file.name), source_type: 'file' }))).manuscript_id
-        await withAuth((t) => api.uploadManuscriptFile(t, projectId, id, file))
-        setSessionIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
-        list.reload() // 올린 파일이 바로 "처리 중"으로 보이도록
-      } catch (err) {
-        errors.push(`${file.name}: ${describeError(err)}`)
-      }
-    }
-    setUploading(false)
-    setPicked([])
-    if (errors.length) setUploadError(errors.join('\n'))
+  function uploaded(id: string) {
+    setSessionIds((ids) => ids.includes(id) ? ids : [...ids, id])
     list.reload()
+  }
+
+  async function upload(onlyKey?: string) {
+    if (!canEdit || replacingRef.current) return
+    setUploadError(null)
+    const result = await uploads.upload(projectId, onlyKey, uploaded)
+    if (result) uploads.clearUploaded()
+    list.reload()
+  }
+
+  async function replaceFile(file: File, id: string) {
+    if (!canEdit || uploading || replacingRef.current) return
+    const error = validateManuscriptFile(file)
+    setUploadError(error)
+    if (error) return
+    replacingRef.current = true
+    setReplacing(true)
+    try {
+      await withAuth((token) => api.uploadManuscriptFile(token, projectId, id, file))
+      uploaded(id)
+    } catch (err) {
+      setUploadError(`${file.name}: ${describeError(err)}`)
+    } finally {
+      replacingRef.current = false
+      setReplacing(false)
+      list.reload()
+    }
   }
 
   async function createEditorManuscript() {
@@ -113,8 +115,6 @@ export function ManuscriptsPage() {
     }
   }
 
-  const canEdit = project.my_role !== 'viewer'
-
   return (
     <div className="manuscripts">
       <header>
@@ -134,49 +134,36 @@ export function ManuscriptsPage() {
             <h2 id="add-title" className="panel__title">
               파일 추가
             </h2>
-            <div
-              className={dragging ? 'upload-drop upload-drop--over' : 'upload-drop'}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragging(true)
-              }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
+            <ManuscriptFilePicker
+              items={uploads.items}
+              errors={uploads.pickErrors}
+              disabled={!canEdit || uploading}
+              hideUploaded
+              onPick={uploads.pick}
+              onRemove={uploads.remove}
+              onRetry={(key) => { void upload(key) }}
             >
-              <p className="upload-drop__title">원고 파일을 이곳에 놓아주세요</p>
-              <p className="upload-drop__hint">DOCX · TXT · PDF 등</p>
-              <div className="upload-drop__actions">
-                <Button tone="outline" onClick={() => fileInput.current?.click()} disabled={!canEdit || uploading}>
-                  파일 선택
-                </Button>
-                <Button onClick={() => upload(picked, null)} disabled={!canEdit || picked.length === 0} busy={uploading}>
-                  {uploading ? '올리는 중…' : '업로드 시작'}
-                </Button>
-              </div>
-            </div>
-            {picked.length > 0 && (
-              <p className="manuscripts__picked">
-                선택됨 · {picked.map((f) => `${f.name} · ${formatBytes(f.size)}`).join(', ')}
-              </p>
-            )}
+              <Button onClick={() => upload()} disabled={!canEdit || remaining === 0 || uploading} busy={uploading}>
+                {uploading ? '올리는 중…' : remaining ? `${remaining}개 파일 올리기` : '업로드 시작'}
+              </Button>
+            </ManuscriptFilePicker>
             {!canEdit && <p className="panel__label">보기 전용 멤버는 원고를 올릴 수 없어요.</p>}
-            {pickError && <p className="notice notice--error">{pickError}</p>}
             {uploadError && (
               <p className="notice notice--error notice--block" role="alert">
                 {uploadError}
               </p>
             )}
             <input
-              ref={fileInput}
+              ref={replacementInput}
               type="file"
-              accept={ACCEPT}
-              multiple
+              aria-label="대체 원고 파일 선택"
+              accept={MANUSCRIPT_ACCEPT}
               hidden
+              disabled={!canEdit || uploading}
               onChange={(e) => {
                 const target = retryTarget.current
                 retryTarget.current = null
-                if (target && e.target.files?.[0]) upload([e.target.files[0]], target)
-                else pick(e.target.files)
+                if (target && e.target.files?.[0]) void replaceFile(e.target.files[0], target)
                 e.target.value = ''
               }}
             />
@@ -217,7 +204,7 @@ export function ManuscriptsPage() {
                             tone="outline"
                             onClick={() => {
                               retryTarget.current = m.manuscript_id
-                              fileInput.current?.click()
+                              replacementInput.current?.click()
                             }}
                             disabled={!canEdit || uploading}
                           >
