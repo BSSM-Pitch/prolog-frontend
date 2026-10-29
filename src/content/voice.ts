@@ -33,7 +33,7 @@ export const VOICE = {
     },
   },
   finale: { lead: '이제, 당신의', title: '다음 문장을 만나 볼까요.', description: '한 문장부터, 당신의 속도로.' },
-  auth: { login: '이어서 쓸 이야기가 기다려요', signup: '당신의 이야기를 시작해요' },
+  auth: { login: 'Prolog에 로그인하세요', signup: 'Prolog에 회원 가입하세요' },
   library: {
     description: '쓰고 있는 이야기들을 한곳에 모았어요.',
     empty: '아직 펼치지 않은 이야기가 있어요',
