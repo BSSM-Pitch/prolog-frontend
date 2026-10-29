@@ -1,4 +1,4 @@
-import { useState, type ComponentType } from 'react'
+import { useLayoutEffect, useRef, useState, type ComponentType } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   IconBell,
@@ -45,6 +45,9 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   ])
   useNotificationsChanged(recent.reload)
   const unread = recent.data?.meta.unread_count ?? 0
+  const { asideRef, bar } = useActiveBar(
+    `${pathname}|${collapsed}|${teamsOpen}|${project?.project_id ?? ''}|${Boolean(user)}|${teams.data?.length ?? 0}`,
+  )
   if (!user) return null
   const to = (sub = '') => projectPath(project!.project_id, sub)
   const showTeams = teamsOpen ?? pathname.startsWith('/teams')
@@ -55,7 +58,7 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   }
 
   return (
-    <aside id="app-navigation" className={collapsed ? 'sidebar sidebar--collapsed' : 'sidebar'} aria-label="주 메뉴">
+    <aside ref={asideRef} id="app-navigation" className={collapsed ? 'sidebar sidebar--collapsed' : 'sidebar'} aria-label="주 메뉴">
       <Link to="/" className="sidebar__brand" aria-label="Prolog 홈">
         <Logo size={25} />
         <span>prolog</span>
@@ -69,6 +72,11 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
       >
         {collapsed ? <IconChevronRight size={16} /> : <IconChevronLeft size={16} />}
       </button>
+      <span
+        className={bar ? 'sidebar__bar is-ready' : 'sidebar__bar'}
+        style={bar ? { transform: `translate(${bar.x}px, ${bar.y}px)`, height: bar.h } : undefined}
+        aria-hidden="true"
+      />
       <nav className="sidebar__nav" aria-label="서재 메뉴">
         <NavItem icon={IconBook2} label="내 서재" to="/projects" end />
         {project && (
@@ -143,6 +151,34 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
       </div>
     </aside>
   )
+}
+
+/** 선택된 메뉴 옆 막대는 하나만 두고, 선택이 바뀌면 새 자리로 미끄러지게 한다 */
+function useActiveBar(key: string) {
+  const asideRef = useRef<HTMLElement>(null)
+  const [bar, setBar] = useState<{ x: number; y: number; h: number } | null>(null)
+  useLayoutEffect(() => {
+    const aside = asideRef.current
+    if (!aside) return
+    const measure = () => {
+      const item = aside.querySelector<HTMLElement>('.sidebar__item.active')
+      const a = aside.getBoundingClientRect()
+      const r = item?.getBoundingClientRect()
+      if (!r || !a.width || !r.height) return setBar(null)
+      const next = { x: Math.round(r.left - a.left), y: Math.round(r.top - a.top + 12), h: Math.round(r.height - 24) }
+      setBar((b) => (b && b.x === next.x && b.y === next.y && b.h === next.h ? b : next))
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(aside)
+    const nav = aside.querySelector('.sidebar__nav')
+    nav?.addEventListener('scroll', measure)
+    return () => {
+      ro.disconnect()
+      nav?.removeEventListener('scroll', measure)
+    }
+  }, [key])
+  return { asideRef, bar }
 }
 
 function NavItem({

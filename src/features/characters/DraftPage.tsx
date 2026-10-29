@@ -13,6 +13,7 @@ import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import { CATEGORIES, Stepper } from './shared'
 import './characters.css'
+import { Select } from '../../components/Select'
 
 type Editing = { kind: 'new' } | { kind: 'item'; itemId: string } | null
 type Duplicate = { name: string; candidateId: string }
@@ -347,13 +348,13 @@ function ItemEditor({ editing, item, disabled, onCancel, onSubmit, historyOpen, 
         <form className="nl-design" style={{ gap: 12 }} onSubmit={submit} noValidate>
           <label className="field">
             <span className="field__label">카테고리</span>
-            <select className="nl-select" value={field} onChange={(e) => setField(e.target.value as CharacterCategory)} disabled={editing.kind === 'item' || disabled}>
+            <Select className="nl-select" value={field} onChange={(e) => setField(e.target.value as CharacterCategory)} disabled={editing.kind === 'item' || disabled}>
               {CATEGORIES.map((c) => (
                 <option key={c.field} value={c.field}>
                   {c.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="field">
             <span className="field__label">{isInfluence ? '영향을 준 대상' : '값'}</span>

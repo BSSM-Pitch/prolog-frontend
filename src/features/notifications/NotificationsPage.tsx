@@ -15,6 +15,7 @@ import '../world/world.css'
 import { notifyTeamsChanged } from '../teams/teamEvents'
 import { NOTIFICATION_LABEL, NOTIFICATION_TYPES, PROVIDERS, notifyNotificationsChanged } from './labels'
 import './notifications.css'
+import { Select } from '../../components/Select'
 
 const DAY = 86_400_000
 const daysLeft = (iso: string) => Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / DAY))
@@ -167,14 +168,14 @@ export function NotificationsPage() {
                 안 읽음 {unread}
               </button>
             </div>
-            <select className="nl-select" value={type} onChange={(e) => setType(e.target.value as NotificationType | '')} aria-label="알림 유형">
+            <Select className="nl-select" value={type} onChange={(e) => setType(e.target.value as NotificationType | '')} aria-label="알림 유형">
               <option value="">모든 유형</option>
               {NOTIFICATION_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {NOTIFICATION_LABEL[t].title}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {first.error && !first.data && <p className="notice notice--error">{first.error}</p>}

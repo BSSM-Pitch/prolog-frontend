@@ -1,7 +1,7 @@
 import { VOICE } from '../../content/voice'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { IconChevronDown, IconPlus } from '@tabler/icons-react'
+import { IconPlus } from '@tabler/icons-react'
 import * as projectsApi from '../../api/projects'
 import type { OwnerType, Project, ProjectListMeta, ProjectSort } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -9,6 +9,7 @@ import { Button } from '../../components/Button'
 import { describeError } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import './ProjectsPage.css'
+import { Select } from '../../components/Select'
 
 type Filter = 'all' | OwnerType
 
@@ -128,14 +129,13 @@ export function ProjectsPage() {
         </div>
         <label className="projects__sort">
           <span className="visually-hidden">정렬</span>
-          <select value={sort} onChange={(e) => setSort(e.target.value as ProjectSort)}>
+          <Select value={sort} onChange={(e) => setSort(e.target.value as ProjectSort)}>
             {SORTS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
               </option>
             ))}
-          </select>
-          <IconChevronDown size={16} aria-hidden="true" />
+          </Select>
         </label>
       </div>
 

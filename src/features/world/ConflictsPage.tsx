@@ -14,6 +14,7 @@ import '../manuscripts/answer.css'
 import './world.css'
 import { TextArea } from '../../components/TextArea'
 import { InsightNav } from '../insights/InsightNav'
+import { Select } from '../../components/Select'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
 const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
@@ -216,7 +217,7 @@ function ConflictReview() {
             <label className="visually-hidden" htmlFor="conflict-filter">
               보기
             </label>
-            <select
+            <Select
               id="conflict-filter"
               className="nl-select"
               value={showResolved ? 'resolved' : 'pending'}
@@ -224,7 +225,7 @@ function ConflictReview() {
             >
               <option value="pending">미검토만</option>
               <option value="resolved">처리됨</option>
-            </select>
+            </Select>
           </div>
           {conflicts.loading && !conflicts.data && <p className="panel__label">불러오고 있어요</p>}
           {conflicts.data && list.length === 0 && (
