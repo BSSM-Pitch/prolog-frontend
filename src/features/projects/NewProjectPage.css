@@ -33,7 +33,7 @@
   gap: var(--itda-space-12);
   max-width: 400px;
 }
-.new-project__team select {
+.new-project__team .select__trigger {
   height: var(--prolog-control-height);
   padding: 0 12px;
   border: 1px solid var(--input-stroke);

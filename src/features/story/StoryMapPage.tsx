@@ -16,6 +16,7 @@ import { EVENTS_PER_PAGE, eventConnections, eventPage, keyEvents, orderedEvents 
 import { useStoryAnalysis } from './useStoryAnalysis'
 import { InsightNav } from '../insights/InsightNav'
 import './story.css'
+import { Select } from '../../components/Select'
 
 const TYPE_LABEL = { event: '사건', turning_point: '전환점', climax: '절정' } as const
 const chapterLabel = (node: StructureNode) => (node.chapter > 0 ? `${node.chapter}장` : '위치 미정')
@@ -44,7 +45,7 @@ function StoryManuscripts({ projectId, canEdit }: { projectId: string; canEdit: 
           (ready.length > 1 ? (
             <label className="story__pick">
               <span className="visually-hidden">분석할 원고</span>
-              <select
+              <Select
                 value={current.manuscript_id}
                 onChange={(e) => setParams({ manuscript: e.target.value }, { replace: true })}
               >
@@ -53,7 +54,7 @@ function StoryManuscripts({ projectId, canEdit }: { projectId: string; canEdit: 
                     {m.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           ) : (
             <p className="story__manuscript">{current.title}</p>

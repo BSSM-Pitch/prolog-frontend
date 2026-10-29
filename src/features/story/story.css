@@ -16,7 +16,7 @@
   min-width: 0;
   max-width: 100%;
 }
-.story__pick select {
+.story__pick .select__trigger {
   max-width: 100%;
   min-height: 44px;
   padding: 8px 28px 8px 0;

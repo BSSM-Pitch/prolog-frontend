@@ -60,27 +60,17 @@
   align-items: center;
   padding-bottom: 12px;
 }
-.projects__sort select {
-  appearance: none;
+.projects__sort .select__trigger {
   width: 140px;
   height: 36px;
-  padding: 0 28px 0 8px;
+  padding: 0 8px;
   border: 0;
+  box-shadow: none;
   border-radius: 0;
   background: transparent;
   color: var(--itda-muted);
   font-size: 13px;
   cursor: pointer;
-}
-.projects__sort select:focus-visible {
-  outline: 2px solid var(--itda-ink);
-  outline-offset: 2px;
-}
-.projects__sort svg {
-  position: absolute;
-  right: 4px;
-  pointer-events: none;
-  color: var(--itda-muted);
 }
 .projects__grid {
   display: grid;
@@ -201,7 +191,7 @@
   .projects__filters {
     gap: 20px;
   }
-  .projects__sort select {
+  .projects__sort .select__trigger {
     width: 118px;
     font-size: 12px;
   }

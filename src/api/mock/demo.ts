@@ -114,41 +114,7 @@ export interface DemoConflict {
   advice: string
 }
 
-export const DEMO_CONFLICTS: DemoConflict[] = [
-  {
-    conflict_id: 'conf_01',
-    title: '윤서와 재현이 처음 만난 시점',
-    severity: 'high',
-    status: 'pending',
-    evidence: [
-      { chapter: 4, character: '윤서', quote: '역 승강장에서 그를 처음 보았다.' },
-      { chapter: 19, character: '재현', quote: '기록보관소가 닫히기 전까지 우리는 매년 겨울 만났다.' },
-    ],
-    advice: "19장의 '매년 겨울 만났다'는 4장에서 처음 만났다는 설정과 맞지 않아요. 19장 문장을 '그해 겨울부터 우리는 매년 만났다'처럼 고치는 것을 고려해 보세요.",
-  },
-  {
-    conflict_id: 'conf_02',
-    title: '북쪽 승강장 폐쇄 연도',
-    severity: 'medium',
-    status: 'pending',
-    evidence: [
-      { chapter: 8, character: null, quote: '북쪽 승강장은 1998년에 폐쇄됐다고 역무일지에 적혀 있었다.' },
-      { chapter: 26, character: null, quote: '역무원은 북쪽 승강장이 2001년에 문을 닫았다고 기억했다.' },
-    ],
-    advice: '8장과 26장의 폐쇄 연도가 달라요. 기억 착오를 의도한 것이 아니라면 한쪽으로 맞추거나, 26장에 역무원이 잘못 기억한다는 단서를 넣어 보세요.',
-  },
-  {
-    conflict_id: 'conf_03',
-    title: '민아의 나이',
-    severity: 'low',
-    status: 'pending',
-    evidence: [
-      { chapter: 2, character: '민아', quote: '그해 민아는 열일곱이었다.' },
-      { chapter: 21, character: '민아', quote: '실종 당시 민아는 열아홉이었다고 서류에 적혀 있었다.' },
-    ],
-    advice: '2장과 5장 사이의 시간이 2년 이상이 아니라면 나이가 맞지 않아요. 서류가 위조되었다는 설정이라면 21장에 그 의도를 드러내 보세요.',
-  },
-]
+export const DEMO_CONFLICTS: DemoConflict[] = []
 
 export interface DemoForeshadowing {
   foreshadowing_id: string
@@ -220,10 +186,4 @@ export interface DemoRule {
   evidence: string | null
 }
 
-export const DEMO_RULES: DemoRule[] = [
-  { rule_id: 'wr_01', code: 'R01', title: '붉은 빛과 기억', description: '붉은 빛 아래 노출된 기억은 하루 뒤 흐려진다', violation_keywords: ['기억이 선명', '다음 날에도 기억'], origin: 'ai_extracted', status: 'confirmed', source_chapter: 11, evidence: '윤서는 붉은 빛 아래에서 본 기억이 하루 뒤 흐려진다는 것을 알게 되었다.' },
-  { rule_id: 'wr_02', code: 'R02', title: '지하 기록실', description: '지하 기록실에는 금속을 반입할 수 없다', violation_keywords: ['금속을 들고', '열쇠를 가지고 기록실'], origin: 'ai_extracted', status: 'confirmed', source_chapter: 20, evidence: '지하 기록실에는 금속을 가지고 들어갈 수 없었다.' },
-  { rule_id: 'wr_03', code: 'R03', title: '규칙 17', description: '붉은 문을 연 사람은 그 순간부터 기록에서 지워진다', violation_keywords: ['문을 연 뒤에도 기록'], origin: 'ai_extracted', status: 'confirmed', source_chapter: 17, evidence: '붉은 문을 연 사람은 그 순간부터 기록에서 지워진다.' },
-  { rule_id: 'wr_11', code: 'R11', title: '붉은 문', description: '붉은 문은 비가 그친 뒤에만 열린다', violation_keywords: ['비 오는 중에 열림', '맑은 날 개방', '문이 저절로 열림'], origin: 'ai_extracted', status: 'pending', source_chapter: 3, evidence: '비가 멎자 문의 윤곽이 붉게 떠올랐다.' },
-  { rule_id: 'wr_12', code: 'R12', title: '기록 열람', description: '기록 열람에는 위원 2인의 승인이 필요하다', violation_keywords: ['혼자 열람', '승인 없이'], origin: 'ai_extracted', status: 'pending', source_chapter: 6, evidence: '위원 두 사람의 서명이 필요하다고 했다.' },
-]
+export const DEMO_RULES: DemoRule[] = []

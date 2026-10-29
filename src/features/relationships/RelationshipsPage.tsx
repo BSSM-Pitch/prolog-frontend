@@ -18,6 +18,7 @@ import { chapterAt, relationshipView, snapshotAt } from '../insights/insightMode
 import { RelationshipGraph } from './RelationshipGraph'
 import '../characters/characters.css'
 import './relationships.css'
+import { Select } from '../../components/Select'
 
 type Pending = { relationshipId: string; entry: api.EntryInput; existing: { state: string; trust: number | null } }
 
@@ -176,7 +177,7 @@ function Relationships({
         <div className="insight-actions">
           <label className="insight-field">
             <span>원고</span>
-            <select
+            <Select
               aria-label="관계를 기록할 원고"
               value={manuscriptId}
               disabled={busy || adding}
@@ -187,7 +188,7 @@ function Relationships({
                   {item.title}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           {canEdit && (
             <Button
@@ -241,7 +242,7 @@ function Relationships({
             <div className="relations__controls">
               <label className="insight-field">
                 <span>중심 인물</span>
-                <select
+                <Select
                   value={view.center?.character_id ?? ''}
                   onChange={(event) => set({ character: event.target.value, rel: null, page: null })}
                 >
@@ -250,7 +251,7 @@ function Relationships({
                       {person.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <label className="relations__chapter">
                 <span>
@@ -475,11 +476,11 @@ function RecordForm({
       <div className="two-col" style={{ gap: 8 }}>
         <label className="field">
           <span className="field__label">관계 상태</span>
-          <select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
+          <Select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
             {RELATION_STATES.map((s) => (
               <option key={s}>{s}</option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="field">
           <span className="field__label">신뢰도 · 0~100</span>
@@ -565,7 +566,7 @@ function AddRelationship({
           ].map(([label, value, setter]) => (
             <label key={label as string} className="field">
               <span className="field__label">{label as string}</span>
-              <select
+              <Select
                 className="nl-select"
                 value={value as string}
                 onChange={(e) => (setter as (v: string) => void)(e.target.value)}
@@ -575,7 +576,7 @@ function AddRelationship({
                     {p.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
           ))}
           <label className="field">
@@ -591,11 +592,11 @@ function AddRelationship({
           </label>
           <label className="field">
             <span className="field__label">관계 상태</span>
-            <select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
+            <Select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
               {RELATION_STATES.map((s) => (
                 <option key={s}>{s}</option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="field">
             <span className="field__label">신뢰도 · 0~100</span>

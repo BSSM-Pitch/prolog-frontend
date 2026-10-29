@@ -12,6 +12,7 @@ import { CATEGORIES, Stepper } from './shared'
 import '../manuscripts/answer.css'
 import './characters.css'
 import { TextArea } from '../../components/TextArea'
+import { Select } from '../../components/Select'
 
 const EXAMPLE = '윤서는 신중하지만 집요하고, 약속을 무엇보다 중요하게 여긴다. 재현의 선택에 영향을 받았으며 붉은 문 앞에서 불안을 느낀다.'
 
@@ -145,14 +146,14 @@ export function NewCharacterPage() {
           ) : (
             <label className="field">
               <span className="field__label">정보를 더할 인물</span>
-              <select className="nl-select" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
+              <Select className="nl-select" value={targetId} onChange={(e) => setTargetId(e.target.value)}>
                 <option value="">인물 선택</option>
                 {existing.map((c) => (
                   <option key={c.character_id} value={c.character_id}>
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
               {errors.name && <span className="field__hint notice--error">{errors.name}</span>}
             </label>
           )}

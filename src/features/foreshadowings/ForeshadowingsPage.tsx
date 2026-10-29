@@ -15,6 +15,7 @@ import { InsightDialog } from '../insights/InsightDialog'
 import { chapterPosition, foreshadowStages, pageOf, VIEW_LIMIT } from '../insights/insightModel'
 import '../characters/characters.css'
 import './foreshadowings.css'
+import { Select } from '../../components/Select'
 
 type Panel = 'payoff' | 'link' | 'edit' | null
 const statusLabel = (item: Foreshadowing) =>
@@ -130,17 +131,17 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       <div className="fs__controls">
         <label className="insight-field">
           <span className="visually-hidden">복선 상태</span>
-          <select value={status} onChange={(event) => set({ status: event.target.value, selected: null, page: null })}>
+          <Select value={status} onChange={(event) => set({ status: event.target.value, selected: null, page: null })}>
             <option value="unresolved">미회수</option>
             <option value="resolved">회수 완료</option>
             <option value="all">전체 복선</option>
             {all.some((item) => item.status === 'orphaned') && <option value="orphaned">심은 장면 없음</option>}
-          </select>
+          </Select>
         </label>
         {all.some((item) => item.linked_characters.length) && (
           <label className="insight-field">
             <span className="visually-hidden">복선에 연결된 인물</span>
-            <select
+            <Select
               value={character}
               onChange={(event) => set({ character: event.target.value || null, selected: null, page: null })}
             >
@@ -148,7 +149,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
               {[...new Set(all.flatMap((item) => item.linked_characters))].map((name) => (
                 <option key={name}>{name}</option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
       </div>

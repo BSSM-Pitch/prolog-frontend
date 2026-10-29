@@ -13,6 +13,7 @@ import { useAnswer } from './useAnswer'
 import './AskPage.css'
 import './answer.css'
 import { TextArea } from '../../components/TextArea'
+import { Select } from '../../components/Select'
 
 const PAGE = 5
 
@@ -123,7 +124,7 @@ export function AskPage() {
               <label htmlFor="ask-manuscript" className="panel__label">
                 대상 원고
               </label>
-              <select
+              <Select
                 id="ask-manuscript"
                 value={manuscriptId}
                 onChange={(e) => select({ manuscript: e.target.value, thread: null })}
@@ -134,7 +135,7 @@ export function AskPage() {
                     {project.title} / {m.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             {manuscript && (
               <Conversation
@@ -324,13 +325,13 @@ function Composer({ projectId, manuscriptId, thread, disabled, onSent }: Compose
 
       {!followUp && mode === 'selection' && (
         <div className="composer__picker">
-          <select value={chapter?.chapter_no ?? ''} onChange={(e) => (setChapterNo(Number(e.target.value)), setRange(null))} aria-label="장 선택">
+          <Select value={chapter?.chapter_no ?? ''} onChange={(e) => (setChapterNo(Number(e.target.value)), setRange(null))} aria-label="장 선택">
             {list.map((c) => (
               <option key={c.chapter_id} value={c.chapter_no}>
                 {c.chapter_no}장{c.title ? ` · ${c.title}` : ''}
               </option>
             ))}
-          </select>
+          </Select>
           <TextArea
             readOnly
             className="composer__source"

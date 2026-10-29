@@ -13,6 +13,7 @@ import { useAnswer } from './useAnswer'
 import './EditorPage.css'
 import './answer.css'
 import { TextArea } from '../../components/TextArea'
+import { Select } from '../../components/Select'
 
 type SaveState =
   | { kind: 'saved'; at: string }
@@ -214,7 +215,7 @@ export function EditorPage() {
                 <label className="visually-hidden" htmlFor="chapter-select">
                   장 선택
                 </label>
-                <select
+                <Select
                   id="chapter-select"
                   className="editor__chapter"
                   value={chapter?.chapter_no ?? ''}
@@ -226,7 +227,7 @@ export function EditorPage() {
                       {c.chapter_no}장{c.title && c.title !== `${c.chapter_no}장` ? ` · ${c.title}` : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {canEdit && (
                   <Button tone="soft" onClick={addChapter} busy={adding}>
                     + 장 추가

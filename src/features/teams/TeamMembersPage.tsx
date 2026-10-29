@@ -18,6 +18,7 @@ import '../world/world.css'
 import { TeamInviteForm } from './TeamInviteForm'
 import { notifyTeamsChanged } from './teamEvents'
 import './teams.css'
+import { Select } from '../../components/Select'
 
 const DAY = 86_400_000
 const daysLeft = (iso: string) => Math.max(1, Math.ceil((new Date(iso).getTime() - Date.now()) / DAY))
@@ -167,13 +168,13 @@ export function TeamMembersPage() {
                     </td>
                     <td>
                       {isOwner && !me ? (
-                        <select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as TeamRole)} aria-label={`${m.name}의 역할`}>
+                        <Select className="nl-select members__role" value={m.role} onChange={(e) => changeRole(m, e.target.value as TeamRole)} aria-label={`${m.name}의 역할`}>
                           {(Object.keys(TEAM_ROLE_LABEL) as TeamRole[]).map((r) => (
                             <option key={r} value={r}>
                               {TEAM_ROLE_LABEL[r]}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       ) : (
                         <span className={m.role === 'owner' ? 'badge badge--done' : 'badge badge--filled'}>{TEAM_ROLE_LABEL[m.role]}</span>
                       )}

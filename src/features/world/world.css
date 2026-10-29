@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--itda-space-32);
-  max-width: 1504px;
+  width: 100%;
 }
 .world__header {
   display: flex;
@@ -144,4 +144,12 @@
 .world .evidence-box .panel__label,
 .world .evidence-box .text-link {
   font-family: var(--font-sans);
+}
+
+/* 상세 패널이 없을 때(선택 없음·빈 상태)는 목록이 화면 전체를 쓴다. */
+.world .two-col--list:not(:has(> .panel:nth-child(2))) {
+  grid-template-columns: minmax(0, 1fr);
+}
+.world .two-col--list:not(:has(> .panel:nth-child(2))) .actions-row {
+  justify-content: flex-start;
 }

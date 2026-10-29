@@ -11,6 +11,7 @@ import { describeError } from '../../lib/errors'
 import { formatBytes } from '../../lib/format'
 import { projectPath } from '../app/currentProject'
 import './NewProjectPage.css'
+import { Select } from '../../components/Select'
 
 const ACCEPT = '.docx,.txt,.pdf'
 type Start = { kind: 'none' } | { kind: 'file'; file: File } | { kind: 'editor' }
@@ -146,14 +147,14 @@ export function NewProjectPage() {
             ) : (
               <label className="new-project__team">
                 <span className="field__label">소유 팀</span>
-                <select value={teamId} onChange={(e) => setTeamId(e.target.value)} disabled={teams === null}>
+                <Select value={teamId} onChange={(e) => setTeamId(e.target.value)} disabled={teams === null}>
                   {teams === null && <option>불러오는 중…</option>}
                   {teams?.map((t) => (
                     <option key={t.team_id} value={t.team_id}>
                       {t.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             ))}
         </fieldset>
