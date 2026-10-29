@@ -87,9 +87,12 @@ export function resolveConflict(token: string, projectId: string, conflictId: st
  * SCDS 4.13 재검사 — (명세 미정의) 챕터 대신 프로젝트 전체, simulate_failure는 목업 시연용.
  * 백엔드는 장 본문을 사건으로 저장해 검사한다(worldAi.ts rescan)
  */
-export function rescan(token: string, projectId: string, simulateFailure = false) {
-  if (IS_REAL) return ai.rescan(token, projectId)
-  return request<ConflictCheck>('POST', `${p(projectId)}/rescan`, { body: simulateFailure ? { simulate_failure: true } : {}, accessToken: token })
+export function rescan(token: string, projectId: string, simulateFailure = false, target?: { manuscriptId: string; chapterId: string }) {
+  if (IS_REAL) return ai.rescan(token, projectId, target)
+  return request<ConflictCheck>('POST', `${p(projectId)}/rescan`, {
+    body: { simulate_failure: simulateFailure, ...(target ? { manuscript_id: target.manuscriptId, chapter_id: target.chapterId } : {}) },
+    accessToken: token,
+  })
 }
 
 export function getConflictCheck(token: string, projectId: string, jobId: string) {

@@ -369,6 +369,8 @@ export interface Conflict {
   status: 'pending' | 'accepted' | 'ignored' | 'modified'
   rule_id: string | null
   evidence: Array<{ chapter: number; character: string | null; quote: string }>
+  /** 실제 검사 대상 장과 원문. 위치를 확인할 수 없는 결과는 인라인 표시하지 않는다. */
+  anchor?: { chapter_id: string; quote: string; context?: string }
   advice: string
   modified_content: string | null
   resolved_at: string | null

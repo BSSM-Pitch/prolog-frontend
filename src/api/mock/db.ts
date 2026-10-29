@@ -214,6 +214,7 @@ export interface MockJob {
   kind: 'conflict_check' | 'rule_extraction' | 'structure_analysis'
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   manuscript_id: string | null
+  chapter_id?: string
   ready_at: number | null
   will_fail: boolean
   result_ids: string[]

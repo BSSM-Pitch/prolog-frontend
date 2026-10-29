@@ -13,7 +13,7 @@ function latestManuscript(db: MockDb, projectId: string) {
   return db.manuscripts.filter((m) => m.project_id === projectId && m.status === 'ready').sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0] ?? null
 }
 
-const suppressionKey = (ruleOrTitle: string, chapter: number, quote: string) => `${ruleOrTitle}|${chapter}|${quote.replace(/\s+/g, '')}`
+const suppressionKey = (ruleOrTitle: string, chapter: number | string, quote: string) => `${ruleOrTitle}|${chapter}|${quote.replace(/\s+/g, '')}`
 
 function toRule(r: DemoRule): WorldRule {
   return { ...r }
@@ -28,6 +28,7 @@ function toConflict(w: ReturnType<typeof world>, c: DemoConflict): Conflict {
     status: c.status,
     rule_id: c.rule_id ?? null,
     evidence: c.evidence,
+    anchor: c.anchor,
     advice: c.advice,
     modified_content: c.modified_content ?? null,
     resolved_at: c.resolved_at ?? null,
@@ -51,7 +52,7 @@ function settleJobs(db: MockDb) {
       continue
     }
     const w = world(db, j.project_id)
-    const chapters = db.chapters.filter((c) => c.manuscript_id === j.manuscript_id)
+    const chapters = db.chapters.filter((c) => c.manuscript_id === j.manuscript_id && (!j.chapter_id || c.chapter_id === j.chapter_id))
 
     if (j.kind === 'rule_extraction') {
       // 이미 있는 규칙의 근거 문장을 포함하거나 그 안에 들어가는 문장은 같은 규칙으로 본다
@@ -83,8 +84,8 @@ function settleJobs(db: MockDb) {
           // 규칙의 근거 문장 자체는 위반이 아니다
           if (rule.evidence && sentence.includes(rule.evidence.replace(/[.。]$/, ''))) continue
           if (!rule.violation_keywords.some((k) => matchesKeyword(sentence, k))) continue
-          const key = suppressionKey(rule.rule_id, c.chapter_no, sentence)
-          const exists = w.conflicts.some((x) => x.rule_id === rule.rule_id && x.evidence.some((e) => e.chapter === c.chapter_no && e.quote === sentence))
+          const key = suppressionKey(rule.rule_id, c.chapter_id, sentence)
+          const exists = w.conflicts.some((x) => x.rule_id === rule.rule_id && x.anchor?.chapter_id === c.chapter_id && x.anchor.quote === sentence)
           if (exists || db.suppressions.includes(key)) continue
           const conflict: DemoConflict = {
             conflict_id: nextId(db, 'conf'),
@@ -92,6 +93,7 @@ function settleJobs(db: MockDb) {
             severity: 'medium',
             status: 'pending',
             rule_id: rule.rule_id,
+            anchor: { chapter_id: c.chapter_id, quote: sentence, context: c.content },
             evidence: [
               { chapter: rule.source_chapter ?? 0, character: null, quote: rule.evidence ?? rule.description },
               { chapter: c.chapter_no, character: null, quote: sentence },
@@ -285,18 +287,21 @@ export const worldRoutes: Route[] = [
         if (!content) return fail(400, 'INVALID_INPUT', '수정할 문장을 입력해 주세요.', { field: 'modified_content' })
         // 목업: 원고에서 두 번째 근거 문장을 고친 문장으로 바꿔 넣는다
         const target = c.evidence[c.evidence.length - 1]
-        const ms = latestManuscript(db, projectId)
-        const chapter = ms && db.chapters.find((ch) => ch.manuscript_id === ms.manuscript_id && ch.chapter_no === target.chapter)
+        const latest = latestManuscript(db, projectId)
+        const chapter = c.anchor
+          ? db.chapters.find((ch) => ch.chapter_id === c.anchor?.chapter_id)
+          : latest && db.chapters.find((ch) => ch.manuscript_id === latest.manuscript_id && ch.chapter_no === target.chapter)
+        const ms = chapter && db.manuscripts.find((m) => m.project_id === projectId && m.manuscript_id === chapter.manuscript_id)
         if (chapter && chapter.content.includes(target.quote)) {
           chapter.content = chapter.content.replace(target.quote, content)
           chapter.updated_at = stamp()
-          ms.updated_at = stamp()
+          if (ms) ms.updated_at = stamp()
         }
         c.modified_content = content
       }
       if (action === 'ignored') {
         const last = c.evidence[c.evidence.length - 1]
-        db.suppressions.push(suppressionKey(c.rule_id ?? c.title, last.chapter, last.quote))
+        db.suppressions.push(suppressionKey(c.rule_id ?? c.title, c.anchor?.chapter_id ?? last.chapter, last.quote))
       }
       c.status = action
       c.resolved_at = stamp()
@@ -305,14 +310,22 @@ export const worldRoutes: Route[] = [
     },
   ],
   [
-    // 4.13 챕터 단위 재검사 (SCDS-007) — 목업은 가장 최근 원고 전체를 다시 본다
+    // 지정한 장 또는 가장 최근 원고를 검사한다.
     'POST',
     '/projects/:projectId/rescan',
     (req, db, { projectId }) => {
       const access = requireProject(req, db, projectId, 'editor')
       if (isResponse(access)) return access
       const w = world(db, projectId)
-      const ms = latestManuscript(db, projectId)
+      const body = (req.body ?? {}) as Body
+      const requestedMs = str(body.manuscript_id)
+      const requestedChapter = str(body.chapter_id)
+      const ms = requestedMs
+        ? db.manuscripts.find((m) => m.project_id === projectId && m.manuscript_id === requestedMs && m.status === 'ready')
+        : latestManuscript(db, projectId)
+      if (requestedMs && !ms) return fail(404, 'MANUSCRIPT_NOT_FOUND', '원고를 찾을 수 없어요.')
+      if (requestedChapter && !db.chapters.some((c) => c.manuscript_id === ms?.manuscript_id && c.chapter_id === requestedChapter))
+        return fail(404, 'CHAPTER_NOT_FOUND', '장을 찾을 수 없어요.')
       const hasReference = w.rules.some((r) => r.status === 'confirmed') || w.characters.length > 0
       const job: MockJob = {
         job_id: nextId(db, 'chk'),
@@ -320,6 +333,7 @@ export const worldRoutes: Route[] = [
         kind: 'conflict_check',
         status: hasReference && ms ? 'queued' : 'skipped',
         manuscript_id: ms?.manuscript_id ?? null,
+        chapter_id: requestedChapter || undefined,
         ready_at: hasReference && ms ? Date.now() + JOB_MS : null,
         // 목업: 요청에 simulate_failure가 있으면 AI 단계 실패를 흉내 낸다
         will_fail: Boolean((req.body as Body)?.simulate_failure),
