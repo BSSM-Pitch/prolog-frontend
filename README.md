@@ -86,7 +86,7 @@ real 모드에서 달라지는 것:
 
 - 스타일은 모두 `.lp` 아래로 가둬 앱 화면과 섞이지 않게 했다. 원본과 이름이 겹치는 클래스만 바꿨다: `.btn` → `.lbtn`, `.story` → `.tale`
 - 스크롤 영상 프레임은 코드가 쓰는 만큼만 `public/landing/frames/`에 둔다(hero 72 · talk 80 · hand 120 · type 156장, 약 9MB)
-- Paperlogy는 앱의 `fonts.css`를 쓰고, Pretendard·JetBrains Mono·Nanum Pen Script는 랜딩을 열 때만 불러온다
+- 랜딩과 앱 전체는 `fonts.css`에서 불러오는 Pretendard Variable 하나를 사용한다. 제목·본문·조작부는 공통 `--font-sans` 토큰을 쓰고 크기·굵기·행간으로 구분한다.
 - 로그인·회원가입 버튼은 앱의 `/auth/login`, `/auth/signup`으로 연결했다. 수치(Stats)·후기(Voices) 섹션은 원본처럼 꺼 두었다
 - 추가 패키지: `lenis`(관성 스크롤), `motion`(스크롤 애니메이션)
 
@@ -225,4 +225,4 @@ SSM (`src/api/story.ts`):
 - 노드 수정(`PATCH …/structure-map/nodes/:nodeId`)은 제목·요약만 받음. 다시 분석해도 사용자가 고친 지도는 유지
 - 이야기 흐름은 장이 가장 많은 원고를 기본 분석 대상으로 고른다. 인물 관계·복선·설정 검토와 탭으로 연결되며, 각 화면의 선택한 항목만 펼친다. [시각화 UX와 API 범위](docs/story-visualization.md)를 참고한다.
 
-실사용 화면은 랜딩과 동일한 흰 바탕·먹색 제목·명조 원고를 사용한다. 서재 목록, 작품 홈, 원고 편집, 인물·세계관·설정 검토와 공통 사이드바에 적용했으며, 스타일 토큰은 `src/styles/tokens.css`에서 관리한다. 모바일 메뉴는 페이지 이동 시 접힌다.
+실사용 화면은 랜딩과 동일한 흰 바탕·먹색 제목·Pretendard 서체를 사용한다. 서재 목록, 작품 홈, 원고 편집, 인물·세계관·설정 검토와 공통 사이드바에 적용했으며, 스타일 토큰은 `src/styles/tokens.css`에서 관리한다. 모바일 메뉴는 페이지 이동 시 접힌다.

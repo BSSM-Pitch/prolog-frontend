@@ -96,7 +96,8 @@ function ConflictReview() {
   const list = showResolved ? resolved : pending
   const focus = params.get('focus')
   const selected = list.find((c) => c.conflict_id === focus) ?? null
-  const latest = (manuscripts.data ?? []).filter((m) => m.status === 'ready')[0] ?? null
+  const ready = (manuscripts.data ?? []).filter((m) => m.status === 'ready')
+  const latest = ready.find((m) => m.manuscript_id === params.get('manuscript')) ?? ready[0] ?? null
 
   function focusConflict(id: string | null) {
     const next = new URLSearchParams(params)

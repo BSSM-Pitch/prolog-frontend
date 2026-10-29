@@ -81,7 +81,7 @@
   padding: 36px clamp(20px, 3vw, 40px) 32px;
   border-radius: 0;
   background: #fff;
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 18px;
   font-weight: 500;
   line-height: 2.15;
@@ -144,7 +144,7 @@
   padding: 14px;
   border-left: 2px solid #b7af86;
   background: var(--prolog-highlight-setting);
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.9;
 }

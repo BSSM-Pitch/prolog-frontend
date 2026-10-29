@@ -27,7 +27,7 @@
   font-weight: 700;
 }
 .story__manuscript {
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-weight: 600;
 }
 .story__toolbar {
@@ -177,7 +177,7 @@
 }
 .story__summary {
   max-width: 60ch;
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 17px;
   font-weight: 500;
   line-height: 2;

@@ -253,18 +253,18 @@ function aggregate(jobId: string, checks: BackendCheck[], manuscriptId: string |
 
 const scanManuscript = new Map<string, string | null>()
 
-export async function rescan(token: string, projectId: string): Promise<ConflictCheck> {
+export async function rescan(token: string, projectId: string, target?: { manuscriptId: string; chapterId: string }): Promise<ConflictCheck> {
   const jobId = `scan-${++scanSeq}`
   const [manuscripts, characters, rules] = await Promise.all([
     listManuscripts(token, projectId),
     requestAll<BackendCharacter>(`${p(projectId)}/characters`, { accessToken: token }),
     requestAll<BackendWorldRule>(`${p(projectId)}/world-rules`, { accessToken: token }),
   ])
-  const latest = manuscripts.filter((m) => m.status === 'ready')[0] ?? null
+  const latest = manuscripts.find((m) => m.status === 'ready' && (!target || m.manuscript_id === target.manuscriptId)) ?? null
   scanManuscript.set(jobId, latest?.manuscript_id ?? null)
   // 검사할 원고·사건에 넣을 확정 인물(백엔드 사건은 인물 1명 이상)·위반 키워드를 줄 규칙이 모두 있어야 한다
   const missing = !latest ? 'NO_MANUSCRIPT' : !characters.length ? 'NO_CHARACTERS' : !rules.length ? 'NO_RULES' : null
-  if (missing) {
+  if (missing || !latest) {
     scans.set(jobId, [])
     return { job_id: jobId, status: 'skipped', result_ids: [], skipped_reason: missing, manuscript_id: latest?.manuscript_id ?? null }
   }
@@ -279,7 +279,11 @@ export async function rescan(token: string, projectId: string): Promise<Conflict
   const seen = new Set(store[projectId] ?? [])
 
   const checks: BackendCheck[] = []
-  for (const chapter of await listChapters(token, projectId, latest.manuscript_id)) {
+  const chapters = await listChapters(token, projectId, latest.manuscript_id)
+  if (target && !chapters.some((c) => c.chapter_id === target.chapterId)) {
+    throw new ApiError(404, { code: 'CHAPTER_NOT_FOUND', message: '검사할 장을 찾을 수 없어요.', details: {} })
+  }
+  for (const chapter of chapters.filter((c) => !target || c.chapter_id === target.chapterId)) {
     for (const content of chunks(chapter.content)) {
       const key = `${chapter.chapter_id}:${context}:${hash(content)}`
       if (seen.has(key)) continue
@@ -339,6 +343,9 @@ async function realConflicts(token: string, projectId: string) {
         { chapter: rule?.source_chapter_no ?? 0, character: null, quote: rule?.evidence ?? rule?.description ?? '' },
         { chapter: c.chapter ?? 0, character: c.character_id ? (nameOf.get(c.character_id) ?? null) : null, quote: sentenceOf(c.input_event, c.matched_keyword) },
       ],
+      anchor: c.chapter_id && c.matched_keyword && c.input_event.includes(c.matched_keyword)
+        ? { chapter_id: c.chapter_id, quote: sentenceOf(c.input_event, c.matched_keyword), context: c.input_event }
+        : undefined,
       advice:
         c.advice ??
         `규칙 검사에서 "${c.matched_keyword ?? c.conflict_target ?? ''}" 표현이 "${rule?.title ?? '설정 규칙'}"과 부딪힐 수 있어 표시했어요. AI 조언은 받지 못했어요.`,

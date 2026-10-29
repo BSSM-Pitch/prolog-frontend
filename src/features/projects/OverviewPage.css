@@ -12,7 +12,7 @@
   max-width: 54ch;
   margin-top: 24px;
   color: var(--itda-muted);
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 17px;
   line-height: 1.9;
   word-break: keep-all;
@@ -30,7 +30,7 @@
 }
 .overview__resume h2 {
   margin-top: 24px;
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: clamp(28px, 3.5vw, 42px);
   line-height: 1.5;
   font-weight: 700;

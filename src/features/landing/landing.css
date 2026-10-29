@@ -1,6 +1,6 @@
 /* 랜딩 (디자인 팀 Prolog-landing 소스를 옮겨 옴).
    앱 화면과 섞이지 않도록 모든 규칙을 .lp 아래로 가뒀다 — 원본의 :root·html·body 규칙은 .lp로 옮김.
-   클래스 충돌 회피: .btn → .lbtn, .story → .tale. Paperlogy는 앱의 fonts.css(같은 파일, 눈누 CDN)를 쓴다. */
+   클래스 충돌 회피: .btn → .lbtn, .story → .tale. 서체는 앱의 공통 Pretendard 토큰을 쓴다. */
 .lp {
   --c50: #eeece5;
   --sky: #d8d4c9;
@@ -13,11 +13,6 @@
   --text: var(--ink-deep);
   --muted: var(--slate);
 
-  --font: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  /* 제목·짧은 문구용. 긴 본문은 --font(Pretendard) 유지 */
-  --display: var(--font);
-  --literary: 'Noto Serif KR', 'Batang', Georgia, serif;
-  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --gutter: clamp(16px, 4vw, 56px);
 
@@ -38,7 +33,7 @@
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: var(--font);
+  font-family: var(--font-sans);
   font-feature-settings: 'ss06';
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
@@ -72,7 +67,7 @@
   border-radius: 6px;
 }
 
-/* 짧은 문구: 페이퍼로지 */
+/* 제목·본문·조작부에 같은 서체를 사용한다. */
 .lp h1,
 .lp h2,
 .lp h3,
@@ -88,11 +83,11 @@
 .lp .pill,
 .lp .fv-tones,
 .lp .footer__brand p {
-  font-family: var(--display);
+  font-family: var(--font-sans);
 }
 
 .lp .mono {
-  font-family: var(--mono);
+  font-family: var(--font-sans);
   font-size: 12px;
   letter-spacing: 0.08em;
 }
@@ -135,7 +130,7 @@
   padding: 0 24px;
   border: 0;
   border-radius: 3px;
-  font: 600 15px/1 var(--display);
+  font: 600 15px/1 var(--font-sans);
   cursor: pointer;
   /* 호버 시 위치 이동 없이 색만 전환 (nav 로그인 링크와 동일한 방식) */
   transition:
@@ -259,7 +254,7 @@
   margin: 0 auto;
 }
 .lp .manifesto__text {
-  font-family: var(--literary);
+  font-family: var(--font-sans);
   font-size: clamp(28px, 3.6vw, 50px);
   font-weight: 700;
   line-height: 1.6;
@@ -893,7 +888,7 @@
 .lp .fv-fore text {
   fill: rgb(238 236 229 / 0.7);
   font-size: 10px;
-  font-family: var(--mono);
+  font-family: var(--font-sans);
 }
 .lp .fv-legend {
   list-style: none;
@@ -1368,7 +1363,7 @@
 
 /* 문학적 감수성은 제목과 원고에, 도구의 안내는 짧고 구체적으로. */
 .lp .mock__excerpt {
-  font-family: var(--literary);
+  font-family: var(--font-sans);
   font-size: 16px;
   font-weight: 600;
   line-height: 2;
@@ -1402,7 +1397,7 @@
   color: var(--ink);
 }
 .lp .finale__cta h2 {
-  font-family: var(--literary);
+  font-family: var(--font-sans);
   font-size: clamp(36px, 5.4vw, 76px);
   font-weight: 700;
   line-height: 1.35;

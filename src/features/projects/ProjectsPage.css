@@ -113,7 +113,7 @@
 }
 .project-card__title {
   margin-top: 22px;
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: clamp(23px, 2.3vw, 32px);
   font-weight: 700;
   line-height: 1.5;

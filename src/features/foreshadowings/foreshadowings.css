@@ -109,7 +109,7 @@
 }
 .fs__description {
   max-width: 66ch;
-  font-family: var(--font-literary);
+  font-family: var(--font-sans);
   font-size: 17px;
   line-height: 2;
 }
