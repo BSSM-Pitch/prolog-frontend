@@ -14,6 +14,7 @@ import './EditorPage.css'
 import './answer.css'
 import { TextArea } from '../../components/TextArea'
 import { Select } from '../../components/Select'
+import { ReviewedManuscript } from './ReviewedManuscript'
 
 type SaveState =
   | { kind: 'saved'; at: string }
@@ -49,6 +50,8 @@ export function EditorPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [save, setSave] = useState<SaveState | null>(null)
   const [adding, setAdding] = useState(false)
+  const [composing, setComposing] = useState(false)
+  const composingRef = useRef(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
   const pendingSave = useRef<{ chapterId: string; content: string } | null>(null)
   const saving = useRef<Promise<boolean> | null>(null)
@@ -56,6 +59,7 @@ export function EditorPage() {
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
 
   async function flush(): Promise<boolean> {
+    if (composingRef.current) return false
     // 편집기를 떠나는 동작도 blur에서 시작한 저장을 기다린다.
     if (saving.current) {
       const success = await saving.current
@@ -96,11 +100,11 @@ export function EditorPage() {
 
   // 입력이 멈추고 잠시 뒤 자동 저장
   useEffect(() => {
-    if (save?.kind !== 'dirty') return
+    if (save?.kind !== 'dirty' || composing) return
     const id = window.setTimeout(flush, AUTOSAVE_MS)
     return () => window.clearTimeout(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [save, drafts])
+  }, [save, drafts, composing])
 
   // 저장하지 않은 내용이 있으면 창을 닫기 전에 확인
   useEffect(() => {
@@ -240,16 +244,23 @@ export function EditorPage() {
             </div>
 
             {chapter ? (
-              <TextArea
-                ref={textRef}
-                className="editor__text"
+              <ReviewedManuscript
+                key={chapter.chapter_id}
+                projectId={projectId}
+                manuscriptId={manuscriptId}
+                chapterId={chapter.chapter_id}
+                chapterNo={chapter.chapter_no}
+                textRef={textRef}
                 value={text}
-                onChange={(e) => onType(e.target.value)}
-                onBlur={flush}
+                onChange={onType}
+                onCompositionChange={(active) => { composingRef.current = active; setComposing(active) }}
+                beforeCheck={flush}
                 readOnly={!canEdit}
-                aria-label={`${chapter.chapter_no}장 본문`}
-                placeholder="여기에 이야기를 써 보세요."
-                spellCheck={false}
+                onOpenReview={async (conflict) => {
+                  if (!(await flush())) return
+                  const query = new URLSearchParams({ manuscript: manuscriptId, chapter: String(chapter.chapter_no), focus: conflict.conflict_id })
+                  navigate(`${projectPath(projectId, 'conflicts')}?${query}`)
+                }}
               />
             ) : (
               <p className="page-desc">장을 불러오고 있어요</p>

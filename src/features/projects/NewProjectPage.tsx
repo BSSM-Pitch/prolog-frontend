@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type DragEvent, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
 import * as projectsApi from '../../api/projects'
@@ -8,26 +8,26 @@ import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { TextField } from '../../components/TextField'
 import { describeError } from '../../lib/errors'
-import { formatBytes } from '../../lib/format'
 import { projectPath } from '../app/currentProject'
+import { ManuscriptFilePicker } from '../manuscripts/ManuscriptFilePicker'
+import { validateManuscriptFile } from '../manuscripts/manuscriptUploadModel'
+import { useManuscriptUploads } from '../manuscripts/useManuscriptUploads'
 import './NewProjectPage.css'
 import { Select } from '../../components/Select'
 
-const ACCEPT = '.docx,.txt,.pdf'
-type Start = { kind: 'none' } | { kind: 'file'; file: File } | { kind: 'editor' }
+type Start = 'none' | 'editor'
 
 const OWNER_OPTIONS: Array<{ value: OwnerType; title: string; body: string }> = [
   { value: 'personal', title: '개인 작품', body: '혼자 시작하고, 동료를 초대할 수 있어요.' },
   { value: 'team', title: '팀 작품', body: '팀과 함께 원고를 나눠요.' },
 ]
 
-const baseName = (name: string) => name.replace(/\.[^.]+$/, '')
-
 // Figma 1247:1989 새 작품
 export function NewProjectPage() {
   const navigate = useNavigate()
   const { withAuth } = useSession()
-  const fileInput = useRef<HTMLInputElement>(null)
+  const submitting = useRef(false)
+  const uploads = useManuscriptUploads()
 
   // 팀 작업공간의 "새 작품"로 들어오면 그 팀을 고른 채로 시작한다
   const presetTeam = useSearchParams()[0].get('team') ?? ''
@@ -36,11 +36,11 @@ export function NewProjectPage() {
   const [teamId, setTeamId] = useState(presetTeam)
   const [title, setTitle] = useState('')
   const [titleError, setTitleError] = useState<string | null>(null)
-  const [start, setStart] = useState<Start>({ kind: 'none' })
-  const [fileError, setFileError] = useState<string | null>(null)
-  const [dragging, setDragging] = useState(false)
+  const [start, setStart] = useState<Start>('none')
+  const [createdId, setCreatedId] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const busy = creating || uploads.uploading
 
   useEffect(() => {
     withAuth(teamsApi.listTeams)
@@ -51,25 +51,25 @@ export function NewProjectPage() {
       .catch(() => setTeams([]))
   }, [withAuth])
 
-  function pickFile(file: File | undefined) {
-    if (!file) return
-    const ext = file.name.split('.').pop()?.toLowerCase()
-    if (!ext || !['docx', 'txt', 'pdf'].includes(ext)) {
-      setFileError('DOCX · TXT · PDF 파일만 올릴 수 있어요.')
+  async function uploadFiles(id: string, onlyKey?: string) {
+    setFormError(null)
+    const result = await uploads.upload(id, onlyKey)
+    if (!result) return
+    if (result.some((item) => item.status !== 'uploaded')) {
+      setFormError(result.some((item) => item.status === 'failed')
+        ? '작품은 만들었어요. 실패한 파일을 다시 올려 주세요.'
+        : '작품은 만들었어요. 남은 파일을 올려 주세요.')
       return
     }
-    setFileError(null)
-    setStart({ kind: 'file', file })
-  }
-
-  function onDrop(e: DragEvent) {
-    e.preventDefault()
-    setDragging(false)
-    pickFile(e.dataTransfer.files[0])
+    navigate(projectPath(id, 'manuscripts'), {
+      replace: true,
+      state: { uploadedIds: result.map((item) => item.manuscriptId) },
+    })
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    if (submitting.current || busy) return
     setFormError(null)
     const t = title.trim()
     if (!t) {
@@ -81,21 +81,24 @@ export function NewProjectPage() {
       return
     }
 
-    setBusy(true)
+    submitting.current = true
+    setCreating(true)
     try {
+      if (createdId) {
+        await uploadFiles(createdId)
+        return
+      }
       const project = await withAuth((token) =>
         projectsApi.createProject(token, { title: t, owner_type: ownerType, team_id: ownerType === 'team' ? teamId : undefined }),
       )
       const id = project.project_id
+      setCreatedId(id)
       try {
-        if (start.kind === 'file') {
-          const file = start.file
-          const ms = await withAuth((token) => manuscriptsApi.createManuscript(token, id, { title: baseName(file.name), source_type: 'file' }))
-          await withAuth((token) => manuscriptsApi.uploadManuscriptFile(token, id, ms.manuscript_id, file))
-          navigate(projectPath(id, 'manuscripts'), { replace: true })
+        if (uploads.items.length) {
+          await uploadFiles(id)
           return
         }
-        if (start.kind === 'editor') {
+        if (start === 'editor') {
           const ms = await withAuth((token) => manuscriptsApi.createManuscript(token, id, { title: '1차 원고', source_type: 'editor' }))
           navigate(projectPath(id, `manuscripts/${ms.manuscript_id}`), { replace: true })
           return
@@ -108,7 +111,8 @@ export function NewProjectPage() {
     } catch (err) {
       setFormError(describeError(err))
     } finally {
-      setBusy(false)
+      setCreating(false)
+      submitting.current = false
     }
   }
 
@@ -124,7 +128,7 @@ export function NewProjectPage() {
       <form className="panel new-project__form" onSubmit={onSubmit} noValidate>
         <h2 className="panel__title">작품 만들기</h2>
 
-        <fieldset className="new-project__fieldset">
+        <fieldset className="new-project__fieldset" disabled={busy || Boolean(createdId)}>
           <legend className="field__label">작업 방식</legend>
           <div className="new-project__options" role="radiogroup" aria-label="작업 방식">
             {OWNER_OPTIONS.map((o) => (
@@ -161,6 +165,7 @@ export function NewProjectPage() {
 
         <TextField
           label="작품 이름"
+          disabled={busy || Boolean(createdId)}
           value={title}
           onChange={(v) => {
             setTitle(v)
@@ -175,76 +180,33 @@ export function NewProjectPage() {
           <h3 id="start-title" className="new-project__start-title">
             원고 추가 <span>· 선택</span>
           </h3>
-          <p className="page-desc">
-            파일을 업로드하거나 빈 편집기에서 직접 작성할 수 있습니다.
-            <br />한 작품에 여러 원고를 담을 수 있어요.
-          </p>
+          <p className="page-desc">파일마다 원고 하나가 만들어져요.</p>
           <div className="new-project__starts">
-            <div
-              className={[
-                'dropzone',
-                dragging && 'dropzone--over',
-                start.kind === 'file' && 'dropzone--selected',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-              onDragOver={(e) => {
-                e.preventDefault()
-                setDragging(true)
+            <ManuscriptFilePicker
+              items={uploads.items}
+              errors={uploads.pickErrors}
+              disabled={busy}
+              onPick={(files) => {
+                uploads.pick(files)
+                if (files.some((file) => !validateManuscriptFile(file))) setStart('none')
               }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={onDrop}
-            >
-              {start.kind === 'file' ? (
-                <>
-                  <p className="dropzone__title">{start.file.name}</p>
-                  <p className="dropzone__hint">
-                    {formatBytes(start.file.size)} · 파일 업로드본으로 만들어져요
-                  </p>
-                  <div className="dropzone__actions">
-                    <Button tone="soft" onClick={() => fileInput.current?.click()}>
-                      다른 파일
-                    </Button>
-                    <Button tone="outline" onClick={() => setStart({ kind: 'none' })}>
-                      선택 취소
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="dropzone__title">원고 파일을 끌어다 놓거나 선택하세요</p>
-                  <p className="dropzone__hint">DOCX · TXT · PDF · 파일 업로드본으로 만들어져요</p>
-                  <Button tone="soft" onClick={() => fileInput.current?.click()}>
-                    파일 선택
-                  </Button>
-                </>
-              )}
-              {fileError && (
-                <p className="notice notice--error" role="alert">
-                  {fileError}
-                </p>
-              )}
-              <input
-                ref={fileInput}
-                type="file"
-                accept={ACCEPT}
-                hidden
-                onChange={(e) => {
-                  pickFile(e.target.files?.[0])
-                  e.target.value = ''
-                }}
-              />
-            </div>
+              onRemove={uploads.remove}
+              onRetry={createdId ? (key) => { void uploadFiles(createdId, key) } : undefined}
+            />
 
-            <div className={start.kind === 'editor' ? 'dropzone dropzone--selected' : 'dropzone'}>
+            <div className={start === 'editor' ? 'dropzone dropzone--selected' : 'dropzone'}>
               <p className="dropzone__title">빈 편집기로 시작</p>
               <p className="dropzone__hint">편집기 작성본으로 만들어져요</p>
               <Button
                 tone="soft"
-                aria-pressed={start.kind === 'editor'}
-                onClick={() => setStart((s) => (s.kind === 'editor' ? { kind: 'none' } : { kind: 'editor' }))}
+                aria-pressed={start === 'editor'}
+                disabled={busy || Boolean(createdId)}
+                onClick={() => {
+                  uploads.clear()
+                  setStart((s) => s === 'editor' ? 'none' : 'editor')
+                }}
               >
-                {start.kind === 'editor' ? '선택됨 · 취소' : '편집기 열기'}
+                {start === 'editor' ? '선택됨 · 취소' : '편집기 열기'}
               </Button>
             </div>
           </div>
@@ -255,9 +217,14 @@ export function NewProjectPage() {
             {formError}
           </p>
         )}
-        <Button type="submit" size="xl" block busy={busy} disabled={ownerType === 'team' && noTeams}>
-          {busy ? '만드는 중…' : '작품 시작하기'}
+        <Button type="submit" size="xl" block busy={busy} disabled={busy || (ownerType === 'team' && noTeams)}>
+          {uploads.uploading ? '원고 올리는 중…' : creating ? '만드는 중…' : createdId ? '남은 파일 다시 올리기' : '작품 시작하기'}
         </Button>
+        {createdId && !busy && (
+          <Button tone="outline" onClick={() => navigate(projectPath(createdId, 'manuscripts'), {
+            replace: true, state: { uploadedIds: uploads.items.filter((item) => item.status === 'uploaded').map((item) => item.manuscriptId) },
+          })}>원고 목록으로</Button>
+        )}
       </form>
     </div>
   )

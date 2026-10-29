@@ -111,6 +111,7 @@ export interface DemoConflict {
   severity: 'high' | 'medium' | 'low'
   status: 'pending' | 'accepted' | 'ignored' | 'modified'
   evidence: Array<{ chapter: number; character: string | null; quote: string }>
+  anchor?: { chapter_id: string; quote: string; context?: string }
   advice: string
 }
 
