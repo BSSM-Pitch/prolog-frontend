@@ -78,7 +78,7 @@
 }
 .editor__text {
   min-height: 60vh;
-  padding: 36px 12px 32px 0;
+  padding: 36px clamp(20px, 3vw, 40px) 32px;
   border-radius: 0;
   background: #fff;
   font-family: var(--font-literary);
@@ -92,7 +92,7 @@
 }
 .editor__text:has(:focus-visible) {
   outline: 1px solid var(--input-stroke);
-  outline-offset: 8px;
+  outline-offset: 0;
 }
 .editor__text ::selection {
   color: var(--itda-ink);
@@ -190,7 +190,7 @@
   }
   .editor__text {
     font-size: 17px;
-    padding-right: 0;
+    padding: 24px 16px 28px;
   }
   .editor__chapter {
     max-width: 220px;
