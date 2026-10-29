@@ -2,7 +2,6 @@ import { VOICE } from '../../content/voice'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
-import { IS_REAL } from '../../api/config'
 import type { OAuthProvider } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { takeReturnTo } from '../../lib/returnTo'
@@ -68,11 +67,6 @@ export function LoginPage() {
     <form className="auth-form auth-form--login" onSubmit={onSubmit} noValidate>
       <h1 className="auth-form__title">{VOICE.auth.login}</h1>
       <div className="auth-form__fields">
-        {IS_REAL && !state.notice && !error && (
-          <p className="notice" role="status">
-            지금은 Google 로그인만 쓸 수 있어요. 아이디·비밀번호와 네이버 로그인은 준비 중이에요.
-          </p>
-        )}
         {state.notice && !error && (
           <p className="notice notice--success" role="status">
             {state.notice}
