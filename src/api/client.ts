@@ -201,6 +201,6 @@ export function requestMock<T>(method: string, path: string, options: RequestOpt
 }
 
 /** 백엔드에 아직 없는 기능 (real 모드) */
-export function notSupported(message = '아직 지원하지 않는 기능이에요. 지금은 Google 로그인만 쓸 수 있어요.'): never {
+export function notSupported(message = '아직 지원하지 않는 기능이에요.'): never {
   throw new ApiError(501, { code: 'NOT_SUPPORTED', message, details: {} })
 }

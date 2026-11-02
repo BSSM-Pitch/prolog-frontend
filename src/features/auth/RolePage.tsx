@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
+import { IS_REAL } from '../../api/config'
 import { useSession } from '../../auth/session'
 import { takeReturnTo } from '../../lib/returnTo'
 import { useSignupDraft } from '../../auth/signupDraft'
@@ -20,15 +21,19 @@ export function RolePage() {
   if (!draft.username) return <Navigate to="/auth/signup" replace />
 
   async function onConfirm() {
-    if (!draft.signupTicket) {
+    // 목업은 일반 가입에 이메일 인증을 거친다. 실제 백엔드는 인증 단계 없이 바로 가입한다.
+    if (!draft.signupTicket && !IS_REAL) {
       navigate('/auth/signup/verify')
       return
     }
-    // 소셜 가입(AUTH v0.2): 공급자가 계정을 확인했으니 가입 티켓 + 아이디 + 유형으로 바로 가입한다.
     setBusy(true)
     setError(null)
     try {
-      const result = await authApi.completeSocialSignup(draft.signupTicket, draft.username, draft.role)
+      // 소셜 가입(AUTH v0.2): 공급자가 계정을 확인했으니 가입 티켓 + 아이디 + 유형으로 가입한다.
+      // 일반 가입: 아이디 + 이메일 + 비밀번호 + 유형으로 가입한다.
+      const result = draft.signupTicket
+        ? await authApi.completeSocialSignup(draft.signupTicket, draft.username, draft.role)
+        : await authApi.signup({ username: draft.username, email: draft.email, password: draft.password, role: draft.role })
       clear()
       signIn(result)
       navigate(takeReturnTo(), { replace: true })
@@ -37,9 +42,13 @@ export function RolePage() {
       setError(
         code === 'USERNAME_TAKEN'
           ? '그사이 다른 사람이 이 아이디를 가져갔어요. 이전으로 돌아가 아이디를 바꿔 주세요.'
-          : code === 'SIGNUP_TICKET_INVALID'
-            ? '가입 시간이 지났어요(10분). 로그인 화면에서 다시 소셜 로그인해 주세요.'
-            : describeError(err),
+          : code === 'EMAIL_TAKEN'
+            ? draft.signupTicket
+              ? '이 이메일로 이미 가입된 계정이 있어요. 그 계정으로 로그인해 주세요.'
+              : '이미 가입된 이메일이에요. 로그인하거나 이전으로 돌아가 다른 이메일을 입력해 주세요.'
+            : code === 'SIGNUP_TICKET_INVALID'
+              ? '가입 시간이 지났어요(10분). 로그인 화면에서 다시 소셜 로그인해 주세요.'
+              : describeError(err),
       )
     } finally {
       setBusy(false)

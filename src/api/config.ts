@@ -12,7 +12,7 @@ const r = (source: string) => new RegExp(source.replaceAll('{P}', P).replaceAll(
  * 여기에 없는 요청은 real 모드에서도 목업이 받는다.
  */
 const BACKEND_ROUTES: Array<[string, RegExp]> = [
-  ['POST', /^\/auth\/(oauth\/google|signup|token\/refresh|logout)$/],
+  ['POST', /^\/auth\/(oauth\/(google|naver)|signup|login|token\/refresh|logout)$/],
   ['GET|PATCH', /^\/users\/me$/],
   ['GET', /^\/users\/check-username$/],
   // PRJ

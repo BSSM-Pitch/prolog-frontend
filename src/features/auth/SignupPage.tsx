@@ -2,7 +2,6 @@ import { VOICE } from '../../content/voice'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
-import { IS_REAL } from '../../api/config'
 import type { OAuthProvider } from '../../api/types'
 import { useSignupDraft } from '../../auth/signupDraft'
 import { Button } from '../../components/Button'
@@ -51,10 +50,6 @@ export function SignupPage() {
     e.preventDefault()
     setFormError(null)
     if (ticketMode) return onTicketSubmit()
-    if (IS_REAL) {
-      setFormError('아이디·비밀번호 가입은 아직 지원하지 않아요. 아래 Google로 회원가입을 이용해 주세요.')
-      return
-    }
     const next: Errors = {
       username: validateUsername(username) ?? undefined,
       email: validateEmail(email) ?? undefined,

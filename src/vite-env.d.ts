@@ -14,6 +14,10 @@ interface ImportMetaEnv {
   readonly VITE_DEV_GOOGLE_LOGIN?: string
   /** Google 인가 후 돌아올 주소. 백엔드 GOOGLE_REDIRECT_URI와 같아야 한다. 기본값: 현재 주소/auth/callback */
   readonly VITE_GOOGLE_REDIRECT_URI?: string
+  /** 네이버 OAuth 클라이언트 ID (백엔드 NAVER_CLIENT_ID와 같은 값) */
+  readonly VITE_NAVER_CLIENT_ID?: string
+  /** 네이버 인가 후 돌아올 주소. 네이버 개발자센터 Callback URL과 같아야 한다. 기본값: 현재 주소/auth/callback/naver */
+  readonly VITE_NAVER_REDIRECT_URI?: string
 }
 
 interface ImportMeta {

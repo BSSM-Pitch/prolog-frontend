@@ -9,7 +9,7 @@ export type AuthMode = 'login' | 'signup' | 'login-full' | 'signup-full'
 function modeFor(pathname: string): AuthMode | null {
   if (pathname.startsWith('/auth/signup/')) return 'signup-full'
   if (pathname === '/auth/signup') return 'signup'
-  if (pathname === '/auth/login' || pathname === '/auth/callback') return 'login'
+  if (pathname === '/auth/login' || pathname === '/auth/callback' || pathname === '/auth/callback/naver') return 'login'
   if (pathname.startsWith('/auth/find-id') || pathname.startsWith('/auth/reset-password')) return 'login-full'
   return null
 }
