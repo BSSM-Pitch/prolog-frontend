@@ -198,14 +198,160 @@
   border-radius: var(--prolog-radius-8);
 }
 
-/* 주요 버튼 — 호버하면 하늘색 대신 배경색 바탕에 강조색(#343a32) 글자·테두리 */
-.auth-form .btn--lg.btn--primary {
+/* 버튼 호버 — 인증 화면의 모든 버튼이 같은 규칙: 하늘색 대신 배경색 바탕에 강조색(#343a32) 글자·테두리.
+   주요 버튼은 평소 먹색 바탕·테두리, 보조 버튼은 호버할 때만 강조색으로 바뀐다 */
+.auth .btn.btn--primary:not(:disabled) {
   border: 1px solid var(--itda-ink);
 }
-.auth-form .btn--lg.btn--primary:hover:not(:disabled) {
+.auth .btn.btn--primary:hover:not(:disabled),
+.auth .btn.btn--outline:hover:not(:disabled),
+.auth .btn.btn--secondary:hover:not(:disabled) {
   background: var(--auth-panel-light);
   color: var(--prolog-color-interaction);
   border-color: var(--prolog-color-interaction);
+}
+/* 인증코드 전송·재전송처럼 평소부터 진한 테두리인 버튼은 호버하면 색이 채워진다 (색 차이가 작아 눈에 안 띄기 때문) */
+.auth .btn.btn--outline-strong:hover:not(:disabled) {
+  background: var(--prolog-color-interaction);
+  color: var(--itda-surface);
+  border-color: var(--prolog-color-interaction);
+}
+.auth .btn.btn--error:hover:not(:disabled) {
+  background: var(--prolog-color-error);
+  color: var(--itda-surface);
+}
+
+/* 소셜(OAuth) 로그인·가입 버튼 — 호버하면 선이 위쪽 가운데에서 출발해 시계 반대 방향으로 테두리를 한 바퀴 돈다.
+   위쪽 왼쪽 절반(::before) → 왼쪽 → 아래 → 오른쪽(배경 선) → 위쪽 오른쪽 절반(::after)을 이어서 그린다.
+   테두리는 배경 위에 그려져 선을 가리므로, 호버 땐 border를 투명하게 하고 연한 테두리와 선을 모두 배경 층으로 그린다.
+   각도 계산(conic-gradient·@property)에 기대지 않아 브라우저와 상관없이 같게 보인다 */
+.auth .social__btn {
+  position: relative;
+  background-image: linear-gradient(var(--itda-muted), var(--itda-muted)), linear-gradient(var(--itda-muted), var(--itda-muted)), linear-gradient(var(--itda-muted), var(--itda-muted)), linear-gradient(var(--input-stroke), var(--input-stroke)), linear-gradient(var(--input-stroke), var(--input-stroke)), linear-gradient(var(--input-stroke), var(--input-stroke)), linear-gradient(var(--input-stroke), var(--input-stroke));
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
+  background-position:
+    left top,
+    left bottom,
+    right bottom,
+    left top,
+    left bottom,
+    left top,
+    right top;
+  background-size:
+    1px 0,
+    0 1px,
+    1px 0,
+    0 0,
+    0 0,
+    0 0,
+    0 0;
+}
+.auth .social__btn::before,
+.auth .social__btn::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  width: calc(50% + 1px);
+  height: 1px;
+  background: var(--itda-muted);
+  transform: scaleX(0);
+  pointer-events: none;
+}
+.auth .social__btn::before {
+  left: -1px;
+  transform-origin: right center;
+}
+.auth .social__btn::after {
+  right: -1px;
+  transform-origin: right center; /* 오른쪽 모서리에서 출발해 가운데(시작점)로 돌아온다 */
+}
+/* 호버 공통 규칙의 background 단축 속성이 위 배경 층을 지우므로 호버에서도 다시 지정한다 */
+.auth .social__btn:hover:not(:disabled) {
+  background-image: linear-gradient(var(--itda-muted), var(--itda-muted)), linear-gradient(var(--itda-muted), var(--itda-muted)), linear-gradient(var(--itda-muted), var(--itda-muted)), linear-gradient(var(--input-stroke), var(--input-stroke)), linear-gradient(var(--input-stroke), var(--input-stroke)), linear-gradient(var(--input-stroke), var(--input-stroke)), linear-gradient(var(--input-stroke), var(--input-stroke));
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box;
+  background-position:
+    left top,
+    left bottom,
+    right bottom,
+    left top,
+    left bottom,
+    left top,
+    right top;
+  border-color: transparent;
+  animation: auth-btn-draw-edges 600ms linear forwards;
+}
+.auth .social__btn:hover:not(:disabled)::before {
+  animation: auth-btn-draw-top-left 600ms linear forwards;
+}
+.auth .social__btn:hover:not(:disabled)::after {
+  animation: auth-btn-draw-top-right 600ms linear forwards;
+}
+/* 둘레 552px(230×46 기준)를 600ms에 같은 속도로: 위 왼쪽 115 → 왼쪽 46 → 아래 230 → 오른쪽 46 → 위 오른쪽 115 */
+@keyframes auth-btn-draw-top-left {
+  from {
+    transform: scaleX(0);
+  }
+  20.8%,
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes auth-btn-draw-edges {
+  0%,
+  20.8% {
+    background-size:
+      1px 0,
+      0 1px,
+      1px 0,
+      100% 1px,
+      100% 1px,
+      1px 100%,
+      1px 100%;
+  }
+  29.2% {
+    background-size:
+      1px 100%,
+      0 1px,
+      1px 0,
+      100% 1px,
+      100% 1px,
+      1px 100%,
+      1px 100%;
+  }
+  70.8% {
+    background-size:
+      1px 100%,
+      100% 1px,
+      1px 0,
+      100% 1px,
+      100% 1px,
+      1px 100%,
+      1px 100%;
+  }
+  79.2%,
+  to {
+    background-size:
+      1px 100%,
+      100% 1px,
+      1px 100%,
+      100% 1px,
+      100% 1px,
+      1px 100%,
+      1px 100%;
+  }
+}
+@keyframes auth-btn-draw-top-right {
+  0%,
+  79.2% {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 /* 텍스트 링크(계정 복구 등) — 호버·포커스하면 밑줄이 입력창처럼 왼쪽에서 오른쪽으로 그어진다 */
@@ -305,9 +451,6 @@
 .auth-card--role .option[aria-checked='true'] {
   border-color: var(--itda-muted);
 }
-.auth-card--role .btn {
-  border-width: 0.4px;
-}
 
 /* ───────── 계정 인증 (Figma 840:362) — 480 기준 카드를 1.2667배로 키웠다 ───────── */
 .auth-card--verify {
@@ -330,12 +473,8 @@
   line-height: 38px;
 }
 .auth-card--verify .btn--outline-strong {
-  border-width: 0.6px;
   font-size: 20.27px;
   line-height: 25.3px;
-}
-.auth-card--verify .btn--primary {
-  border-width: 0.4px;
 }
 /* ───────── 아이디 찾기 (Figma 840:435 · 1214:2226) ───────── */
 .auth-card--find {
@@ -355,9 +494,6 @@
 }
 .find__help {
   gap: 12px;
-}
-.auth-card--find .btn {
-  border-width: 0.4px;
 }
 .auth-card--find .btn--outline {
   border-color: rgba(106, 137, 167, 0.5);
@@ -391,6 +527,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .auth .social__btn::before,
+  .auth .social__btn::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
   .auth,
   .auth * {
     transition-duration: 1ms !important;
