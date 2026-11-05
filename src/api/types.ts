@@ -269,6 +269,7 @@ export interface InfluenceRelation {
 
 /** ASS 2.4 확정된 캐릭터 + (명세 미정의) 등장인물 화면용 필드 */
 export interface Character {
+  relationship_data_available?: boolean
   character_id: string
   name: string
   /** (명세 미정의) 주인공·조력자 등 — Figma 20 "주인공 · 활동 중" */

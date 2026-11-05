@@ -15,6 +15,7 @@ import './answer.css'
 import { TextArea } from '../../components/TextArea'
 import { Select } from '../../components/Select'
 import { ReviewedManuscript } from './ReviewedManuscript'
+import { exactMemoryRange } from './manuscriptReviewModel'
 
 type SaveState =
   | { kind: 'saved'; at: string }
@@ -30,7 +31,10 @@ export function EditorPage() {
   const { manuscriptId = '' } = useParams()
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const highlight = (useLocation().state as { highlight?: string } | null)?.highlight
+  const sourceLink = useLocation().state as { highlight?: string; memoryRange?: { start: number; end: number } } | null
+  const highlight = sourceLink?.highlight
+  const memoryStart = sourceLink?.memoryRange?.start
+  const memoryEnd = sourceLink?.memoryRange?.end
   const { withAuth } = useSession()
   const projectId = project?.project_id ?? ''
 
@@ -119,17 +123,19 @@ export function EditorPage() {
   const chapterId = chapter?.chapter_id
   useEffect(() => {
     if (!highlight || !chapterId) return
-    const quote = highlight.replace(/…$/, '')
+    const quote = memoryStart === undefined ? highlight.replace(/…$/, '') : highlight
     const id = window.setTimeout(() => {
       const el = textRef.current
-      const at = el?.value.indexOf(quote) ?? -1
+      const exact = el && memoryStart !== undefined && memoryEnd !== undefined
+        ? exactMemoryRange(el.value, quote, memoryStart, memoryEnd) : null
+      const at = memoryStart === undefined ? (el?.value.indexOf(quote) ?? -1) : (exact?.start ?? -1)
       if (el && at >= 0) {
         el.focus()
-        el.setSelectionRange(at, at + quote.length)
+        el.setSelectionRange(at, exact?.end ?? at + quote.length)
       }
     }, 60)
     return () => window.clearTimeout(id)
-  }, [highlight, chapterId])
+  }, [highlight, chapterId, memoryStart, memoryEnd])
 
   function onType(value: string) {
     if (!chapter) return

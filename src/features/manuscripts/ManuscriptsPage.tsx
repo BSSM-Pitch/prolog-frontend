@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
+import { buildMemory } from '../../api/characterMemory'
+import { IS_REAL } from '../../api/config'
 import type { Manuscript, Project } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
@@ -46,21 +48,46 @@ function ProjectManuscripts({ project }: { project: Project }) {
   const [confirmDelete, setConfirmDelete] = useState<Manuscript | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [creating, setCreating] = useState(false)
+  const [analyzing, setAnalyzing] = useState<string | null>(null)
+
+  async function analyzeCharacters(manuscriptId: string) {
+    if (analyzing) return
+    setAnalyzing(manuscriptId)
+    setUploadError(null)
+    try {
+      await withAuth(async (token) => {
+        await api.syncManuscriptContent(token, projectId, manuscriptId)
+        await buildMemory(token, projectId, manuscriptId)
+      })
+      navigate(`${projectPath(projectId, 'characters')}?manuscript=${manuscriptId}`)
+    } catch (error) {
+      setUploadError(describeError(error))
+    } finally {
+      setAnalyzing(null)
+    }
+  }
 
   // 처리 중인 원고가 있으면 상태를 계속 확인한다 (MSU 4.6 비고: 상세 조회로 status 폴링)
   const processing = manuscripts.some((m) => m.status === 'processing')
   useInterval(list.reload, 1500, processing)
 
   const canEdit = project.my_role !== 'viewer'
-  const waitingIds = new Set(uploads.items.filter((item) => item.status !== 'uploaded').map((item) => item.manuscriptId))
+  const waitingIds = new Set(
+    uploads.items.filter((item) => item.status !== 'uploaded').map((item) => item.manuscriptId),
+  )
   const remaining = uploads.items.filter((item) => item.status !== 'uploaded').length
   const ready = manuscripts.filter((m) => m.status === 'ready' && !waitingIds.has(m.manuscript_id))
   const selected = ready.find((m) => m.manuscript_id === selectedId) ?? ready[0] ?? null
   // "업로드 진행"에는 이번에 올린 파일과, 아직 처리 중이거나 실패한 파일을 보여 준다
-  const progress = manuscripts.filter((m) => m.source_type === 'file' && !waitingIds.has(m.manuscript_id) && (sessionIds.includes(m.manuscript_id) || m.status !== 'ready'))
+  const progress = manuscripts.filter(
+    (m) =>
+      m.source_type === 'file' &&
+      !waitingIds.has(m.manuscript_id) &&
+      (sessionIds.includes(m.manuscript_id) || m.status !== 'ready'),
+  )
 
   function uploaded(id: string) {
-    setSessionIds((ids) => ids.includes(id) ? ids : [...ids, id])
+    setSessionIds((ids) => (ids.includes(id) ? ids : [...ids, id]))
     list.reload()
   }
 
@@ -94,7 +121,9 @@ function ProjectManuscripts({ project }: { project: Project }) {
   async function createEditorManuscript() {
     setCreating(true)
     try {
-      const ms = await withAuth((t) => api.createManuscript(t, projectId, { title: `${manuscripts.length + 1}차 원고`, source_type: 'editor' }))
+      const ms = await withAuth((t) =>
+        api.createManuscript(t, projectId, { title: `${manuscripts.length + 1}차 원고`, source_type: 'editor' }),
+      )
       navigate(projectPath(projectId, `manuscripts/${ms.manuscript_id}`))
     } catch (err) {
       setUploadError(describeError(err))
@@ -141,7 +170,9 @@ function ProjectManuscripts({ project }: { project: Project }) {
               hideUploaded
               onPick={uploads.pick}
               onRemove={uploads.remove}
-              onRetry={(key) => { void upload(key) }}
+              onRetry={(key) => {
+                void upload(key)
+              }}
             >
               <Button onClick={() => upload()} disabled={!canEdit || remaining === 0 || uploading} busy={uploading}>
                 {uploading ? '올리는 중…' : remaining ? `${remaining}개 파일 올리기` : '업로드 시작'}
@@ -243,7 +274,9 @@ function ProjectManuscripts({ project }: { project: Project }) {
               </Button>
             </div>
           )}
-          {list.data && ready.length === 0 && <p className="panel__label">아직 준비된 원고가 없어요. 파일을 올리거나 새로 써 보세요.</p>}
+          {list.data && ready.length === 0 && (
+            <p className="panel__label">아직 준비된 원고가 없어요. 파일을 올리거나 새로 써 보세요.</p>
+          )}
           <ul className="ms-list">
             {ready.map((m) => {
               const isSelected = selected?.manuscript_id === m.manuscript_id
@@ -251,7 +284,12 @@ function ProjectManuscripts({ project }: { project: Project }) {
               return (
                 <li key={m.manuscript_id}>
                   <div className={isSelected ? 'ms-card ms-card--selected' : 'ms-card'}>
-                    <button type="button" className="ms-card__select" onClick={() => setSelectedId(m.manuscript_id)} aria-pressed={isSelected}>
+                    <button
+                      type="button"
+                      className="ms-card__select"
+                      onClick={() => setSelectedId(m.manuscript_id)}
+                      aria-pressed={isSelected}
+                    >
                       <span className="ms-card__title">
                         {project.title} / {m.title}
                       </span>
@@ -281,6 +319,16 @@ function ProjectManuscripts({ project }: { project: Project }) {
                           </Button>
                         )}
                       </div>
+                    )}
+                    {canEdit && IS_REAL && (
+                      <Button
+                        tone="outline"
+                        disabled={Boolean(analyzing)}
+                        busy={analyzing === m.manuscript_id}
+                        onClick={() => analyzeCharacters(m.manuscript_id)}
+                      >
+                        원고 분석 · 인물 자동 추가
+                      </Button>
                     )}
                   </div>
                 </li>

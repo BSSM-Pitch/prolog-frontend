@@ -75,6 +75,12 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
 
 /** prolog-backend(06b8928) AI API */
 const AI_ROUTES: Array<[string, RegExp]> = [
+  ['GET|POST', r('{P}\\/manuscripts\\/{ID}\\/characters\\/{ID}\\/assessment$')],
+  // 인물별 디테일 — real 모드에서 목업으로 대체하지 않는다.
+  ['GET|POST', r('{P}\\/manuscripts\\/{ID}\\/character-memory$')],
+  ['POST', r('{P}\\/manuscripts\\/{ID}\\/character-memory\\/{ID}\\/retry$')],
+  ['GET', r('{P}\\/manuscripts\\/{ID}\\/characters\\/{ID}\\/details$')],
+  ['POST', r('{P}\\/manuscripts\\/{ID}\\/character-memory\\/{ID}\\/candidates\\/[^/]+\\/resolve$')],
   // NLCD AI 인물 추출
   ['GET|POST', r('{P}\\/nl-extractions$')],
   ['GET', r('{P}\\/nl-extractions\\/{ID}$')],

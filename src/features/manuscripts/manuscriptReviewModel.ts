@@ -6,6 +6,14 @@ export interface ManuscriptIssue {
   conflicts: Conflict[]
 }
 
+/** Memory coordinates count Unicode code points; textarea selections use UTF-16. */
+export function exactMemoryRange(text: string, quote: string, start: number, end: number) {
+  if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end <= start) return null
+  const points = Array.from(text)
+  if (end > points.length || points.slice(start, end).join('') !== quote) return null
+  return { start: points.slice(0, start).join('').length, end: points.slice(0, end).join('').length }
+}
+
 // 공백만 정규화한다. 원문의 UTF-16 위치를 보존해 textarea 선택 범위와 맞춘다.
 function normalized(text: string) {
   let value = ''
