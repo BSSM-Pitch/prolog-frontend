@@ -1,8 +1,9 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ApiError } from '../api/client'
 import { IS_REAL } from '../api/config'
 import * as authApi from '../api/auth'
 import type { AuthResult, AuthTokens, User } from '../api/types'
+import { SessionContext, type SessionStatus as Status } from './sessionContext'
 
 const TOKEN_KEY = IS_REAL ? 'prolog.auth.tokens.real' : 'prolog.auth.tokens'
 
@@ -23,19 +24,6 @@ function writeTokens(tokens: AuthTokens | null) {
     // 저장소를 쓸 수 없으면 이번 탭에서만 로그인 유지
   }
 }
-
-type Status = 'loading' | 'signed-in' | 'signed-out'
-
-interface SessionValue {
-  status: Status
-  user: User | null
-  signIn: (result: AuthResult) => void
-  signOut: () => Promise<void>
-  /** 인증이 필요한 API 호출. 401이면 토큰을 한 번 재발급해 다시 시도하고, 그래도 안 되면 로그아웃한다. */
-  withAuth: <T>(call: (accessToken: string) => Promise<T>) => Promise<T>
-}
-
-const SessionContext = createContext<SessionValue | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [tokens, setTokens] = useState<AuthTokens | null>(readTokens)

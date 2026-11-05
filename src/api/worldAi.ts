@@ -1,7 +1,8 @@
+import { aggregateChecks as aggregate } from './ruleReviewModel'
 import { codesByCreation, type BackendChapter, type BackendCharacter, type BackendWorldRule } from './backendShapes'
 import { ApiError, request, requestAll, requestLenient } from './client'
 import { listChapters, listManuscripts, saveChapter, syncManuscriptContent } from './manuscripts'
-import type { Conflict, ConflictCheck, RuleExtraction, WorldRule } from './types'
+import type { Conflict, ConflictCheck, RuleAssessment, RuleExtraction, WorldRule } from './types'
 
 // real 모드 AI — prolog-backend 06b8928의 REX 추출과 SCDS를 화면 모양으로 맞춘다.
 //
@@ -58,6 +59,9 @@ interface BackendCandidate {
   source_chapter: number | null
   review_status: 'pending' | 'confirmed' | 'ignored'
   rule_id: string | null
+  duplicate_rule_id?: string | null
+  duplicate_reason?: string | null
+  duplicate_kind?: 'exact' | 'suggested' | null
 }
 
 interface BackendRuleExtraction {
@@ -86,14 +90,20 @@ const extractionPath = (projectId: string, manuscriptId: string, extractionId = 
 const toRuleJob = (e: BackendRuleExtraction): RuleExtraction => ({
   job_id: e.extraction_id,
   status: e.status === 'extracting' ? 'analyzing' : e.status,
-  result_ids: (e.extracted_rules ?? []).filter((c) => c.review_status === 'pending').map((c) => candidateId(e.extraction_id, c.index)),
+  result_ids: (e.extracted_rules ?? [])
+    .filter((c) => c.review_status === 'pending')
+    .map((c) => candidateId(e.extraction_id, c.index)),
   skipped_reason: null,
   manuscript_id: e.manuscript_id,
 })
 
 async function fetchExtraction(token: string, projectId: string, r: RememberedExtraction) {
   try {
-    return (await requestLenient<BackendRuleExtraction>('GET', extractionPath(projectId, r.manuscript_id, r.extraction_id), { accessToken: token })).data
+    return (
+      await requestLenient<BackendRuleExtraction>('GET', extractionPath(projectId, r.manuscript_id, r.extraction_id), {
+        accessToken: token,
+      })
+    ).data
   } catch (e) {
     if (e instanceof ApiError && e.status === 404) forget(projectId, r.extraction_id)
     return null
@@ -102,13 +112,21 @@ async function fetchExtraction(token: string, projectId: string, r: RememberedEx
 
 export async function extractRules(token: string, projectId: string, manuscriptId: string) {
   await syncManuscriptContent(token, projectId, manuscriptId)
-  const e = (await requestLenient<BackendRuleExtraction>('POST', extractionPath(projectId, manuscriptId), { accessToken: token })).data
+  const e = (
+    await requestLenient<BackendRuleExtraction>('POST', extractionPath(projectId, manuscriptId), { accessToken: token })
+  ).data
   remember(projectId, { extraction_id: e.extraction_id, manuscript_id: e.manuscript_id })
   return toRuleJob(e)
 }
 
 export async function getRuleExtraction(token: string, projectId: string, manuscriptId: string, jobId: string) {
-  return toRuleJob((await requestLenient<BackendRuleExtraction>('GET', extractionPath(projectId, manuscriptId, jobId), { accessToken: token })).data)
+  return toRuleJob(
+    (
+      await requestLenient<BackendRuleExtraction>('GET', extractionPath(projectId, manuscriptId, jobId), {
+        accessToken: token,
+      })
+    ).data,
+  )
 }
 
 export async function listRules(token: string, projectId: string): Promise<WorldRule[]> {
@@ -117,11 +135,21 @@ export async function listRules(token: string, projectId: string): Promise<World
     Promise.all(remembered(projectId).map((r) => fetchExtraction(token, projectId, r))),
   ])
   // 백엔드 후보는 근거 장(source_chapter)을 비워 둔다. 근거 문장이 들어 있는 장을 찾아 채운다
-  const manuscriptIds = [...new Set(extractions.flatMap((e) => (e?.status === 'completed' && e.extracted_rules.length ? [e.manuscript_id] : [])))]
-  const chapterLists = new Map(await Promise.all(manuscriptIds.map(async (id) => [id, await listChapters(token, projectId, id).catch(() => [])] as const)))
+  const manuscriptIds = [
+    ...new Set(
+      extractions.flatMap((e) => (e?.status === 'completed' && e.extracted_rules.length ? [e.manuscript_id] : [])),
+    ),
+  ]
+  const chapterLists = new Map(
+    await Promise.all(
+      manuscriptIds.map(async (id) => [id, await listChapters(token, projectId, id).catch(() => [])] as const),
+    ),
+  )
   const squash = (t: string) => t.replace(/\s+/g, '')
   const chapterOf = (manuscriptId: string, evidence: string | null) =>
-    evidence ? (chapterLists.get(manuscriptId)?.find((c) => squash(c.content).includes(squash(evidence)))?.chapter_no ?? null) : null
+    evidence
+      ? (chapterLists.get(manuscriptId)?.find((c) => squash(c.content).includes(squash(evidence)))?.chapter_no ?? null)
+      : null
 
   const codes = codesByCreation(rules, (r) => r.rule_id, 'R')
   const confirmed = rules.map(
@@ -135,11 +163,16 @@ export async function listRules(token: string, projectId: string): Promise<World
       status: 'confirmed',
       source_chapter: r.source_chapter_no,
       evidence: r.evidence,
+      evidence_sources: r.evidence_sources,
     }),
   )
   // 확정한 후보는 백엔드 규칙 목록에 이미 있다. 남은 후보(검토 대기·무시)만 번호를 이어 붙인다
   const candidates = extractions
-    .flatMap((e) => (e?.status === 'completed' ? e.extracted_rules.filter((c) => c.review_status !== 'confirmed').map((c) => ({ e, c })) : []))
+    .flatMap((e) =>
+      e?.status === 'completed'
+        ? e.extracted_rules.filter((c) => c.review_status !== 'confirmed').map((c) => ({ e, c }))
+        : [],
+    )
     .map(({ e, c }, i): WorldRule => {
       const id = candidateId(e.extraction_id, c.index)
       const edit = candidateEdits.get(id) ?? {}
@@ -153,28 +186,65 @@ export async function listRules(token: string, projectId: string): Promise<World
         status: c.review_status === 'ignored' ? 'ignored' : 'pending',
         source_chapter: c.source_chapter ?? chapterOf(e.manuscript_id, c.evidence),
         evidence: c.evidence,
+        duplicate_rule_id: c.duplicate_rule_id,
+        duplicate_reason: c.duplicate_reason,
+        duplicate_kind: c.duplicate_kind,
       }
     })
   return [...confirmed, ...candidates]
 }
 
-async function reviewCandidate(token: string, projectId: string, id: string, body: { selected_indices?: number[]; ignored_indices?: number[]; edits?: Record<string, CandidateEdit> }) {
+async function reviewCandidate(
+  token: string,
+  projectId: string,
+  id: string,
+  body: {
+    selected_indices?: number[]
+    ignored_indices?: number[]
+    edits?: Record<string, CandidateEdit>
+    merge_targets?: Record<string, string>
+  },
+) {
   const { extractionId, index } = parseCandidate(id)
   const found = remembered(projectId).find((r) => r.extraction_id === extractionId)
-  if (!found) throw new ApiError(404, { code: 'EXTRACTION_NOT_FOUND', message: '규칙 후보를 찾을 수 없어요. 규칙을 다시 추출해 주세요.', details: { index } })
-  return request<BackendWorldRule[]>('POST', `${extractionPath(projectId, found.manuscript_id, extractionId)}/confirm`, { body, accessToken: token })
+  if (!found)
+    throw new ApiError(404, {
+      code: 'EXTRACTION_NOT_FOUND',
+      message: '규칙 후보를 찾을 수 없어요. 규칙을 다시 추출해 주세요.',
+      details: { index },
+    })
+  return request<BackendWorldRule[]>(
+    'POST',
+    `${extractionPath(projectId, found.manuscript_id, extractionId)}/confirm`,
+    { body, accessToken: token },
+  )
 }
 
 /** 후보를 고치면 확정 전까지 이 화면에서 들고 있다가 확정할 때 보낸다 */
 export function editCandidate(id: string, input: CandidateEdit) {
-  const clean = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined && v !== '')) as CandidateEdit
+  const clean = Object.fromEntries(
+    Object.entries(input).filter(([, v]) => v !== undefined && v !== ''),
+  ) as CandidateEdit
   candidateEdits.set(id, { ...candidateEdits.get(id), ...clean })
+}
+
+export async function mergeCandidate(token: string, projectId: string, id: string, ruleId: string) {
+  const { index } = parseCandidate(id)
+  const rules = await reviewCandidate(token, projectId, id, {
+    selected_indices: [index],
+    merge_targets: { [String(index)]: ruleId },
+  })
+  candidateEdits.delete(id)
+  return rules[0] ?? null
 }
 
 export async function confirmCandidate(token: string, projectId: string, id: string) {
   const { index } = parseCandidate(id)
   const edit = candidateEdits.get(id)
-  const created = await reviewCandidate(token, projectId, id, { selected_indices: [index], edits: edit ? { [index]: edit } : {} })
+  const created = await reviewCandidate(token, projectId, id, {
+    selected_indices: [index],
+    edits: edit ? { [index]: edit } : {},
+  })
   candidateEdits.delete(id)
   return created[0]?.rule_id ?? null
 }
@@ -191,6 +261,8 @@ interface BackendCheck {
   status: ConflictCheck['status']
   rule_result: { has_candidate: boolean; skipped: boolean; skipped_reason: string | null; candidates: unknown[] }
   conflict_ids: string[]
+  analysis_kind?: 'ai_rule_review' | 'legacy_keyword'
+  assessments?: RuleAssessment[]
 }
 
 interface BackendConflict {
@@ -221,10 +293,16 @@ let scanSeq = 0
 function chunks(text: string, max = 5000) {
   const out: string[] = []
   let cur = ''
-  for (const para of text.split(/\n+/).map((s) => s.trim()).filter(Boolean)) {
+  for (const para of text
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean)) {
     for (let piece = para; piece; piece = piece.slice(max)) {
       const part = piece.slice(0, max)
-      if (cur && cur.length + 1 + part.length > max) (out.push(cur), (cur = ''))
+      if (cur && cur.length + 1 + part.length > max) {
+        out.push(cur)
+        cur = ''
+      }
       cur = cur ? `${cur}\n${part}` : part
     }
   }
@@ -233,50 +311,51 @@ function chunks(text: string, max = 5000) {
 }
 
 /** 같은 규칙·인물로 이미 검사한 본문은 다시 사건으로 만들지 않는다 (중복 충돌 방지) */
-const SCANNED = 'prolog.scanned-chunks.v1'
+const SCANNED = 'prolog.scanned-chunks.v2'
 function hash(s: string) {
   let h = 5381
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
   return (h >>> 0).toString(36)
 }
 
-function aggregate(jobId: string, checks: BackendCheck[], manuscriptId: string | null): ConflictCheck {
-  const statuses = checks.map((c) => c.status)
-  const result_ids = checks.flatMap((c) => c.conflict_ids)
-  const base = { job_id: jobId, result_ids, manuscript_id: manuscriptId, skipped_reason: null }
-  if (statuses.some((s) => RUNNING.includes(s))) return { ...base, status: statuses.includes('analyzing') ? 'analyzing' : 'queued' }
-  if (statuses.includes('failed')) return { ...base, status: 'failed' }
-  const skipped = checks.find((c) => c.rule_result.skipped)
-  if (checks.length && checks.every((c) => c.status === 'skipped' && c.rule_result.skipped)) return { ...base, status: 'skipped', skipped_reason: skipped?.rule_result.skipped_reason ?? null }
-  return { ...base, status: 'completed' }
-}
-
 const scanManuscript = new Map<string, string | null>()
 
-export async function rescan(token: string, projectId: string, target?: { manuscriptId: string; chapterId: string }): Promise<ConflictCheck> {
+export async function rescan(
+  token: string,
+  projectId: string,
+  target?: { manuscriptId: string; chapterId: string },
+): Promise<ConflictCheck> {
   const jobId = `scan-${++scanSeq}`
   const [manuscripts, characters, rules] = await Promise.all([
     listManuscripts(token, projectId),
     requestAll<BackendCharacter>(`${p(projectId)}/characters`, { accessToken: token }),
     requestAll<BackendWorldRule>(`${p(projectId)}/world-rules`, { accessToken: token }),
   ])
-  const latest = manuscripts.find((m) => m.status === 'ready' && (!target || m.manuscript_id === target.manuscriptId)) ?? null
+  const latest =
+    manuscripts.find((m) => m.status === 'ready' && (!target || m.manuscript_id === target.manuscriptId)) ?? null
   scanManuscript.set(jobId, latest?.manuscript_id ?? null)
-  // 검사할 원고·사건에 넣을 확정 인물(백엔드 사건은 인물 1명 이상)·위반 키워드를 줄 규칙이 모두 있어야 한다
-  const missing = !latest ? 'NO_MANUSCRIPT' : !characters.length ? 'NO_CHARACTERS' : !rules.length ? 'NO_RULES' : null
+  // 세계관 규칙은 인물이 없어도 검토한다. 키워드는 검색 단서다.
+  const missing = !latest ? 'NO_MANUSCRIPT' : !rules.length ? 'NO_RULES' : null
   if (missing || !latest) {
     scans.set(jobId, [])
-    return { job_id: jobId, status: 'skipped', result_ids: [], skipped_reason: missing, manuscript_id: latest?.manuscript_id ?? null }
+    return {
+      job_id: jobId,
+      status: 'skipped',
+      result_ids: [],
+      skipped_reason: missing,
+      manuscript_id: latest?.manuscript_id ?? null,
+    }
   }
-  // 사건 참여 인물은 본문에 이름이 나오는 인물로 한다. 아무도 안 나오면 첫 인물(주인공)로 본다.
-  // 전원을 넣으면 같은 문장이 인물 수만큼 충돌로 겹친다
+  // 본문에서 확인한 인물만 전달한다. 이름이 없다고 첫 인물에게 사건을 귀속시키지 않는다.
   const participants = (content: string) => {
     const named = characters.filter((c) => content.includes(c.name)).slice(0, 50)
-    return (named.length ? named : characters.slice(0, 1)).map((c) => c.character_id)
+    return named.map((c) => c.character_id)
   }
-  const context = hash(JSON.stringify([characters.map((c) => c.character_id), rules.map((r) => [r.rule_id, r.updated_at])]))
-  const store = readStore<string[]>(SCANNED)
-  const seen = new Set(store[projectId] ?? [])
+  const context = hash(
+    JSON.stringify([characters.map((c) => [c.character_id, c.name]), rules.map((r) => [r.rule_id, r.updated_at])]),
+  )
+  const store = readStore<Record<string, string>>(SCANNED)
+  const seen = store[projectId] ?? {}
 
   const checks: BackendCheck[] = []
   const chapters = await listChapters(token, projectId, latest.manuscript_id)
@@ -286,24 +365,56 @@ export async function rescan(token: string, projectId: string, target?: { manusc
   for (const chapter of chapters.filter((c) => !target || c.chapter_id === target.chapterId)) {
     for (const content of chunks(chapter.content)) {
       const key = `${chapter.chapter_id}:${context}:${hash(content)}`
-      if (seen.has(key)) continue
-      const created = await request<{ conflict_check: BackendCheck }>('POST', `${p(projectId)}/chapters/${chapter.chapter_id}/events`, { body: { character_ids: participants(content), content }, accessToken: token })
+      if (seen[key]) {
+        try {
+          const existing = (
+            await requestLenient<BackendCheck>('GET', `${p(projectId)}/conflict-checks/${seen[key]}`, {
+              accessToken: token,
+            })
+          ).data
+          checks.push(existing)
+          continue
+        } catch (error) {
+          if (!(error instanceof ApiError && error.status === 404)) throw error
+        }
+      }
+      const created = await request<{ conflict_check: BackendCheck }>(
+        'POST',
+        `${p(projectId)}/chapters/${chapter.chapter_id}/events`,
+        { body: { character_ids: participants(content), content }, accessToken: token },
+      )
       checks.push(created.conflict_check)
-      seen.add(key)
+      seen[key] = created.conflict_check.check_id
     }
   }
-  store[projectId] = [...seen].slice(-500)
+  store[projectId] = Object.fromEntries(Object.entries(seen).slice(-500))
   writeStore(SCANNED, store)
   scans.set(jobId, checks)
   return aggregate(jobId, checks, latest.manuscript_id)
 }
 
 async function refresh(token: string, projectId: string, jobId: string, retry: boolean) {
-  const checks = scans.get(jobId) ?? []
+  const checks = scans.get(jobId)
+  if (!checks)
+    throw new ApiError(404, {
+      code: 'CHECK_SESSION_LOST',
+      message: '검사 상태를 다시 불러오려면 원고 검사를 눌러 주세요. 기존 검사 결과를 이어서 확인해요.',
+      details: {},
+    })
   const next = await Promise.all(
     checks.map(async (c) => {
-      if (retry && c.status === 'failed') return (await requestLenient<BackendCheck>('POST', `${p(projectId)}/conflict-checks/${c.check_id}/retry`, { accessToken: token })).data
-      if (!retry && RUNNING.includes(c.status)) return (await requestLenient<BackendCheck>('GET', `${p(projectId)}/conflict-checks/${c.check_id}`, { accessToken: token })).data
+      if (retry && c.status === 'failed')
+        return (
+          await requestLenient<BackendCheck>('POST', `${p(projectId)}/conflict-checks/${c.check_id}/retry`, {
+            accessToken: token,
+          })
+        ).data
+      if (!retry && RUNNING.includes(c.status))
+        return (
+          await requestLenient<BackendCheck>('GET', `${p(projectId)}/conflict-checks/${c.check_id}`, {
+            accessToken: token,
+          })
+        ).data
       return c
     }),
   )
@@ -311,12 +422,17 @@ async function refresh(token: string, projectId: string, jobId: string, retry: b
   return aggregate(jobId, next, scanManuscript.get(jobId) ?? null)
 }
 
-export const getConflictCheck = (token: string, projectId: string, jobId: string) => refresh(token, projectId, jobId, false)
-export const retryConflictCheck = (token: string, projectId: string, jobId: string) => refresh(token, projectId, jobId, true)
+export const getConflictCheck = (token: string, projectId: string, jobId: string) =>
+  refresh(token, projectId, jobId, false)
+export const retryConflictCheck = (token: string, projectId: string, jobId: string) =>
+  refresh(token, projectId, jobId, true)
 
 /** 사건 본문에서 걸린 표현이 있는 문장만 보여 준다 */
 function sentenceOf(text: string, keyword: string | null) {
-  const sentences = text.split(/(?<=[.!?。…"”'’])\s+|\n+/).map((s) => s.trim()).filter(Boolean)
+  const sentences = text
+    .split(/(?<=[.!?。…"”'’])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
   const hit = keyword ? sentences.find((s) => s.includes(keyword)) : undefined
   return hit ?? (sentences[0] ?? text).slice(0, 200)
 }
@@ -329,26 +445,36 @@ async function realConflicts(token: string, projectId: string) {
   ])
   const ruleOf = new Map(rules.map((r) => [r.rule_id, r]))
   const nameOf = new Map(characters.map((c) => [c.character_id, c.name]))
-  const ordered = [...rows].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.conflict_id.localeCompare(b.conflict_id))
+  const ordered = [...rows].sort(
+    (a, b) => a.created_at.localeCompare(b.created_at) || a.conflict_id.localeCompare(b.conflict_id),
+  )
   return ordered.map((c, i) => {
     const rule = c.rule_id ? ruleOf.get(c.rule_id) : undefined
     const conflict: Conflict = {
       conflict_id: c.conflict_id,
+      review_kind: c.detected_by === 'ai' ? 'ai' : 'keyword',
       index: i + 1,
-      title: rule?.title ?? c.conflict_target ?? c.matched_keyword ?? '설정 충돌',
+      title:
+        (c.detected_by === 'rule' ? '미검토 키워드 단서 · ' : '') +
+        (rule?.title ?? c.conflict_target ?? c.matched_keyword ?? '설정 충돌'),
       severity: c.severity ?? 'medium',
       status: c.status,
       rule_id: c.rule_id,
       evidence: [
         { chapter: rule?.source_chapter_no ?? 0, character: null, quote: rule?.evidence ?? rule?.description ?? '' },
-        { chapter: c.chapter ?? 0, character: c.character_id ? (nameOf.get(c.character_id) ?? null) : null, quote: sentenceOf(c.input_event, c.matched_keyword) },
+        {
+          chapter: c.chapter ?? 0,
+          character: c.character_id ? (nameOf.get(c.character_id) ?? null) : null,
+          quote: sentenceOf(c.input_event, c.matched_keyword),
+        },
       ],
-      anchor: c.chapter_id && c.matched_keyword && c.input_event.includes(c.matched_keyword)
-        ? { chapter_id: c.chapter_id, quote: sentenceOf(c.input_event, c.matched_keyword), context: c.input_event }
-        : undefined,
+      anchor:
+        c.chapter_id && c.matched_keyword && c.input_event.includes(c.matched_keyword)
+          ? { chapter_id: c.chapter_id, quote: sentenceOf(c.input_event, c.matched_keyword), context: c.input_event }
+          : undefined,
       advice:
         c.advice ??
-        `규칙 검사에서 "${c.matched_keyword ?? c.conflict_target ?? ''}" 표현이 "${rule?.title ?? '설정 규칙'}"과 부딪힐 수 있어 표시했어요. AI 조언은 받지 못했어요.`,
+        `"${c.matched_keyword ?? c.conflict_target ?? ''}" 표현이 검색 단서와 일치했어요. AI가 의미를 검토하지 않은 이전 결과이므로 위반 여부는 판단할 수 없어요.`,
       modified_content: c.modified_content,
       resolved_at: c.resolved_at,
     }
@@ -361,13 +487,23 @@ export async function listConflicts(token: string, projectId: string) {
 }
 
 /** SCDS 4.11 — 직접 수정은 백엔드에 고친 문장을 남기고, 원고의 그 문장도 바꿔 저장한다 */
-export async function resolveConflict(token: string, projectId: string, conflictId: string, body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string }) {
+export async function resolveConflict(
+  token: string,
+  projectId: string,
+  conflictId: string,
+  body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string },
+) {
   const before = (await realConflicts(token, projectId)).find((x) => x.conflict.conflict_id === conflictId)
   await request<BackendConflict>('PATCH', `${p(projectId)}/conflicts/${conflictId}`, { body, accessToken: token })
   if (body.action === 'modified' && body.modified_content && before?.chapterId) {
     const quote = before.conflict.evidence[before.conflict.evidence.length - 1].quote
-    const chapter = await request<BackendChapter>('GET', `${p(projectId)}/chapters/${before.chapterId}`, { accessToken: token })
-    if (quote && chapter.content.includes(quote)) await saveChapter(token, projectId, chapter.manuscript_id, chapter.chapter_id, { content: chapter.content.replace(quote, body.modified_content) })
+    const chapter = await request<BackendChapter>('GET', `${p(projectId)}/chapters/${before.chapterId}`, {
+      accessToken: token,
+    })
+    if (quote && chapter.content.includes(quote))
+      await saveChapter(token, projectId, chapter.manuscript_id, chapter.chapter_id, {
+        content: chapter.content.replace(quote, body.modified_content),
+      })
   }
   const after = (await listConflicts(token, projectId)).find((c) => c.conflict_id === conflictId)
   if (!after) throw new ApiError(404, { code: 'CONFLICT_NOT_FOUND', message: '충돌을 찾을 수 없어요.', details: {} })

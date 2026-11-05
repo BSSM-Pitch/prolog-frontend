@@ -346,6 +346,15 @@ export interface EditHistoryEntry {
 // REX · SCDS 명세 — 설정 규칙과 충돌
 
 /** REX 2.2 WorldRule (SCDS와 같은 리소스) + (명세 미정의) 화면 표시용 필드 */
+export interface WorldRuleEvidence {
+  manuscript_id: string
+  extraction_id: string
+  candidate_index: number
+  source_hash: string | null
+  chapter_no: number | null
+  quote: string
+}
+
 export interface WorldRule {
   rule_id: string
   /** (명세 미정의) "R01" 같은 표시 번호 */
@@ -359,11 +368,16 @@ export interface WorldRule {
   status: 'confirmed' | 'pending' | 'ignored'
   source_chapter: number | null
   evidence: string | null
+  evidence_sources?: WorldRuleEvidence[]
+  duplicate_rule_id?: string | null
+  duplicate_reason?: string | null
+  duplicate_kind?: 'exact' | 'suggested' | null
 }
 
 /** SCDS 2.7 Conflict — Figma 05는 "두 근거 비교"라서 evidence[] 구조로 받는다 (명세 미정의) */
 export interface Conflict {
   conflict_id: string
+  review_kind?: 'ai' | 'keyword'
   index: number
   title: string
   severity: 'high' | 'medium' | 'low'
@@ -378,10 +392,23 @@ export interface Conflict {
 }
 
 /** SCDS 2.5 ConflictCheck / REX 2.1 RuleExtraction 작업 */
+export interface RuleAssessment {
+  rule_id: string
+  rule_title: string
+  rule_description: string
+  verdict: 'supports' | 'violates' | 'undetermined'
+  reason: string
+  evidence: string | null
+  severity: 'low' | 'medium' | 'high' | null
+}
+
 export interface ConflictCheck {
   job_id: string
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   result_ids: string[]
+  assessments?: RuleAssessment[]
+  analysis_kind?: 'ai_rule_review' | 'legacy_keyword'
+  keyword_candidate_count?: number
   skipped_reason: string | null
   manuscript_id: string | null
 }

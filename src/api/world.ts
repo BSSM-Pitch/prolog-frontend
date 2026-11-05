@@ -104,3 +104,10 @@ export function retryConflictCheck(token: string, projectId: string, jobId: stri
   if (IS_REAL) return ai.retryConflictCheck(token, projectId, jobId)
   return request<ConflictCheck>('POST', `${p(projectId)}/conflict-checks/${jobId}/retry`, { accessToken: token })
 }
+
+/** Merge a reviewed extraction candidate into a project-owned rule, preserving its text. */
+export async function mergeRuleCandidate(accessToken: string, projectId: string, id: string, ruleId: string) {
+  if (!IS_REAL) throw new Error('규칙 근거 합치기는 실제 API 연결에서 사용할 수 있어요.')
+  await ai.mergeCandidate(accessToken, projectId, id, ruleId)
+  return (await listRules(accessToken, projectId)).find((r) => r.rule_id === ruleId) ?? null
+}

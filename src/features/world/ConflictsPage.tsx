@@ -15,6 +15,7 @@ import './world.css'
 import { TextArea } from '../../components/TextArea'
 import { InsightNav } from '../insights/InsightNav'
 import { Select } from '../../components/Select'
+import { RuleReviewSummary } from './RuleReviewSummary'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
 const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
@@ -29,6 +30,18 @@ const NO_REFERENCE: SkipInfo = {
 }
 /** 검사를 건너뛴 이유별 안내 — 무엇이 빠졌는지 정확히 알려 준다 */
 const SKIPPED: Record<string, SkipInfo> = {
+  NO_CONTENT: {
+    title: '검사할 본문이 없어요',
+    body: '선택한 장에 본문을 쓴 뒤 다시 검사해 주세요.',
+    action: '원고 쓰기',
+    to: 'manuscripts',
+  },
+  ALL_RULES_DISMISSED: {
+    title: '이미 무시한 장면이에요',
+    body: '같은 장면과 규칙의 검토 결과를 다시 추가하지 않았어요.',
+    action: '처리한 설정 확인',
+    to: 'conflicts',
+  },
   NO_MANUSCRIPT: {
     title: '검사할 원고가 없어요',
     body: '원고를 올리거나 편집기에서 장면을 쓴 뒤 다시 검사해 주세요.',
@@ -43,7 +56,7 @@ const SKIPPED: Record<string, SkipInfo> = {
   },
   NO_RULES: {
     title: '확정된 설정 규칙이 없어요',
-    body: '규칙의 위반 판정 키워드로 원고 문장을 찾아요. 규칙을 추가하거나 후보를 확정한 뒤 다시 검사해 주세요.',
+    body: '저장한 규칙의 의미와 원고를 비교해요. 규칙을 추가하거나 후보를 확정한 뒤 다시 검사해 주세요.',
     action: '설정 규칙 보기',
     to: 'rules',
   },
@@ -85,7 +98,9 @@ function ConflictReview() {
         setNotice(
           job.result_ids.length
             ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.`
-            : '기본 규칙 검사 완료: 키워드로 찾은 새 충돌 후보가 없어요. 모든 설정이 일치한다는 뜻은 아니에요.',
+            : job.analysis_kind === 'ai_rule_review'
+              ? 'AI 검토를 마쳤어요. 규칙별 지지·위반·판단 불가를 확인해 주세요.'
+              : '키워드 검색을 마쳤어요. AI 의미 검토가 없는 이전 검사 결과예요.',
         )
     },
   )
@@ -176,15 +191,18 @@ function ConflictReview() {
           <p className="answer__title">설정 충돌을 검토하고 있어요</p>
           <p className="answer__body">
             {job?.status === 'analyzing'
-              ? '기본 규칙 검사는 끝났고, AI가 문맥을 한 번 더 살펴보고 있어요.'
+              ? '키워드 단서를 찾았고, AI가 모든 저장 규칙의 의미와 조건을 비교하고 있어요.'
               : '확정된 규칙과 인물 설정을 원고와 비교하고 있어요.'}
           </p>
         </div>
       )}
+      <RuleReviewSummary job={job} />
       {job?.status === 'failed' && (
         <div className="state-block state-block--error" role="alert">
           <p className="answer__title">AI 검토를 마치지 못했어요</p>
-          <p className="answer__body">규칙 검사 결과는 먼저 보여 드려요. AI 조언만 다시 받을 수 있어요.</p>
+          <p className="answer__body">
+            AI 판정을 완료하지 못했어요. 키워드 일치를 위반으로 표시하지 않아요. 다시 검토할 수 있어요.
+          </p>
           <Button onClick={retryCheck}>AI 검토 다시 시도</Button>
         </div>
       )}
@@ -276,7 +294,7 @@ function ConflictReview() {
                 {selected.title}
               </h2>
               <span className={selected.status === 'pending' ? 'badge badge--waiting' : 'badge badge--success'}>
-                {STATUS[selected.status]}
+                {selected.review_kind === 'keyword' ? '키워드 단서 · AI 미검토' : STATUS[selected.status]}
               </span>
             </div>
             <div className="evidence-pair">

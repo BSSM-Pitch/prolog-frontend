@@ -13,9 +13,14 @@ import '../characters/characters.css'
 import '../manuscripts/answer.css'
 import './world.css'
 import { TextArea } from '../../components/TextArea'
+import { Select } from '../../components/Select'
 
 type Draft = { title: string; description: string; keywords: string }
-const toKeywords = (s: string) => s.split(/[,\n]/).map((k) => k.trim()).filter(Boolean)
+const toKeywords = (s: string) =>
+  s
+    .split(/[,\n]/)
+    .map((k) => k.trim())
+    .filter(Boolean)
 
 // Figma 843:1659 · 21 설정 규칙
 export function RulesPage() {
@@ -26,6 +31,7 @@ export function RulesPage() {
 
   const rules = useResource(project ? (t) => api.listRules(t, projectId) : null, [projectId])
   const manuscripts = useResource(project ? (t) => manuscriptsApi.listManuscripts(t, projectId) : null, [projectId])
+  const [mergeTarget, setMergeTarget] = useState<string | null>(null)
   const [editing, setEditing] = useState<Draft | null>(null)
   const [adding, setAdding] = useState<Draft | null>(null)
   const [busy, setBusy] = useState(false)
@@ -33,10 +39,19 @@ export function RulesPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const latest = (manuscripts.data ?? []).filter((m) => m.status === 'ready')[0] ?? null
 
-  const extraction = useJob(latest ? (t, id) => api.getRuleExtraction(t, projectId, latest.manuscript_id, id) : null, (job) => {
-    rules.reload()
-    setNotice(job.status === 'completed' ? (job.result_ids.length ? `규칙 후보 ${job.result_ids.length}개를 새로 찾았어요.` : '원고에서 새로 찾은 규칙 후보가 없어요.') : null)
-  })
+  const extraction = useJob(
+    latest ? (t, id) => api.getRuleExtraction(t, projectId, latest.manuscript_id, id) : null,
+    (job) => {
+      rules.reload()
+      setNotice(
+        job.status === 'completed'
+          ? job.result_ids.length
+            ? `규칙 후보 ${job.result_ids.length}개를 새로 찾았어요.`
+            : '원고에서 새로 찾은 규칙 후보가 없어요.'
+          : null,
+      )
+    },
+  )
 
   if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
@@ -45,9 +60,11 @@ export function RulesPage() {
   const confirmed = visible.filter((r) => r.status === 'confirmed')
   const ordered = [...pending, ...confirmed]
   const selected = ordered.find((r) => r.rule_id === params.get('selected')) ?? ordered[0] ?? null
+  const selectedMergeTarget = mergeTarget ?? selected?.duplicate_rule_id ?? ''
   const select = (id: string) => {
     setEditing(null)
     setAdding(null)
+    setMergeTarget(null)
     setParams({ selected: id }, { replace: true })
   }
 
@@ -81,7 +98,12 @@ export function RulesPage() {
     if (!selected || !editing) return
     if (!editing.description.trim()) return setError('규칙 내용을 입력해 주세요.')
     act(
-      (t) => api.updateRule(t, projectId, selected.rule_id, { title: editing.title.trim(), description: editing.description.trim(), violation_keywords: toKeywords(editing.keywords) }),
+      (t) =>
+        api.updateRule(t, projectId, selected.rule_id, {
+          title: editing.title.trim(),
+          description: editing.description.trim(),
+          violation_keywords: toKeywords(editing.keywords),
+        }),
       () => setEditing(null),
     )
   }
@@ -91,7 +113,12 @@ export function RulesPage() {
     if (!adding) return
     if (!adding.description.trim()) return setError('규칙 내용을 입력해 주세요.')
     act(
-      (t) => api.addRule(t, projectId, { title: adding.title.trim() || undefined, description: adding.description.trim(), violation_keywords: toKeywords(adding.keywords) }),
+      (t) =>
+        api.addRule(t, projectId, {
+          title: adding.title.trim() || undefined,
+          description: adding.description.trim(),
+          violation_keywords: toKeywords(adding.keywords),
+        }),
       (r) => {
         setAdding(null)
         if (r) setParams({ selected: r.rule_id }, { replace: true })
@@ -149,7 +176,12 @@ export function RulesPage() {
           <ul className="char-list">
             {ordered.map((r) => (
               <li key={r.rule_id}>
-                <button type="button" className="char-item" aria-current={selected?.rule_id === r.rule_id || undefined} onClick={() => select(r.rule_id)}>
+                <button
+                  type="button"
+                  className="char-item"
+                  aria-current={selected?.rule_id === r.rule_id || undefined}
+                  onClick={() => select(r.rule_id)}
+                >
                   <span className="char-item__name">
                     {r.status === 'pending' && <span className="rule-tag">후보</span>}
                     {r.code} · {r.title}
@@ -157,7 +189,9 @@ export function RulesPage() {
                   <span className="char-item__meta">
                     {r.description}
                     {' / '}
-                    {r.status === 'pending' ? `${r.origin === 'ai_extracted' ? 'AI 추출 · ' : ''}${r.source_chapter ? `${r.source_chapter}장 근거` : r.origin === 'ai_extracted' ? '원고 근거' : '직접 추가'}` : '확정'}
+                    {r.status === 'pending'
+                      ? `${r.origin === 'ai_extracted' ? 'AI 추출 · ' : ''}${r.source_chapter ? `${r.source_chapter}장 근거` : r.origin === 'ai_extracted' ? '원고 근거' : '직접 추가'}`
+                      : '확정'}
                   </span>
                 </button>
               </li>
@@ -165,7 +199,10 @@ export function RulesPage() {
           </ul>
           {canEdit && (
             <div className="actions-row">
-              <Button tone="outline" onClick={() => (setAdding({ title: '', description: '', keywords: '' }), setEditing(null))}>
+              <Button
+                tone="outline"
+                onClick={() => (setAdding({ title: '', description: '', keywords: '' }), setEditing(null))}
+              >
                 + 규칙 직접 추가
               </Button>
               <Button tone="secondary" onClick={startExtraction} busy={running} disabled={!latest}>
@@ -194,11 +231,21 @@ export function RulesPage() {
         ) : selected ? (
           <section className="panel" aria-labelledby="rule-detail-title">
             <p className="panel__label">
-              {selected.status === 'pending' ? `${selected.origin === 'ai_extracted' ? 'AI 추출 후보' : '후보'} / ${selected.code}` : `확정 규칙 / ${selected.code}`}
+              {selected.status === 'pending'
+                ? `${selected.origin === 'ai_extracted' ? 'AI 추출 후보' : '후보'} / ${selected.code}`
+                : `확정 규칙 / ${selected.code}`}
             </p>
             <div className="chips">
-              {selected.origin === 'ai_extracted' ? <span className="badge badge--done">AI 추출</span> : <span className="badge badge--outline">직접 추가</span>}
-              {selected.status === 'pending' ? <span className="badge badge--waiting">검토 대기</span> : <span className="badge badge--success">확정</span>}
+              {selected.origin === 'ai_extracted' ? (
+                <span className="badge badge--done">AI 추출</span>
+              ) : (
+                <span className="badge badge--outline">직접 추가</span>
+              )}
+              {selected.status === 'pending' ? (
+                <span className="badge badge--waiting">검토 대기</span>
+              ) : (
+                <span className="badge badge--success">확정</span>
+              )}
             </div>
 
             {editing ? (
@@ -220,7 +267,7 @@ export function RulesPage() {
                   {selected.description}
                 </h2>
                 <div>
-                  <p className="panel__label">위반 판정 키워드</p>
+                  <p className="panel__label">검색 단서 키워드</p>
                   {selected.violation_keywords.length ? (
                     <div className="chips">
                       {selected.violation_keywords.map((k) => (
@@ -230,13 +277,84 @@ export function RulesPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="panel__label">아직 없어요. 키워드를 넣어야 설정 충돌 검토에서 이 규칙으로 위반 여부를 판정해요.</p>
+                    <p className="panel__label">
+                      키워드가 없어도 AI가 규칙의 의미를 검토해요. 단어가 나왔다는 사실만으로 위반을 판정하지 않아요.
+                    </p>
                   )}
                 </div>
+                <p className="panel__label">
+                  키워드는 관련 문장을 찾는 단서예요. 규칙 지지·위반·판단 불가는 AI가 문맥과 조건을 비교해 구분해요.
+                </p>
+                {selected.status === 'pending' && confirmed.length > 0 && (
+                  <div className="evidence-box">
+                    <p className="panel__title">
+                      {selected.duplicate_rule_id ? '기존 규칙과 중복 가능성이 있어요' : '기존 규칙과 같은 내용인가요?'}
+                    </p>
+                    {selected.duplicate_reason && <p className="page-desc">{selected.duplicate_reason}</p>}
+                    <p className="panel__label">
+                      합치면 기존 규칙의 내용은 유지하고 이 후보의 원문 근거를 추가해요. 의미가 다른 규칙은 따로 확정해
+                      주세요.
+                    </p>
+                    <Select
+                      aria-label="근거를 합칠 기존 규칙"
+                      value={selectedMergeTarget}
+                      onChange={(e) => setMergeTarget(e.target.value)}
+                      disabled={busy || !canEdit}
+                    >
+                      <option value="">규칙 선택</option>
+                      {confirmed.map((r) => (
+                        <option key={r.rule_id} value={r.rule_id}>
+                          {r.code} · {r.title}
+                        </option>
+                      ))}
+                    </Select>
+                    {canEdit && (
+                      <Button
+                        disabled={busy || !selectedMergeTarget}
+                        onClick={() =>
+                          act(
+                            (t) => api.mergeRuleCandidate(t, projectId, selected.rule_id, selectedMergeTarget),
+                            (rule) => {
+                              if (rule) {
+                                setParams({ selected: rule.rule_id }, { replace: true })
+                                setMergeTarget(null)
+                                setNotice('기존 규칙에 근거를 합쳤어요.')
+                              }
+                            },
+                          )
+                        }
+                      >
+                        기존 규칙에 근거 합치기
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {(selected.evidence_sources?.length ?? 0) > 0 && (
+                  <div className="evidence-box">
+                    <p className="panel__title">합쳐진 원문 근거 {selected.evidence_sources!.length}건</p>
+                    {selected.evidence_sources!.map((source) => (
+                      <p key={`${source.extraction_id}/${source.candidate_index}`}>
+                        “{source.quote}”{' '}
+                        {source.chapter_no && (
+                          <Link
+                            className="text-link"
+                            to={`${projectPath(projectId, `manuscripts/${source.manuscript_id}`)}?chapter=${source.chapter_no}`}
+                            state={{ highlight: source.quote }}
+                          >
+                            {source.chapter_no}장 원문 보기
+                          </Link>
+                        )}
+                        {source.source_hash && (
+                          <span className="panel__label"> · 분석 원고 {source.source_hash.slice(0, 8)}</span>
+                        )}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {selected.evidence && (
                   <div className="evidence-box">
                     원문 근거{selected.source_chapter ? ` · ${selected.source_chapter}장` : ''} “{selected.evidence}”
-                    {latest && selected.source_chapter && (
+                    {latest && selected.source_chapter && !selected.evidence_sources?.length && (
                       <>
                         {' '}
                         <Link
@@ -253,12 +371,25 @@ export function RulesPage() {
                 {error && <p className="notice notice--error">{error}</p>}
                 {canEdit && (
                   <div className="actions-row">
-                    <Button tone="outline" onClick={() => setEditing({ title: selected.title, description: selected.description, keywords: selected.violation_keywords.join(', ') })}>
+                    <Button
+                      tone="outline"
+                      onClick={() =>
+                        setEditing({
+                          title: selected.title,
+                          description: selected.description,
+                          keywords: selected.violation_keywords.join(', '),
+                        })
+                      }
+                    >
                       내용 수정
                     </Button>
                     {selected.status === 'pending' ? (
                       <>
-                        <Button tone="outline" onClick={() => act((t) => api.ignoreRule(t, projectId, selected.rule_id))} disabled={busy}>
+                        <Button
+                          tone="outline"
+                          onClick={() => act((t) => api.ignoreRule(t, projectId, selected.rule_id))}
+                          disabled={busy}
+                        >
                           무시
                         </Button>
                         <Button onClick={() => act((t) => api.confirmRule(t, projectId, selected.rule_id))} busy={busy}>
@@ -266,7 +397,16 @@ export function RulesPage() {
                         </Button>
                       </>
                     ) : (
-                      <Button tone="error" onClick={() => act((t) => api.deleteRule(t, projectId, selected.rule_id).then(() => null), () => setParams({}, { replace: true }))} disabled={busy}>
+                      <Button
+                        tone="error"
+                        onClick={() =>
+                          act(
+                            (t) => api.deleteRule(t, projectId, selected.rule_id).then(() => null),
+                            () => setParams({}, { replace: true }),
+                          )
+                        }
+                        disabled={busy}
+                      >
                         규칙 삭제
                       </Button>
                     )}
@@ -286,15 +426,31 @@ function RuleFields({ draft, onChange }: { draft: Draft; onChange: (d: Draft) =>
     <>
       <label className="field">
         <span className="field__label">이름 · 선택</span>
-        <input className="char-search" value={draft.title} onChange={(e) => onChange({ ...draft, title: e.target.value })} placeholder="붉은 문" />
+        <input
+          className="char-search"
+          value={draft.title}
+          onChange={(e) => onChange({ ...draft, title: e.target.value })}
+          placeholder="붉은 문"
+        />
       </label>
       <label className="field">
         <span className="field__label">규칙 내용</span>
-        <TextArea className="nl-textarea" style={{ minHeight: 90 }} value={draft.description} onChange={(e) => onChange({ ...draft, description: e.target.value })} placeholder="붉은 문은 비가 그친 뒤에만 열린다" />
+        <TextArea
+          className="nl-textarea"
+          style={{ minHeight: 90 }}
+          value={draft.description}
+          onChange={(e) => onChange({ ...draft, description: e.target.value })}
+          placeholder="붉은 문은 비가 그친 뒤에만 열린다"
+        />
       </label>
       <label className="field">
-        <span className="field__label">위반 판정 키워드 · 쉼표로 구분</span>
-        <input className="char-search" value={draft.keywords} onChange={(e) => onChange({ ...draft, keywords: e.target.value })} placeholder="비 오는 중에 열림, 맑은 날 개방" />
+        <span className="field__label">검색 단서 키워드 · 쉼표로 구분</span>
+        <input
+          className="char-search"
+          value={draft.keywords}
+          onChange={(e) => onChange({ ...draft, keywords: e.target.value })}
+          placeholder="메시지, 발신 시각, 붉은 문"
+        />
       </label>
     </>
   )

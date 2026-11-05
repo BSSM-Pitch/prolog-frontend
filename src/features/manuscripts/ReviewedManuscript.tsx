@@ -18,6 +18,7 @@ import { useJob } from '../../lib/useJob'
 import { useResource } from '../../lib/useResource'
 import { manuscriptIssues } from './manuscriptReviewModel'
 import './manuscript-review.css'
+import { RuleReviewSummary } from '../world/RuleReviewSummary'
 
 interface Props {
   projectId: string
@@ -34,10 +35,12 @@ interface Props {
 }
 
 const SKIPPED: Record<string, string> = {
+  NO_CONTENT: '검사할 장 본문이 없어요.',
   NO_MANUSCRIPT: '검사할 원고가 없어요.',
   NO_CHARACTERS: '등장인물을 먼저 확정해 주세요.',
   NO_RULES: '세계관에 설정 규칙을 먼저 추가해 주세요.',
   NO_REFERENCE_DATA: '비교할 인물 설정이나 규칙이 아직 없어요.',
+  ALL_RULES_DISMISSED: '이 장면의 규칙 후보는 이미 무시 처리했어요. 내용이나 규칙을 바꾸면 다시 검토해요.',
 }
 
 /** textarea를 유지해 한글 조합·선택·실행 취소·자동 저장을 보존한다. 밑줄만 별도 층에 그린다. */
@@ -46,10 +49,7 @@ export function ReviewedManuscript(props: Props) {
   const { withAuth } = useSession()
   const review = useResource((token) => api.listConflicts(token, projectId), [projectId, chapterId])
   const reloadReview = review.reload
-  const issues = useMemo(
-    () => manuscriptIssues(value, chapterId, review.data ?? []),
-    [value, chapterId, review.data],
-  )
+  const issues = useMemo(() => manuscriptIssues(value, chapterId, review.data ?? []), [value, chapterId, review.data])
   const [open, setOpen] = useState<{
     key: string
     item: number
@@ -74,30 +74,29 @@ export function ReviewedManuscript(props: Props) {
   const titleId = useId()
 
   const issueKey = (index: number) => issues[index]?.conflicts.map((c) => c.conflict_id).join('|')
-  const active = open
-    ? issues.find((issue) => issue.conflicts.map((c) => c.conflict_id).join('|') === open.key)
-    : null
+  const active = open ? issues.find((issue) => issue.conflicts.map((c) => c.conflict_id).join('|') === open.key) : null
   const conflict = active?.conflicts[open?.item ?? 0]
 
   useLayoutEffect(() => {
     if (!open || !card.current) return
     const rect = card.current.getBoundingClientRect()
     const below = open.anchorBottom + 8
-    const top =
-      below + rect.height <= window.innerHeight - 16 ? below : Math.max(16, open.anchorTop - rect.height - 8)
+    const top = below + rect.height <= window.innerHeight - 16 ? below : Math.max(16, open.anchorTop - rect.height - 8)
     if (top !== open.top) setOpen({ ...open, top })
   }, [open, conflict])
 
   function completed(job: ConflictCheck) {
     review.reload()
-    if (job.status === 'failed') setMessage('검사를 마치지 못했어요. 다시 시도해 주세요.')
-    else if (job.status === 'skipped')
-      setMessage(SKIPPED[job.skipped_reason ?? ''] ?? '지금은 검사할 수 없어요.')
+    if (job.status === 'failed')
+      setMessage('AI 검토를 마치지 못했어요. 키워드 일치만으로 위반을 판정하지 않았어요. 다시 시도해 주세요.')
+    else if (job.status === 'skipped') setMessage(SKIPPED[job.skipped_reason ?? ''] ?? '지금은 검사할 수 없어요.')
     else
       setMessage(
         job.result_ids.length
           ? `설정 검사 완료: 충돌 후보 ${job.result_ids.length}건을 찾았어요. 표시된 문장을 확인해 주세요.`
-          : '기본 규칙 검사 완료: 키워드로 찾은 새 충돌 후보가 없어요. 시간 계산 등 모든 설정의 일치를 보장하는 결과는 아니에요.',
+          : job.analysis_kind === 'ai_rule_review'
+            ? 'AI 검토를 마쳤어요. 규칙별 지지·위반·판단 불가와 근거를 확인해 주세요.'
+            : '키워드 검색을 마쳤어요. AI 의미 검토가 없는 이전 검사 결과예요.',
       )
   }
   const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), completed)
@@ -247,9 +246,7 @@ export function ReviewedManuscript(props: Props) {
       const updated = await withAuth((token) =>
         api.resolveConflict(token, projectId, conflict.conflict_id, { action: 'ignored' }),
       )
-      review.setData(
-        (rows) => rows?.map((row) => (row.conflict_id === updated.conflict_id ? updated : row)) ?? null,
-      )
+      review.setData((rows) => rows?.map((row) => (row.conflict_id === updated.conflict_id ? updated : row)) ?? null)
       close(true)
     } catch (error) {
       setActionError(describeError(error))
@@ -274,12 +271,7 @@ export function ReviewedManuscript(props: Props) {
     <div className="manuscript-review">
       <div className="manuscript-review__tools">
         {issues.length > 0 && (
-          <button
-            ref={countButton}
-            type="button"
-            className="manuscript-review__count"
-            onClick={() => show(0, true)}
-          >
+          <button ref={countButton} type="button" className="manuscript-review__count" onClick={() => show(0, true)}>
             검토 {issues.length}곳
           </button>
         )}
@@ -304,6 +296,7 @@ export function ReviewedManuscript(props: Props) {
           )}
         </p>
       )}
+      <RuleReviewSummary job={check.job} />
       <div className="textbox editor__text manuscript-review__input">
         <div className="manuscript-review__surface">
           <div
