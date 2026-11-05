@@ -89,7 +89,7 @@ export function MembersPage() {
       <header className="world__header">
         <div>
           <p className="page-crumb">{project.title} / 설정</p>
-          <h1 className="page-title">함께 쓰는 사람들</h1>
+          <h1 className="page-title">팀원 초대</h1>
           <p className="page-desc">함께 작업할 사람을 초대하고 역할을 정하세요.</p>
         </div>
       </header>

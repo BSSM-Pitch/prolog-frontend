@@ -48,8 +48,10 @@
 .editor__chapter {
   height: 36px;
   max-width: min(100%, 320px);
-  padding: 0 24px 0 0;
-  border: 0;
+  /* 글자 위치는 그대로 두고, 포커스·열림 때 생기는 테두리와 글자 사이 간격만 확보한다 */
+  margin-left: -13px;
+  padding: 0 24px 0 12px;
+  border: 1px solid transparent;
   border-radius: 0;
   background: #fff;
   font-size: 17px;
