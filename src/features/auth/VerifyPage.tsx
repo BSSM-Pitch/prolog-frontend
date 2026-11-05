@@ -96,6 +96,7 @@ export function VerifyPage() {
               }}
               error={emailError}
               autoComplete="email"
+              placeholder="이메일 형식 (예: writer@example.com)"
             />
             <Button tone={hasError ? 'error' : 'outline-strong'} block onClick={onSend} busy={sending}>
               {sending ? '보내는 중…' : timer.started ? '인증코드 재전송' : '인증코드 전송'}

@@ -118,7 +118,7 @@ export function SignupPage() {
           onChange={set('username', setUsername)}
           error={errors.username}
           autoComplete="username"
-          placeholder="작가님의 이름"
+          placeholder="2~30자, 공백 없이"
           autoFocus
         />
         {ticketMode ? (
@@ -133,7 +133,7 @@ export function SignupPage() {
               onChange={set('email', setEmail)}
               error={errors.email}
               autoComplete="email"
-              placeholder="writer.kim@example.com"
+              placeholder="이메일 형식 (예: writer@example.com)"
             />
             <TextField
               size="lg"
@@ -143,6 +143,7 @@ export function SignupPage() {
               onChange={set('password', setPassword)}
               error={errors.password}
               autoComplete="new-password"
+              placeholder="영문·숫자 포함 8자 이상"
             />
             <TextField
               size="lg"
@@ -152,6 +153,7 @@ export function SignupPage() {
               onChange={set('confirm', setConfirm)}
               error={errors.confirm}
               autoComplete="new-password"
+              placeholder="비밀번호를 한 번 더 입력"
             />
           </>
         )}
