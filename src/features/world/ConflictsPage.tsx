@@ -83,7 +83,9 @@ function ConflictReview() {
       conflicts.reload()
       if (job.status === 'completed')
         setNotice(
-          job.result_ids.length ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.` : '새로 찾은 충돌이 없어요.',
+          job.result_ids.length
+            ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.`
+            : '기본 규칙 검사 완료: 키워드로 찾은 새 충돌 후보가 없어요. 모든 설정이 일치한다는 뜻은 아니에요.',
         )
     },
   )
