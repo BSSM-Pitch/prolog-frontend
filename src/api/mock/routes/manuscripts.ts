@@ -108,7 +108,11 @@ export const manuscriptRoutes: Route[] = [
       const access = requireProject(req, db, projectId, 'editor')
       if (isResponse(access)) return access
       const b = (req.body ?? {}) as Body
-      const title = str(b.title) || '새 원고'
+      // 제목을 비우면 "N차 원고". N은 만든 횟수라서 지워도 줄지 않는다 (백엔드와 같다)
+      const seqMap = (db.manuscriptSeq ??= {})
+      const seq = (seqMap[projectId] ?? db.manuscripts.filter((m) => m.project_id === projectId).length) + 1
+      seqMap[projectId] = seq
+      const title = str(b.title) || `${seq}차 원고`
       const sourceType = b.source_type
       if (sourceType !== 'file' && sourceType !== 'editor') return fail(400, 'INVALID_INPUT', 'source_type은 file 또는 editor여야 해요.')
       const t = stamp()

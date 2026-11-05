@@ -37,6 +37,11 @@ export function getProject(accessToken: string, projectId: string) {
   return request<Project>('GET', `/projects/${projectId}`, { accessToken })
 }
 
+/** PRJ 삭제 — owner만. 원고·장 등 딸린 데이터가 함께 지워지고 되돌릴 수 없다 */
+export function deleteProject(accessToken: string, projectId: string) {
+  return request<null>('DELETE', `/projects/${projectId}`, { accessToken })
+}
+
 /**
  * (명세 미정의) 개요 화면 요약 — 백엔드에 없어 real 모드에서도 목업이 계산한다.
  * real 모드에서는 충돌·스토리 지도 요약을 백엔드 결과로 바꾼다.
