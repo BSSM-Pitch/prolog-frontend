@@ -9,7 +9,7 @@ import {
   type BackendDraft,
   type BackendDraftItem,
 } from './backendShapes'
-import { request, requestLenient, requestAll } from './client'
+import { ApiError, request, requestLenient, requestAll } from './client'
 import { IS_REAL } from './config'
 import { listRelationships } from './relationships'
 import type { Character, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
@@ -23,12 +23,16 @@ export async function listCharacters(token: string, projectId: string): Promise<
   const options = { accessToken: token }
   const [people, relationships, chapters, manuscripts] = await Promise.all([
     requestAll<BackendCharacter>(`${p(projectId)}/characters`, options),
-    listRelationships(token, projectId),
+    listRelationships(token, projectId).catch((error: unknown) => {
+      // Older servers do not expose RCV yet. Keep the core character screen usable.
+      if (error instanceof ApiError && error.status === 404) return null
+      throw error
+    }),
     requestAll<BackendChapter>(`${p(projectId)}/chapters`, options),
     requestAll<BackendManuscript>(`${p(projectId)}/manuscripts`, options),
   ])
   return people.map((person) => {
-    const connected = relationships.filter(
+    const connected = (relationships ?? []).filter(
       (row) => row.source_character_id === person.character_id || row.target_character_id === person.character_id,
     )
     const changes = connected
@@ -60,6 +64,7 @@ export async function listCharacters(token: string, projectId: string): Promise<
         status: null,
       })),
       relationship_count: connected.length,
+      relationship_data_available: relationships !== null,
       key_changes: changes.slice(-4),
     }
   })

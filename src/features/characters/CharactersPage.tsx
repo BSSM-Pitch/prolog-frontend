@@ -10,6 +10,7 @@ import { describeError } from '../../lib/errors'
 import { josa } from '../../lib/josa'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
+import { CharacterDetails } from './CharacterDetails'
 import './characters.css'
 
 const PAGE = 6
@@ -86,7 +87,13 @@ export function CharactersPage() {
           </h2>
           <label className="field">
             <span className="field__label">인물 검색</span>
-            <input className="char-search" type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="이름으로 검색" />
+            <input
+              className="char-search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="이름으로 검색"
+            />
           </label>
           {list.loading && !list.data && <p className="panel__label">인물을 불러오고 있어요</p>}
           {list.error && !list.data && (
@@ -98,7 +105,11 @@ export function CharactersPage() {
             </div>
           )}
           {list.data && filtered.length === 0 && (
-            <p className="panel__label">{all.length === 0 ? '아직 등록한 인물이 없어요. 문장으로 인물을 설명해 첫 인물을 만들어 보세요.' : '검색한 이름의 인물이 없어요.'}</p>
+            <p className="panel__label">
+              {all.length === 0
+                ? '아직 등록한 인물이 없어요. 원고를 분석하면 인물이 자동으로 추가됩니다.'
+                : '검색한 이름의 인물이 없어요.'}
+            </p>
           )}
           <ul className="char-list">
             {filtered.slice(0, shown).map((c) => (
@@ -129,68 +140,93 @@ export function CharactersPage() {
           )}
         </section>
 
-        {selected ? (
-          <section className="panel" aria-labelledby="char-detail-title">
-            <h2 id="char-detail-title" className="page-title">
-              {selected.name}
-            </h2>
+        <section className="panel" aria-labelledby="char-detail-title">
+          <h2 id="char-detail-title" className="page-title">
+            {selected?.name ?? '원고에서 인물 찾기'}
+          </h2>
+          {selected && (
             <p className="panel__label">
               {selected.role_label} · {selected.status_label}
             </p>
-            <div className="char-detail__grid">
-              <AttrBox label="성격 태그" values={selected.personality_tags} />
-              <AttrBox label="핵심 가치" values={selected.core_values} />
-              <AttrBox
-                label="영향 관계"
-                values={selected.influence_relations.map((r) => [r.target, r.type, r.status].filter(Boolean).join(' · '))}
-              />
-              <AttrBox label="감정 키워드" values={selected.emotion_keywords} />
-            </div>
-            <div>
-              <p className="panel__label">연결 관계</p>
-              <p className="char-detail__links">
-                <span className="char-detail__count">{selected.relationship_count}건</span>
-                <span className="panel__label">확정된 연결</span>
-              </p>
-            </div>
-            <div>
-              <p className="panel__label">주요 변화</p>
-              {selected.key_changes.length > 0 ? (
-                <ul className="changes">
-                  {selected.key_changes.map((ch) => (
-                    <li key={`${ch.chapter}-${ch.text}`}>
-                      <strong>{ch.chapter}장</strong> {ch.text}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="panel__label">기록된 관계 변화가 없어요.</p>
-              )}
-            </div>
-            <div className="actions-row">
-              <Link className="btn btn--outline" to={`${projectPath(projectId, 'relationships')}?character=${selected.character_id}`}>
-                관계 그래프
-              </Link>
-              {canEdit && (
-                <Link className="btn btn--outline" to={`${projectPath(projectId, 'characters/new')}?target=${selected.character_id}`}>
-                  인물 수정
+          )}
+          <CharacterDetails
+            key={projectId}
+            projectId={projectId}
+            characterId={selected?.character_id}
+            canEdit={canEdit}
+            characters={all}
+            onCharactersChanged={list.reload}
+            initialManuscriptId={params.get('manuscript') ?? undefined}
+          />
+          {selected && (
+            <details className="character-settings">
+              <summary>인물 설정과 관계</summary>
+              <div className="char-detail__grid">
+                <AttrBox label="성격 태그" values={selected.personality_tags} />
+                <AttrBox label="핵심 가치" values={selected.core_values} />
+                <AttrBox
+                  label="영향 관계"
+                  values={selected.influence_relations.map((r) =>
+                    [r.target, r.type, r.status].filter(Boolean).join(' · '),
+                  )}
+                />
+                <AttrBox label="감정 키워드" values={selected.emotion_keywords} />
+              </div>
+              <div>
+                <p className="panel__label">연결 관계</p>
+                <p className="char-detail__links">
+                  <span className="char-detail__count">
+                    {selected.relationship_data_available === false ? '미연결' : `${selected.relationship_count}건`}
+                  </span>
+                  <span className="panel__label">
+                    {selected.relationship_data_available === false
+                      ? '관계 분석 API가 아직 연결되지 않았어요.'
+                      : '확정된 연결'}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <p className="panel__label">주요 변화</p>
+                {selected.key_changes.length > 0 ? (
+                  <ul className="changes">
+                    {selected.key_changes.map((ch) => (
+                      <li key={`${ch.chapter}-${ch.text}`}>
+                        <strong>{ch.chapter}장</strong> {ch.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="panel__label">
+                    {selected.relationship_data_available === false
+                      ? '관계 변화는 서버 연결 후 볼 수 있어요.'
+                      : '기록된 관계 변화가 없어요.'}
+                  </p>
+                )}
+              </div>
+              <div className="actions-row">
+                <Link
+                  className="btn btn--outline"
+                  to={`${projectPath(projectId, 'relationships')}?character=${selected.character_id}`}
+                >
+                  관계 그래프
                 </Link>
-              )}
-              {canEdit && (
-                <Button tone="error" onClick={() => setConfirm(selected)}>
-                  인물 삭제
-                </Button>
-              )}
-            </div>
-          </section>
-        ) : (
-          list.data && (
-            <section className="panel">
-              <p className="panel__title">인물을 선택하세요</p>
-              <p className="page-desc">왼쪽 목록에서 인물을 고르면 정보와 관계 변화가 여기에 표시돼요.</p>
-            </section>
-          )
-        )}
+                {canEdit && (
+                  <Link
+                    className="btn btn--outline"
+                    to={`${projectPath(projectId, 'characters/new')}?target=${selected.character_id}`}
+                  >
+                    인물 수정
+                  </Link>
+                )}
+                {canEdit && (
+                  <Button tone="error" onClick={() => setConfirm(selected)}>
+                    인물 삭제
+                  </Button>
+                )}
+              </div>
+            </details>
+          )}
+        </section>
       </div>
 
       {confirm && (
@@ -206,7 +242,13 @@ export function CharactersPage() {
 
       {blocked && (
         <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && setBlocked(null)}>
-          <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="blocked-title" onKeyDown={(e) => e.key === 'Escape' && setBlocked(null)}>
+          <div
+            className="dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="blocked-title"
+            onKeyDown={(e) => e.key === 'Escape' && setBlocked(null)}
+          >
             <h2 id="blocked-title" className="panel__title">
               관계가 남아 있는 인물이에요
             </h2>
