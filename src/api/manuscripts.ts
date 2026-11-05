@@ -186,7 +186,17 @@ const real = {
 
   async splitIntoChapters(token: string, projectId: string, manuscriptId: string): Promise<Chapter[]> {
     const m = await request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken: token })
-    if (m.status !== 'ready' || !m.content?.trim()) return []
+    if (m.status !== 'ready') return []
+    if (!m.content?.trim()) {
+      // 빈 편집기 원고는 1장부터 시작한다. 서버가 1장을 만들어 주기 전에 만든 원고(이전 버전)를 위한 안전망이다
+      if (m.source_type !== 'editor') return []
+      try {
+        await request<BackendChapter>('POST', `/projects/${projectId}/chapters`, { body: { manuscript_id: manuscriptId, chapter_no: 1, content: '' }, accessToken: token })
+      } catch {
+        // 다른 탭이 먼저 만들었거나 보기 전용이면 아래에서 다시 확인한다
+      }
+      return (await chaptersOf(token, projectId, manuscriptId)).map(toChapter)
+    }
     const parts = splitChapters(m.content)
     try {
       for (const [i, p] of parts.entries()) {
