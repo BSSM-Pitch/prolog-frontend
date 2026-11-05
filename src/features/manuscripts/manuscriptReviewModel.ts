@@ -60,7 +60,7 @@ export function manuscriptIssues(text: string, chapterId: string, conflicts: Con
   const located = conflicts
     .flatMap((conflict) => {
       const anchor = conflict.anchor
-      if (conflict.status !== 'pending' || !anchor || anchor.chapter_id !== chapterId) return []
+      if (conflict.review_kind === 'keyword' || conflict.status !== 'pending' || !anchor || anchor.chapter_id !== chapterId) return []
       const range = evidenceRange(text, anchor.quote, anchor.context)
       return range ? [{ ...range, conflicts: [conflict] }] : []
     })

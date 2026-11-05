@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
 import type { Chapter, Citation } from '../../api/types'
@@ -16,6 +16,7 @@ import { TextArea } from '../../components/TextArea'
 import { Select } from '../../components/Select'
 import { ReviewedManuscript } from './ReviewedManuscript'
 import { exactMemoryRange } from './manuscriptReviewModel'
+import { ChapterSaveQueue, selectedChapter, withCreatedChapters } from './chapterEditorModel'
 
 type SaveState =
   | { kind: 'saved'; at: string }
@@ -27,6 +28,12 @@ const AUTOSAVE_MS = 900
 
 // Figma 841:662 · 19 원고 편집기
 export function EditorPage() {
+  const project = useProject()
+  const { manuscriptId = '' } = useParams()
+  return <DocumentEditor key={`${project?.project_id ?? ''}/${manuscriptId}`} />
+}
+
+function DocumentEditor() {
   const project = useProject()
   const { manuscriptId = '' } = useParams()
   const [params, setParams] = useSearchParams()
@@ -46,9 +53,13 @@ export function EditorPage() {
     projectId,
     manuscriptId,
   ])
-  const list = chapters.data ?? []
-  const requested = Number(params.get('chapter'))
-  const chapter = list.find((c) => c.chapter_no === requested) ?? list[list.length - 1] ?? null
+  const [createdChapters, setCreatedChapters] = useState<Record<string, Chapter>>({})
+  const list = withCreatedChapters(chapters.data ?? [], createdChapters)
+  const chapter = selectedChapter(list, params.get('chapter'))
+  const ready = !manuscript.loading && !chapters.loading && !manuscript.error && !chapters.error
+  const [transitioning, setTransitioning] = useState(false)
+  const transition = useRef<{ no: number; id: string } | 'saving' | null>(null)
+  const editable = ready && !transitioning && project?.my_role !== 'viewer'
 
   // 장별 편집 중인 본문. 저장이 끝나면 서버 값과 같아진다.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
@@ -57,46 +68,65 @@ export function EditorPage() {
   const [composing, setComposing] = useState(false)
   const composingRef = useRef(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
-  const pendingSave = useRef<{ chapterId: string; content: string } | null>(null)
-  const saving = useRef<Promise<boolean> | null>(null)
+  const queue = useRef(new ChapterSaveQueue())
 
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
 
   async function flush(): Promise<boolean> {
     if (composingRef.current) return false
-    // 편집기를 떠나는 동작도 blur에서 시작한 저장을 기다린다.
-    if (saving.current) {
-      const success = await saving.current
-      return success && (pendingSave.current ? flush() : true)
-    }
-    const job = pendingSave.current
-    if (!job || !project) return true
-    pendingSave.current = null
-    setSave({ kind: 'saving' })
-    saving.current = (async () => {
+    if (!project) return false
+    let lastSavedAt: string | null = null
+    const success = await queue.current.flush(async (job) => {
+      setSave({ kind: 'saving' })
       try {
         const saved = await withAuth((t) =>
           api.saveChapter(t, projectId, manuscriptId, job.chapterId, { content: job.content }),
         )
         chapters.setData((prev) => prev?.map((c) => (c.chapter_id === saved.chapter_id ? saved : c)) ?? null)
-        setSave(
-          pendingSave.current ? { kind: 'dirty' } : { kind: 'saved', at: saved.updated_at ?? new Date().toISOString() },
-        )
-        return true
+        lastSavedAt = saved.updated_at ?? new Date().toISOString()
       } catch (e) {
-        pendingSave.current = pendingSave.current ?? job
         setSave({ kind: 'error', message: describeError(e) })
-        return false
-      } finally {
-        saving.current = null
+        throw e
       }
-    })()
-    return saving.current
+    })
+    if (success && lastSavedAt) setSave({ kind: 'saved', at: lastSavedAt })
+    return success
   }
+
+  useLayoutEffect(() => {
+    const target = transition.current
+    if (
+      target &&
+      target !== 'saving' &&
+      ready &&
+      chapter?.chapter_id === target.id &&
+      Number(params.get('chapter')) === target.no
+    ) {
+      transition.current = null
+      setTransitioning(false)
+      setSave(null)
+    }
+  }, [ready, chapter?.chapter_id, params])
+
+  function unlock() {
+    transition.current = null
+    setTransitioning(false)
+  }
+
+  // The document key keeps this queue bound to its original manuscript.
+  const flushOnExit = useRef(flush)
+  useLayoutEffect(() => {
+    flushOnExit.current = flush
+  })
+  useEffect(
+    () => () => {
+      void flushOnExit.current()
+    },
+    [],
+  )
 
   async function openStory() {
     if (!(await flush())) return
-    if (pendingSave.current && !(await flush())) return
     const query = new URLSearchParams({ manuscript: manuscriptId })
     if (chapter) query.set('chapter', String(chapter.chapter_no))
     navigate(`${projectPath(projectId, 'story-map')}?${query}`)
@@ -113,7 +143,7 @@ export function EditorPage() {
   // 저장하지 않은 내용이 있으면 창을 닫기 전에 확인
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (pendingSave.current) e.preventDefault()
+      if (queue.current.dirty) e.preventDefault()
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
@@ -126,8 +156,10 @@ export function EditorPage() {
     const quote = memoryStart === undefined ? highlight.replace(/…$/, '') : highlight
     const id = window.setTimeout(() => {
       const el = textRef.current
-      const exact = el && memoryStart !== undefined && memoryEnd !== undefined
-        ? exactMemoryRange(el.value, quote, memoryStart, memoryEnd) : null
+      const exact =
+        el && memoryStart !== undefined && memoryEnd !== undefined
+          ? exactMemoryRange(el.value, quote, memoryStart, memoryEnd)
+          : null
       const at = memoryStart === undefined ? (el?.value.indexOf(quote) ?? -1) : (exact?.start ?? -1)
       if (el && at >= 0) {
         el.focus()
@@ -138,14 +170,23 @@ export function EditorPage() {
   }, [highlight, chapterId, memoryStart, memoryEnd])
 
   function onType(value: string) {
-    if (!chapter) return
+    if (!chapter || !editable || transition.current) return
     setDrafts((d) => ({ ...d, [chapter.chapter_id]: value }))
-    pendingSave.current = { chapterId: chapter.chapter_id, content: value }
+    queue.current.enqueue(chapter.chapter_id, value)
     setSave({ kind: 'dirty' })
   }
 
   async function goToChapter(no: number, select?: string) {
-    if (!(await flush())) return
+    if (transition.current || !ready || composingRef.current) return
+    const target = list.find((c) => c.chapter_no === no)
+    if (!target || target.chapter_id === chapter?.chapter_id) return
+    transition.current = 'saving'
+    setTransitioning(true)
+    if (!(await flush())) {
+      unlock()
+      return
+    }
+    transition.current = { no: target.chapter_no, id: target.chapter_id }
     setParams({ chapter: String(no) }, { replace: true })
     if (select) {
       // 장이 바뀐 뒤 근거 문장을 선택해 보여 준다
@@ -162,13 +203,23 @@ export function EditorPage() {
   }
 
   async function addChapter() {
-    if (!(await flush())) return
+    if (!editable || transition.current || composingRef.current) return
+    transition.current = 'saving'
+    setTransitioning(true)
     setAdding(true)
+    if (!(await flush())) {
+      setAdding(false)
+      unlock()
+      return
+    }
     try {
       const c = await withAuth((t) => api.addChapter(t, projectId, manuscriptId))
-      chapters.setData((prev) => [...(prev ?? []), c])
+      transition.current = { no: c.chapter_no, id: c.chapter_id }
+      setCreatedChapters((prev) => ({ ...prev, [c.chapter_id]: c }))
+      chapters.setData((prev) => [...(prev ?? []).filter((old) => old.chapter_id !== c.chapter_id), c])
       setParams({ chapter: String(c.chapter_no) }, { replace: true })
     } catch (e) {
+      unlock()
       setSave({ kind: 'error', message: describeError(e) })
     } finally {
       setAdding(false)
@@ -230,7 +281,7 @@ export function EditorPage() {
                   className="editor__chapter"
                   value={chapter?.chapter_no ?? ''}
                   onChange={(e) => goToChapter(Number(e.target.value))}
-                  disabled={list.length === 0}
+                  disabled={!ready || transitioning || composing || list.length === 0}
                 >
                   {list.map((c) => (
                     <option key={c.chapter_id} value={c.chapter_no}>
@@ -239,7 +290,7 @@ export function EditorPage() {
                   ))}
                 </Select>
                 {canEdit && (
-                  <Button tone="soft" onClick={addChapter} busy={adding}>
+                  <Button tone="soft" onClick={addChapter} busy={adding} disabled={!editable || composing}>
                     + 장 추가
                   </Button>
                 )}
@@ -249,7 +300,12 @@ export function EditorPage() {
               </div>
             </div>
 
-            {chapter ? (
+            {transitioning && (
+              <p className="page-desc" role="status">
+                장을 전환하고 있어요. 저장을 마칠 때까지 편집을 잠갔어요.
+              </p>
+            )}
+            {ready && chapter ? (
               <ReviewedManuscript
                 key={chapter.chapter_id}
                 projectId={projectId}
@@ -259,17 +315,29 @@ export function EditorPage() {
                 textRef={textRef}
                 value={text}
                 onChange={onType}
-                onCompositionChange={(active) => { composingRef.current = active; setComposing(active) }}
+                onCompositionChange={(active) => {
+                  composingRef.current = active
+                  setComposing(active)
+                }}
                 beforeCheck={flush}
-                readOnly={!canEdit}
+                readOnly={!editable}
                 onOpenReview={async (conflict) => {
                   if (!(await flush())) return
-                  const query = new URLSearchParams({ manuscript: manuscriptId, chapter: String(chapter.chapter_no), focus: conflict.conflict_id })
+                  const query = new URLSearchParams({
+                    manuscript: manuscriptId,
+                    chapter: String(chapter.chapter_no),
+                    focus: conflict.conflict_id,
+                  })
                   navigate(`${projectPath(projectId, 'conflicts')}?${query}`)
                 }}
               />
             ) : (
-              <p className="page-desc">장을 불러오고 있어요</p>
+              <p className="page-desc" role="status">
+                {loadError ??
+                  (ready && params.has('chapter')
+                    ? '요청한 장을 찾을 수 없어요. 장 목록에서 다시 선택해 주세요.'
+                    : '장을 불러오고 있어요')}
+              </p>
             )}
 
             <div className="editor__foot">
@@ -284,7 +352,9 @@ export function EditorPage() {
           <AskPanel
             projectId={projectId}
             manuscriptId={manuscriptId}
-            chapter={chapter}
+            key={chapter?.chapter_id ?? 'loading'}
+            chapter={ready && !transitioning ? chapter : null}
+            blocked={!ready || transitioning || !chapter}
             textRef={textRef}
             beforeAsk={flush}
             onOpenCitation={(c) => goToChapter(c.chapter_no, c.quote)}
@@ -320,13 +390,14 @@ interface AskPanelProps {
   projectId: string
   manuscriptId: string
   chapter: Chapter | null
+  blocked: boolean
   textRef: RefObject<HTMLTextAreaElement | null>
   beforeAsk: () => Promise<boolean>
   onOpenCitation: (c: Citation) => void
 }
 
 /** 선택 문장에 질문하기 + 최근 답변 */
-function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpenCitation }: AskPanelProps) {
+function AskPanel({ projectId, manuscriptId, chapter, blocked, textRef, beforeAsk, onOpenCitation }: AskPanelProps) {
   const { withAuth } = useSession()
   const [question, setQuestion] = useState('')
   const [selection, setSelection] = useState<{ chapterId: string; start: number; end: number; text: string } | null>(
@@ -359,6 +430,7 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    if (blocked) return
     const q = question.trim()
     if (!q) {
       setError('질문을 입력해 주세요.')
@@ -436,7 +508,7 @@ function AskPanel({ projectId, manuscriptId, chapter, textRef, beforeAsk, onOpen
             {error}
           </p>
         )}
-        <Button type="submit" block busy={sending}>
+        <Button type="submit" block busy={sending} disabled={blocked}>
           {sending ? '보내는 중…' : '질문 보내기'}
         </Button>
       </form>
