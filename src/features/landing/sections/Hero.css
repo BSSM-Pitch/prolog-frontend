@@ -71,19 +71,27 @@
   min-height: 52px;
   margin-top: 40px;
   padding: 12px 28px;
+  border: 1px solid #171717;
+  border-radius: 2px;
   background: #171717;
   color: #fff;
   font-size: 15px;
   font-weight: 650;
-  transition: background 0.2s;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
+/* 로그인 페이지의 주요 버튼과 같은 호버 */
 .lp .writing-hero__start:hover {
-  background: #383838;
+  border-color: #343a32;
+  background: rgb(255 255 255 / 0.55);
+  color: #343a32;
 }
 .lp .writing-hero__start:focus-visible {
   outline: 2px solid #171717;
   outline-offset: 5px;
-  border-radius: 0;
+  border-radius: 2px;
 }
 @media (max-width: 760px) {
   .lp .writing-hero {

@@ -101,11 +101,15 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
     }
     document.addEventListener('mousedown', away)
     window.addEventListener('resize', close)
-    window.addEventListener('scroll', close, true)
+    // 메뉴 안에서 활성 항목으로 스크롤될 때(scrollIntoView)는 닫지 않는다 — 열자마자 깜빡이며 닫히던 원인
+    const scrolled = (e: Event) => {
+      if (!list.current?.contains(e.target as Node)) close()
+    }
+    window.addEventListener('scroll', scrolled, true)
     return () => {
       document.removeEventListener('mousedown', away)
       window.removeEventListener('resize', close)
-      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('scroll', scrolled, true)
     }
   }, [open])
 

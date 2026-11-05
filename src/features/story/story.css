@@ -19,8 +19,10 @@
 .story__pick .select__trigger {
   max-width: 100%;
   min-height: 44px;
-  padding: 8px 28px 8px 0;
-  border: 0;
+  /* 글자 위치는 그대로 두고, 열릴 때 생기는 테두리와 간격이 생기도록 안쪽 여백만 늘린다 */
+  margin-left: -13px;
+  padding: 8px 28px 8px 12px;
+  border: 1px solid transparent;
   background: var(--itda-surface);
   color: var(--itda-ink);
   font-size: 15px;

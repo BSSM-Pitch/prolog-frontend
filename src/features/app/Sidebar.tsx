@@ -96,7 +96,7 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             />
             <NavItem icon={IconUser} label="등장인물" to={to('characters')} />
             <NavItem icon={IconWorld} label="세계관" to={to('rules')} />
-            <NavItem icon={IconUsersGroup} label="함께 쓰는 사람들" to={to('members')} />
+            <NavItem icon={IconUsersGroup} label="팀원 초대" to={to('members')} />
           </>
         )}
       </nav>
