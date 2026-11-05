@@ -93,7 +93,12 @@ export function ReviewedManuscript(props: Props) {
     if (job.status === 'failed') setMessage('검사를 마치지 못했어요. 다시 시도해 주세요.')
     else if (job.status === 'skipped')
       setMessage(SKIPPED[job.skipped_reason ?? ''] ?? '지금은 검사할 수 없어요.')
-    else setMessage(null)
+    else
+      setMessage(
+        job.result_ids.length
+          ? `설정 검사 완료: 충돌 후보 ${job.result_ids.length}건을 찾았어요. 표시된 문장을 확인해 주세요.`
+          : '기본 규칙 검사 완료: 키워드로 찾은 새 충돌 후보가 없어요. 시간 계산 등 모든 설정의 일치를 보장하는 결과는 아니에요.',
+      )
   }
   const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), completed)
   const checking = starting || check.running
