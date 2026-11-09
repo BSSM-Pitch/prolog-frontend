@@ -1,105 +1,82 @@
-import { useLayoutEffect, useRef, useState } from 'react'
-import { AnimatePresence, type MotionValue, motion, useMotionValueEvent, useTransform } from 'motion/react'
-import { useSectionProgress } from '../hooks/useSectionProgress'
-import { Character, Conflict, Collab } from './FeatureVisuals'
+import { useRef, useState } from 'react'
+import { useInView, useReducedMotion } from 'motion/react'
 import { VOICE } from '../../../content/voice'
+import { DEMOS } from '../demo'
+import { DemoFrame } from '../demo/AppWindow'
+import { useClock } from '../demo/clock'
+
+const HOLD = 1.2
+const num = (i: number) => String(i + 1).padStart(2, '0')
 
 /**
- * 레퍼런스
- * - Apple "Get to know" 갤러리: 고정 헤더 + 가로 트랙, 중앙 카드만 또렷하게
- * - Linear / Raycast 기능 카드: 아이콘 대신 실제 제품 UI 조각으로 설명
- * 카드 배경은 프라이머리 팔레트 스와치. 기능은 기획서 6장 핵심 기능 기준.
+ * 3. 기능 정리: 실제 앱 화면을 짧은 장면으로 보여 준다(레퍼런스: univai.co.kr 기능 탭).
+ * 보이는 동안만 재생하고, 한 장면이 끝나면 다음 탭으로 넘어간다. 모션 감소면 마지막 장면에서 멈춘다.
  */
-const CARDS = [
-  { hex: 'var(--ink)', tone: 'dark', ...VOICE.tools.character, Visual: Character },
-  { hex: 'var(--sky)', tone: 'light', ...VOICE.tools.conflict, Visual: Conflict },
-  { hex: 'var(--c50)', tone: 'light', ...VOICE.tools.collab, Visual: Collab },
-] as const
-
-const N = CARDS.length
-
-function Segment({ i, progress }: { i: number; progress: MotionValue<number> }) {
-  const scaleX = useTransform(progress, (v) => Math.min(1, Math.max(0, v * N - i)))
-  return (
-    <span className="fx-seg">
-      <motion.i style={{ scaleX }} />
-    </span>
-  )
-}
-
 export function Features() {
-  const ref = useRef<HTMLElement>(null)
-  const trackRef = useRef<HTMLDivElement>(null)
-  const [distance, setDistance] = useState(0)
+  const { title, lead, items } = VOICE.features
   const [active, setActive] = useState(0)
+  const stage = useRef<HTMLDivElement>(null)
+  const inView = useInView(stage, { amount: 0.35 })
+  const instant = useReducedMotion() ?? false
 
-  // 트랙 폭을 측정해 가로 이동 거리 = 섹션 추가 높이로 사용 (자연스러운 속도)
-  useLayoutEffect(() => {
-    const track = trackRef.current
-    if (!track) return
-    const measure = () => setDistance(Math.max(0, track.scrollWidth - window.innerWidth))
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(track)
-    window.addEventListener('resize', measure)
-    return () => {
-      ro.disconnect()
-      window.removeEventListener('resize', measure)
-    }
-  }, [])
-
-  const p = useSectionProgress(ref)
-  const x = useTransform(p, [0, 1], [0, -distance])
-  useMotionValueEvent(p, 'change', (v) => setActive(Math.min(N - 1, Math.round(v * (N - 1)))))
+  const item = items[active]
+  const { Demo, length, path } = DEMOS[item.key]
+  const end = length + HOLD
+  const t = useClock({
+    key: item.key,
+    playing: inView,
+    end,
+    instant,
+    onDone: () => setActive((i) => (i + 1) % items.length),
+  })
 
   return (
-    <section ref={ref} className="features" id="features" style={{ height: `calc(${distance * 1.15}px + 100vh)` }}>
-      <div className="features__sticky">
-        <header className="fx-head">
-          <div>
-            <h2>{VOICE.tools.title}</h2>
-          </div>
-          <div className="fx-meta">
-            <div className="fx-count" aria-live="polite">
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span
-                  key={active}
-                  initial={{ y: '100%', opacity: 0 }}
-                  animate={{ y: '0%', opacity: 1 }}
-                  exit={{ y: '-100%', opacity: 0 }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  0{active + 1}
-                </motion.span>
-              </AnimatePresence>
-              <small>/ 0{N}</small>
-            </div>
-            <div className="fx-segs" aria-hidden="true">
-              {CARDS.map((c, i) => (
-                <Segment key={c.hex} i={i} progress={p} />
-              ))}
-            </div>
-          </div>
-        </header>
+    <section className="lp-section features" id="features" aria-labelledby="features-title">
+      <header className="lp-section__head">
+        <h2 id="features-title">{title}</h2>
+        <p>{lead}</p>
+      </header>
 
-        <motion.div ref={trackRef} className="fx-track" style={{ x }}>
-          {CARDS.map(({ Visual, ...c }, i) => (
-            <article
-              key={c.hex}
-              className={`fcard fcard--${c.tone}`}
-              style={{ background: c.hex }}
-              data-active={active === i}
-            >
-              <div className="fcard__visual" role="img" aria-label={`${c.title} 예시`}>
-                <Visual active={active === i} />
-              </div>
-              <div className="fcard__meta">
-                <h3>{c.title}</h3>
-                <p>{c.body}</p>
-              </div>
-            </article>
-          ))}
-        </motion.div>
+      <div className="features__tabs" role="tablist" aria-label="Prolog 도구">
+        {items.map((it, i) => (
+          <button
+            key={it.key}
+            type="button"
+            role="tab"
+            id={`feature-tab-${it.key}`}
+            aria-selected={i === active}
+            aria-controls="feature-panel"
+            className="features__tab"
+            onClick={() => setActive(i)}
+          >
+            <span className="features__num">{num(i)}</span>
+            {it.title}
+            {i === active && !instant && (
+              <span className="features__progress" aria-hidden="true">
+                <span style={{ transform: `scaleX(${Math.min(1, t / end)})` }} />
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      <div
+        ref={stage}
+        className="features__stage"
+        id="feature-panel"
+        role="tabpanel"
+        aria-labelledby={`feature-tab-${item.key}`}
+      >
+        <div className="features__copy" key={item.key}>
+          <span className="features__num">{num(active)}</span>
+          <h3>{item.title}</h3>
+          <p>{item.body}</p>
+        </div>
+        <div className="features__screen" aria-hidden="true">
+          <DemoFrame path={path}>
+            <Demo key={item.key} t={t} />
+          </DemoFrame>
+        </div>
       </div>
     </section>
   )
