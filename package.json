@@ -17,7 +17,8 @@
     "motion": "^13.4.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-router-dom": "^7.18.4"
+    "react-router-dom": "^7.18.4",
+    "roughjs": "^4.6.6"
   },
   "devDependencies": {
     "@types/node": "^24.13.3",
