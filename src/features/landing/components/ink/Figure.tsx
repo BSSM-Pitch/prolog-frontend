@@ -177,7 +177,7 @@ export function Note({
     left: `${(x / w) * 100}%`,
     top: `${(y / h) * 100}%`,
     width: width ? `${(width / w) * 100}%` : undefined,
-    fontSize: `${(size / w) * 100}cqw`,
+    fontSize: `calc(${(size / w) * 100}cqw * var(--lp-hand-scale, 1))`,
     rotate: rotate ? `${rotate}deg` : undefined,
     translate: center ? '-50% -50%' : undefined,
     '--d': `${delay}s`,

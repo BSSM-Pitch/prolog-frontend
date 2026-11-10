@@ -1,3 +1,13 @@
+/* 펜화 속 글씨 전용 손글씨체: 카페24 빛나는별(Cafe24, 무료 글꼴). 설치돼 있으면 그것을, 아니면 내려받은 파일을 쓴다 */
+@font-face {
+  font-family: 'Cafe24 Shiningstar';
+  src:
+    local('Cafe24 Shiningstar'),
+    local('Cafe24Shiningstar'),
+    url('/fonts/Cafe24Shiningstar-v2.0.woff2') format('woff2');
+  font-display: swap;
+}
+
 /* 랜딩: 실제 서비스와 같은 흰 종이·먹색·회녹색 토큰(src/styles/tokens.css)에 펜화를 얹는다.
    앱 화면과 섞이지 않도록 모든 규칙을 .lp 아래에 둔다. */
 .lp {
@@ -6,6 +16,9 @@
   --lp-wash-setting: color-mix(in srgb, var(--prolog-highlight-setting), #c2b25a 26%);
   --lp-wash-review: color-mix(in srgb, var(--prolog-highlight-review), #b8775c 18%);
   --lp-sheet: #fafaf8;
+  --lp-hand: 'Cafe24 Shiningstar', var(--font-sans);
+  /* 빛나는별은 같은 크기에서 Pretendard보다 작고 좁게 보여 키워 쓴다 */
+  --lp-hand-scale: 1.3;
   --lp-ease: cubic-bezier(0.16, 1, 0.3, 1);
   --gutter: clamp(16px, 4.5vw, 72px);
   --nav-h: 72px;
@@ -121,8 +134,9 @@
 }
 .lp .ink-note {
   position: absolute;
-  line-height: 1.45;
-  letter-spacing: -0.02em;
+  font-family: var(--lp-hand);
+  line-height: 1.4;
+  letter-spacing: 0;
   color: var(--itda-ink);
   white-space: normal;
   opacity: 0;
@@ -311,6 +325,17 @@
 .lp .ink-figure[data-on] .hero-scene__note {
   animation: lp-flutter 1.2s steps(1, end) var(--flutter-at) infinite;
 }
+/* 원고지(큰 종이)는 포스트잇보다 훨씬 작게, 천천히 날린다 */
+.lp .hero-scene__page {
+  transform-origin: var(--page-origin);
+}
+.lp .ink-figure[data-on] .hero-scene__page {
+  animation: lp-flutter-soft 2.8s steps(1, end) var(--flutter-at) infinite;
+}
+.lp .hero-scene__label {
+  text-align: center;
+  line-height: 1.25;
+}
 .lp .hero-scene__memo {
   white-space: nowrap;
 }
@@ -352,6 +377,32 @@
   }
   87.5% {
     transform: rotate(1.1deg) skewX(-0.5deg);
+  }
+}
+@keyframes lp-flutter-soft {
+  0% {
+    transform: none;
+  }
+  12.5% {
+    transform: rotate(0.3deg) skewX(-0.15deg);
+  }
+  25% {
+    transform: rotate(0.525deg) skewX(-0.275deg);
+  }
+  37.5% {
+    transform: rotate(0.25deg) skewX(-0.1deg);
+  }
+  50% {
+    transform: rotate(-0.125deg) skewX(0.075deg);
+  }
+  62.5% {
+    transform: rotate(0.225deg) skewX(-0.075deg);
+  }
+  75% {
+    transform: rotate(0.6deg) skewX(-0.3deg);
+  }
+  87.5% {
+    transform: rotate(0.275deg) skewX(-0.125deg);
   }
 }
 /* 펜촉이 메모 줄을 따라가며 글자마다 오르내린다(0–75%), 그다음 들어 올린다 */
@@ -463,13 +514,29 @@
 }
 
 /* ── 3. 기능 정리: 실제 앱 화면 ───────────── */
+/* 섹션에 들어오면 .features__pin이 화면에 고정되고, 세로 스크롤만큼 .features__track이 옆으로 밀린다.
+   .features__runway의 높이가 그 스크롤 거리다(Features.tsx에서 장면 수로 계산) */
 .lp .features {
+  --features-gap: clamp(48px, 6vw, 96px);
   border-top: 2px solid var(--itda-ink);
 }
+.lp .features__runway {
+  position: relative;
+}
+.lp .features__pin {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(24px, 3.4vw, 48px);
+  height: 100svh;
+  padding-top: var(--nav-h);
+}
 .lp .features__tabs {
+  position: relative;
   display: flex;
   gap: 0;
-  margin-bottom: clamp(32px, 4vw, 56px);
   border-bottom: 1px solid var(--input-stroke);
   overflow-x: auto;
   scrollbar-width: none;
@@ -478,7 +545,6 @@
   display: none;
 }
 .lp .features__tab {
-  position: relative;
   flex: 1 0 auto;
   display: flex;
   align-items: baseline;
@@ -497,7 +563,7 @@
   transition: color var(--transition-state, 160ms ease);
 }
 .lp .features__tab:hover,
-.lp .features__tab[aria-selected='true'] {
+.lp .features__tab[aria-current] {
   color: var(--itda-ink);
 }
 .lp .features__tab:focus-visible {
@@ -510,20 +576,13 @@
   font-variant-numeric: tabular-nums;
   color: var(--itda-muted);
 }
-.lp .features__tab[aria-selected='true']::after,
+/* 탭 줄 아래 막대: 가로 스크롤이 얼마나 진행됐는지 */
 .lp .features__progress {
   position: absolute;
   left: 0;
   right: 0;
   bottom: -1px;
   height: 2px;
-}
-.lp .features__tab[aria-selected='true']::after {
-  content: '';
-  background: var(--input-stroke);
-}
-.lp .features__progress {
-  z-index: 1;
   overflow: hidden;
 }
 .lp .features__progress span {
@@ -531,23 +590,32 @@
   height: 100%;
   background: var(--itda-ink);
   transform-origin: left;
-  transition: transform 80ms linear;
 }
-@media (prefers-reduced-motion: reduce) {
-  .lp .features__tab[aria-selected='true']::after {
-    background: var(--itda-ink);
-  }
+.lp .features__track {
+  display: flex;
+  gap: var(--features-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  will-change: transform;
 }
 .lp .features__stage {
+  flex: 0 0 100%;
   display: grid;
   grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
-  align-items: start;
+  align-items: center;
   gap: clamp(28px, 4vw, 64px);
 }
+/* 앱 창이 고정된 화면 높이를 넘지 않게 너비를 높이에 맞춰 줄인다(창 비율 1320:900) */
+.lp .features__screen {
+  justify-self: end;
+  width: min(100%, calc((100svh - var(--nav-h) - 200px) * 1.4667));
+}
+.lp .features__stage:not([aria-current]) .features__copy {
+  opacity: 0.35;
+}
 .lp .features__copy {
-  position: sticky;
-  top: calc(var(--nav-h) + 32px);
-  animation: lp-rise 420ms var(--lp-ease) both;
+  transition: opacity 0.4s ease;
 }
 .lp .features__copy .features__num {
   font-size: 15px;
@@ -564,6 +632,21 @@
   font-size: 16px;
   line-height: 1.75;
   color: var(--itda-muted);
+}
+/* 모션 감소: 고정 없이 장면을 위아래로 쌓는다 */
+.lp .features--static .features__pin {
+  position: static;
+  height: auto;
+  padding-top: 0;
+}
+.lp .features--static .features__tabs {
+  display: none;
+}
+.lp .features--static .features__track {
+  flex-direction: column;
+}
+.lp .features--static .features__stage:not([aria-current]) .features__copy {
+  opacity: 1;
 }
 
 /* 앱 창: 기준 크기로 그린 실제 화면을 칸 너비에 맞춰 줄인다 */
@@ -691,8 +774,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lp-demo .lp-pop,
-  .lp .features__copy {
+  .lp-demo .lp-pop {
     animation: none;
   }
   .lp-demo .lp-caret {
@@ -773,9 +855,12 @@
   }
   .lp .features__stage {
     grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    gap: 20px;
   }
-  .lp .features__copy {
-    position: static;
+  .lp .features__screen {
+    justify-self: stretch;
+    width: min(100%, calc((100svh - var(--nav-h) - 320px) * 1.4667));
   }
 }
 @media (max-width: 600px) {
