@@ -54,7 +54,7 @@ export async function listCharacters(token: string, projectId: string): Promise<
       status_label: '',
       last_chapter:
         chapters
-          .filter((ch) => ch.content.includes(person.name))
+          .filter((ch) => [person.name, ...(person.aliases ?? [])].some((n) => n.trim() && ch.content.includes(n)))
           .reduce((last, ch) => Math.max(last, ch.chapter_no), 0) || null,
       personality_tags: person.personality_tags.map((item) => item.value),
       core_values: person.core_values.map((item) => item.value),
@@ -120,6 +120,8 @@ export function deleteCharacter(token: string, projectId: string, characterId: s
 
 /** 백엔드 NLCD 추출 — 인물 이름 필드가 name이다. 실패는 200 + data(status=failed) + error */
 type BackendExtraction = Omit<NLExtraction, 'character_name'> & { name: string | null }
+type ExtractionItems = Pick<NLExtraction, 'personality_tags' | 'core_values' | 'influence_relations' | 'emotion_keywords'>
+const EMPTY_ITEMS: ExtractionItems = { personality_tags: [], core_values: [], influence_relations: [], emotion_keywords: [] }
 const toExtraction = ({ name, ...e }: BackendExtraction): NLExtraction => ({ ...e, character_name: name })
 const realExtraction = async (method: string, path: string, options: Parameters<typeof request>[2]) =>
   toExtraction((await requestLenient<BackendExtraction>(method, path, options)).data)
@@ -138,6 +140,18 @@ export function createExtraction(
     })
   }
   return request<NLExtraction>('POST', `${p(projectId)}/nl-extractions`, { body: input, accessToken: token })
+}
+
+/** NLCD 4.4 추출 이력(최근 것부터, 요약만). 화면을 나갔다 돌아왔을 때 하던 추출을 찾는 데 쓴다 */
+export async function listExtractions(token: string, projectId: string, query: { target_character_id?: string } = {}) {
+  const options = { accessToken: token, query: { limit: '10', ...query } }
+  if (!IS_REAL) return request<NLExtraction[]>('GET', `${p(projectId)}/nl-extractions`, options)
+  const rows = await request<Array<Omit<BackendExtraction, keyof ExtractionItems> & Partial<ExtractionItems>>>(
+    'GET',
+    `${p(projectId)}/nl-extractions`,
+    options,
+  )
+  return rows.map((row) => toExtraction({ ...EMPTY_ITEMS, ...row }))
 }
 
 /** NLCD 4.2 결과 폴링 */

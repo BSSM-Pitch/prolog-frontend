@@ -171,6 +171,23 @@ export const characterRoutes: Route[] = [
   ],
   [
     'GET',
+    nl,
+    (req, db, { projectId }) => {
+      const access = requireProject(req, db, projectId)
+      if (isResponse(access)) return access
+      settleExtractions(db)
+      const target = req.query.target_character_id
+      const limit = Number(req.query.limit) || 10
+      const rows = db.extractions
+        .filter((e) => e.project_id === projectId && (!target || e.target_character_id === target))
+        .slice()
+        .reverse()
+        .slice(0, limit)
+      return ok(200, rows.map(toExtraction), { next_cursor: null })
+    },
+  ],
+  [
+    'GET',
     `${nl}/:extractionId`,
     (req, db, { projectId, extractionId }) => {
       const access = requireProject(req, db, projectId)

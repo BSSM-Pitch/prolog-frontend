@@ -132,7 +132,7 @@ export interface BackendAttribute {
   origin: 'ai_extracted' | 'user_added'
 }
 
-export type BackendCharacter = { character_id: string; project_id: string; name: string; created_from_draft_id: string | null; confirmed_at: string; updated_at: string } & Record<CharacterCategory, BackendAttribute[]>
+export type BackendCharacter = { character_id: string; project_id: string; name: string; aliases?: string[]; created_from_draft_id: string | null; confirmed_at: string; updated_at: string } & Record<CharacterCategory, BackendAttribute[]>
 
 export interface BackendDraftItem {
   item_id: string

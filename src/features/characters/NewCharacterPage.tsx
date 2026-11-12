@@ -25,6 +25,9 @@ export function NewCharacterPage() {
   const projectId = project?.project_id ?? ''
 
   const characters = useResource(project ? (t) => api.listCharacters(t, projectId) : null, [projectId])
+  // 화면을 나갔다 돌아왔을 때 하던 추출(분석 중이거나 결과를 아직 초안으로 넘기지 않은 것)을 찾는다
+  const recent = useResource(project ? (t) => api.listExtractions(t, projectId, params.get('target') ? { target_character_id: params.get('target') ?? undefined } : {}) : null, [projectId, params.get('target')])
+  const [dismissed, setDismissed] = useState(false)
   const [mode, setMode] = useState<'new' | 'existing'>(params.get('target') ? 'existing' : 'new')
   const [targetId, setTargetId] = useState(params.get('target') ?? '')
   const [name, setName] = useState('')
@@ -84,6 +87,35 @@ export function NewCharacterPage() {
     }
   }
 
+  const DAY = 24 * 60 * 60 * 1000
+  const resumable = dismissed || extraction
+    ? null
+    : recent.data?.find(
+        (e) =>
+          !e.forwarded_draft_id &&
+          (e.status === 'analyzing' || e.status === 'completed') &&
+          Date.now() - new Date(e.created_at).getTime() < DAY,
+      ) ?? null
+
+  /** 하던 추출을 입력값과 함께 되살린다 */
+  async function resume(found: NLExtraction) {
+    setError(null)
+    try {
+      const full = await withAuth((t) => api.getExtraction(t, projectId, found.extraction_id))
+      setExtraction(full)
+      setText(full.source_text)
+      if (full.target_character_id) {
+        setMode('existing')
+        setTargetId(full.target_character_id)
+      } else {
+        setMode('new')
+        setName(full.character_name ?? '')
+      }
+    } catch (err) {
+      setError(describeError(err))
+    }
+  }
+
   async function retry() {
     if (!extraction) return
     setError(null)
@@ -126,6 +158,20 @@ export function NewCharacterPage() {
       <div className="two-col">
         <form className="panel" onSubmit={onSubmit} noValidate>
           <h2 className="panel__title">자연어 입력</h2>
+          {resumable && (
+            <div className="check-note" role="status">
+              <p>
+                하던 추출이 있어요 · {resumable.status === 'analyzing' ? '분석 중' : '결과 확인 전'} ·{' '}
+                “{resumable.source_text.length > 28 ? `${resumable.source_text.slice(0, 28)}…` : resumable.source_text}”
+              </p>
+              <div className="actions-row">
+                <Button onClick={() => resume(resumable)}>이어서 보기</Button>
+                <Button tone="outline" onClick={() => setDismissed(true)}>
+                  새로 시작
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="segmented segmented--wide" role="radiogroup" aria-label="만들 방식">
             {(['new', 'existing'] as const).map((m) => (
               <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)} disabled={m === 'existing' && existing.length === 0}>
