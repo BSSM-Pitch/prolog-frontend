@@ -4,6 +4,7 @@ import * as api from '../../api/manuscripts'
 import type { Chapter, Citation } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
+import { ExportMenu } from '../../components/ExportMenu'
 import { describeError } from '../../lib/errors'
 import { relativeTime } from '../../lib/relativeTime'
 import { useResource } from '../../lib/useResource'
@@ -241,9 +242,12 @@ function DocumentEditor() {
           <h1 className="page-title">{ms?.title ?? '원고'}</h1>
         </div>
         {ms?.status === 'ready' && (
-          <Button tone="outline" onClick={openStory}>
-            작품 살펴보기
-          </Button>
+          <div className="editor__page-actions">
+            <ExportMenu projectId={projectId} manuscriptId={manuscriptId} title={ms.title} beforeExport={flush} align="end" />
+            <Button tone="outline" onClick={openStory}>
+              작품 살펴보기
+            </Button>
+          </div>
         )}
       </header>
 

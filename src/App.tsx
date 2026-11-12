@@ -14,6 +14,7 @@ import { AcceptInvitePage } from './features/invite/AcceptInvitePage'
 import { saveReturnTo } from './lib/returnTo'
 import { CharactersPage } from './features/characters/CharactersPage'
 import { LandingPage } from './features/landing/LandingPage'
+import { CharacterEditPage } from './features/characters/CharacterEditPage'
 import { DraftPage } from './features/characters/DraftPage'
 import { NewCharacterPage } from './features/characters/NewCharacterPage'
 import { AskPage } from './features/manuscripts/AskPage'
@@ -101,6 +102,7 @@ export default function App() {
               <Route path="ask" element={<AskPage />} />
               <Route path="characters" element={<CharactersPage />} />
               <Route path="characters/new" element={<NewCharacterPage />} />
+              <Route path="characters/:characterId/edit" element={<CharacterEditPage />} />
               <Route path="characters/drafts/:draftId" element={<DraftPage />} />
               <Route path="rules" element={<RulesPage />} />
               <Route path="conflicts" element={<ConflictsPage />} />

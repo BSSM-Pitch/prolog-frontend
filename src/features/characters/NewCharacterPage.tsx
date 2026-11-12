@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
-import type { NLExtraction } from '../../api/types'
+import type { Character, NLExtraction } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { TextField } from '../../components/TextField'
@@ -25,6 +25,9 @@ export function NewCharacterPage() {
   const projectId = project?.project_id ?? ''
 
   const characters = useResource(project ? (t) => api.listCharacters(t, projectId) : null, [projectId])
+  // 화면을 나갔다 돌아왔을 때 하던 추출(분석 중이거나 결과를 아직 초안으로 넘기지 않은 것)을 찾는다
+  const recent = useResource(project ? (t) => api.listExtractions(t, projectId, params.get('target') ? { target_character_id: params.get('target') ?? undefined } : {}) : null, [projectId, params.get('target')])
+  const [dismissed, setDismissed] = useState(false)
   const [mode, setMode] = useState<'new' | 'existing'>(params.get('target') ? 'existing' : 'new')
   const [targetId, setTargetId] = useState(params.get('target') ?? '')
   const [name, setName] = useState('')
@@ -53,6 +56,7 @@ export function NewCharacterPage() {
   if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const existing = characters.data ?? []
   const target = existing.find((c) => c.character_id === targetId)
+  const sameName = mode === 'new' && name.trim() !== '' && existing.some((c) => c.name === name.trim())
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -80,6 +84,35 @@ export function NewCharacterPage() {
       setError(describeError(err))
     } finally {
       setBusy(false)
+    }
+  }
+
+  const DAY = 24 * 60 * 60 * 1000
+  const resumable = dismissed || extraction
+    ? null
+    : recent.data?.find(
+        (e) =>
+          !e.forwarded_draft_id &&
+          (e.status === 'analyzing' || e.status === 'completed') &&
+          Date.now() - new Date(e.created_at).getTime() < DAY,
+      ) ?? null
+
+  /** 하던 추출을 입력값과 함께 되살린다 */
+  async function resume(found: NLExtraction) {
+    setError(null)
+    try {
+      const full = await withAuth((t) => api.getExtraction(t, projectId, found.extraction_id))
+      setExtraction(full)
+      setText(full.source_text)
+      if (full.target_character_id) {
+        setMode('existing')
+        setTargetId(full.target_character_id)
+      } else {
+        setMode('new')
+        setName(full.character_name ?? '')
+      }
+    } catch (err) {
+      setError(describeError(err))
     }
   }
 
@@ -125,6 +158,20 @@ export function NewCharacterPage() {
       <div className="two-col">
         <form className="panel" onSubmit={onSubmit} noValidate>
           <h2 className="panel__title">자연어 입력</h2>
+          {resumable && (
+            <div className="check-note" role="status">
+              <p>
+                하던 추출이 있어요 · {resumable.status === 'analyzing' ? '분석 중' : '결과 확인 전'} ·{' '}
+                “{resumable.source_text.length > 28 ? `${resumable.source_text.slice(0, 28)}…` : resumable.source_text}”
+              </p>
+              <div className="actions-row">
+                <Button onClick={() => resume(resumable)}>이어서 보기</Button>
+                <Button tone="outline" onClick={() => setDismissed(true)}>
+                  새로 시작
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="segmented segmented--wide" role="radiogroup" aria-label="만들 방식">
             {(['new', 'existing'] as const).map((m) => (
               <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)} disabled={m === 'existing' && existing.length === 0}>
@@ -141,6 +188,7 @@ export function NewCharacterPage() {
                 setErrors((e) => ({ ...e, name: undefined }))
               }}
               error={errors.name}
+              hint={sameName ? '같은 이름의 인물이 이미 있어요. 같은 인물이라면 "기존 인물에 추가"를 쓰세요.' : undefined}
               placeholder="윤서"
             />
           ) : (
@@ -157,6 +205,7 @@ export function NewCharacterPage() {
               {errors.name && <span className="field__hint notice--error">{errors.name}</span>}
             </label>
           )}
+          {mode === 'existing' && target && <ExistingAttributes character={target} />}
           <label className="field">
             <span className="field__label">인물 설명</span>
             <TextArea
@@ -243,6 +292,33 @@ export function NewCharacterPage() {
           )}
         </section>
       </div>
+    </div>
+  )
+}
+
+/** 기존 인물에 문장을 더할 때 지금 저장된 내용을 보여 준다. 추출해도 이 내용은 그대로 남는다 */
+function ExistingAttributes({ character }: { character: Character }) {
+  const rows = CATEGORIES.map((c) => ({
+    label: c.label,
+    values:
+      c.field === 'influence_relations'
+        ? character.influence_relations.map((r) => r.target)
+        : (character[c.field] as string[]),
+  })).filter((r) => r.values.length > 0)
+  return (
+    <div className="existing-attrs" aria-label="지금 저장된 내용">
+      <p className="panel__label">지금 저장된 내용 · 추출해도 그대로 남아요</p>
+      {rows.length === 0 && <p className="panel__label">아직 저장된 내용이 없어요.</p>}
+      {rows.map((r) => (
+        <div key={r.label} className="existing-attrs__row">
+          <span className="panel__label">{r.label}</span>
+          {r.values.map((v) => (
+            <span key={v} className="chip">
+              {v}
+            </span>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }

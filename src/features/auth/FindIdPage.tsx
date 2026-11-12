@@ -57,7 +57,7 @@ export function FindIdPage() {
             }}
             error={nameError}
             autoComplete="name"
-            placeholder="김유진"
+            placeholder="가입할 때 쓴 이름"
             autoFocus
           />
           <TextField
@@ -70,7 +70,7 @@ export function FindIdPage() {
             }}
             error={emailError}
             autoComplete="email"
-            placeholder="writer.kim@example.com"
+            placeholder="이메일 형식 (예: writer@example.com)"
           />
         </div>
       </div>

@@ -12,7 +12,7 @@ import {
 import { ApiError, request, requestLenient, requestAll } from './client'
 import { IS_REAL } from './config'
 import { listRelationships } from './relationships'
-import type { Character, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
+import type { Character, CharacterAttribute, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
 
 // real 모드에서는 인물과 관계 모두 서버 데이터를 읽는다.
 const p = (projectId: string) => `/projects/${projectId}`
@@ -49,15 +49,24 @@ export async function listCharacters(token: string, projectId: string): Promise<
     return {
       character_id: person.character_id,
       name: person.name,
-      role_label: '인물',
-      status_label: '확정됨',
+      // 서버에는 역할·상태가 없다. 없는 값을 사실처럼 보여 주지 않도록 비워 둔다
+      role_label: '',
+      status_label: '',
       last_chapter:
         chapters
-          .filter((ch) => ch.content.includes(person.name))
+          .filter((ch) => [person.name, ...(person.aliases ?? [])].some((n) => n.trim() && ch.content.includes(n)))
           .reduce((last, ch) => Math.max(last, ch.chapter_no), 0) || null,
       personality_tags: person.personality_tags.map((item) => item.value),
       core_values: person.core_values.map((item) => item.value),
       emotion_keywords: person.emotion_keywords.map((item) => item.value),
+      attributes: CATEGORY_FIELDS.flatMap((field) =>
+        person[field].map((item) => ({
+          attribute_id: item.attribute_id,
+          field,
+          value: item.value,
+          origin: item.origin,
+        })),
+      ),
       influence_relations: person.influence_relations.map((item) => ({
         target: item.value,
         type: '영향',
@@ -70,6 +79,40 @@ export async function listCharacters(token: string, projectId: string): Promise<
   })
 }
 
+const CATEGORY_FIELDS = ['personality_tags', 'core_values', 'influence_relations', 'emotion_keywords'] as const
+
+const attrPath = (projectId: string, characterId: string) => `${p(projectId)}/characters/${characterId}/attributes`
+
+/** 추출 없이 확정된 인물에 속성(태그·가치관 등)을 바로 더한다 */
+export function addCharacterAttribute(
+  token: string,
+  projectId: string,
+  characterId: string,
+  input: { field: CharacterCategory; value: string },
+) {
+  return request<CharacterAttribute>('POST', attrPath(projectId, characterId), { body: input, accessToken: token })
+}
+
+/** 값이나 분류를 고친다. 보낸 것만 바뀐다 */
+export function updateCharacterAttribute(
+  token: string,
+  projectId: string,
+  characterId: string,
+  attributeId: string,
+  input: { field?: CharacterCategory; value?: string },
+) {
+  return request<CharacterAttribute>('PATCH', `${attrPath(projectId, characterId)}/${encodeURIComponent(attributeId)}`, {
+    body: input,
+    accessToken: token,
+  })
+}
+
+export function deleteCharacterAttribute(token: string, projectId: string, characterId: string, attributeId: string) {
+  return request<null>('DELETE', `${attrPath(projectId, characterId)}/${encodeURIComponent(attributeId)}`, {
+    accessToken: token,
+  })
+}
+
 /** 서버가 연결 관계를 검사해 삭제 가능 여부를 판정한다. */
 export function deleteCharacter(token: string, projectId: string, characterId: string) {
   return request<null>('DELETE', `${p(projectId)}/characters/${characterId}`, { accessToken: token })
@@ -77,6 +120,8 @@ export function deleteCharacter(token: string, projectId: string, characterId: s
 
 /** 백엔드 NLCD 추출 — 인물 이름 필드가 name이다. 실패는 200 + data(status=failed) + error */
 type BackendExtraction = Omit<NLExtraction, 'character_name'> & { name: string | null }
+type ExtractionItems = Pick<NLExtraction, 'personality_tags' | 'core_values' | 'influence_relations' | 'emotion_keywords'>
+const EMPTY_ITEMS: ExtractionItems = { personality_tags: [], core_values: [], influence_relations: [], emotion_keywords: [] }
 const toExtraction = ({ name, ...e }: BackendExtraction): NLExtraction => ({ ...e, character_name: name })
 const realExtraction = async (method: string, path: string, options: Parameters<typeof request>[2]) =>
   toExtraction((await requestLenient<BackendExtraction>(method, path, options)).data)
@@ -95,6 +140,18 @@ export function createExtraction(
     })
   }
   return request<NLExtraction>('POST', `${p(projectId)}/nl-extractions`, { body: input, accessToken: token })
+}
+
+/** NLCD 4.4 추출 이력(최근 것부터, 요약만). 화면을 나갔다 돌아왔을 때 하던 추출을 찾는 데 쓴다 */
+export async function listExtractions(token: string, projectId: string, query: { target_character_id?: string } = {}) {
+  const options = { accessToken: token, query: { limit: '10', ...query } }
+  if (!IS_REAL) return request<NLExtraction[]>('GET', `${p(projectId)}/nl-extractions`, options)
+  const rows = await request<Array<Omit<BackendExtraction, keyof ExtractionItems> & Partial<ExtractionItems>>>(
+    'GET',
+    `${p(projectId)}/nl-extractions`,
+    options,
+  )
+  return rows.map((row) => toExtraction({ ...EMPTY_ITEMS, ...row }))
 }
 
 /** NLCD 4.2 결과 폴링 */

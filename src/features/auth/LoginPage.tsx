@@ -81,7 +81,7 @@ export function LoginPage() {
             clearError()
           }}
           autoComplete="username"
-          placeholder="writer.kim@example.com"
+          placeholder="아이디 또는 이메일 (예: writer@example.com)"
           autoFocus
         />
         <TextField
@@ -94,6 +94,7 @@ export function LoginPage() {
             clearError()
           }}
           autoComplete="current-password"
+          placeholder="비밀번호를 입력"
           error={error}
         />
       </div>
@@ -101,9 +102,14 @@ export function LoginPage() {
         <Button type="submit" size="lg" block tone={error ? 'error' : 'primary'} busy={busy}>
           {busy ? '로그인 중…' : '로그인'}
         </Button>
-        <Link className="text-link auth-form__link" to="/auth/find-id">
-          계정 복구
-        </Link>
+        <div className="auth-form__links">
+          <Link className="text-link" to="/auth/find-id">
+            계정 복구
+          </Link>
+          <Link className="text-link" to="/auth/signup">
+            회원가입
+          </Link>
+        </div>
       </div>
       <SocialButtons mode="login" onSelect={onSocial} disabled={busy} />
     </form>

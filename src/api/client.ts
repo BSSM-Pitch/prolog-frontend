@@ -179,6 +179,39 @@ export async function requestWithMeta<T, M>(
   return { data: (body?.data ?? null) as T, meta: (body?.meta ?? {}) as M }
 }
 
+/** 응답 헤더의 `filename*=UTF-8''…` 또는 `filename="…"`에서 파일 이름을 꺼낸다 */
+function fileNameOf(disposition: string | null) {
+  if (!disposition) return null
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1]
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded)
+    } catch {
+      /* 아래에서 다시 시도 */
+    }
+  }
+  return /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? null
+}
+
+/**
+ * 파일을 내려받는 API(원고 내보내기). 응답이 공통 봉투가 아니라 파일 그대로라서 request()로는 받을 수 없다.
+ * 실패하면 서버가 주는 JSON 오류를 ApiError로 던진다.
+ */
+export async function download(path: string, options: Omit<RequestOptions, 'body'> = {}): Promise<{ blob: Blob; fileName: string | null }> {
+  const query = options.query ? `?${new URLSearchParams(options.query)}` : ''
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE_URL}${path}${query}`, { headers: headersOf(options) })
+  } catch {
+    throw new ApiError(0, { code: 'NETWORK_ERROR', message: '서버에 연결하지 못했어요. 네트워크 상태를 확인해 주세요.', details: {} })
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: ApiErrorBody } | null
+    throw new ApiError(res.status, body?.error ?? { code: 'UNKNOWN_ERROR', message: '파일을 내려받지 못했어요.', details: {} })
+  }
+  return { blob: await res.blob(), fileName: fileNameOf(res.headers.get('Content-Disposition')) }
+}
+
 /** 커서 목록을 끝까지 받는다 (real 모드 백엔드 목록은 기본 20개씩 온다) */
 export async function requestAll<T>(path: string, options: Omit<RequestOptions, 'body'> = {}): Promise<T[]> {
   const out: T[] = []

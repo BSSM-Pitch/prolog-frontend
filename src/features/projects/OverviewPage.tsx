@@ -6,6 +6,7 @@ import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { describeError } from '../../lib/errors'
 import { projectPath, useProject } from '../app/currentProject'
+import { DeleteProjectDialog } from './DeleteProjectDialog'
 import './OverviewPage.css'
 
 type Load = { key: string; data: ProjectOverview | null; error: string | null }
@@ -16,6 +17,7 @@ export function OverviewPage() {
   const { withAuth } = useSession()
   const [load, setLoad] = useState<Load | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [deleting, setDeleting] = useState(false)
   const projectId = project?.project_id
   const key = `${projectId}|${reloadKey}`
 
@@ -108,6 +110,20 @@ export function OverviewPage() {
           </section>
         </div>
       )}
+      {project.my_role === 'owner' && (
+        <section className="overview__danger" aria-labelledby="danger-title">
+          <div>
+            <h2 id="danger-title" className="section-title">
+              작품 삭제
+            </h2>
+            <p className="page-desc">원고와 설정을 포함한 작품 전체가 지워지고 되돌릴 수 없어요.</p>
+          </div>
+          <Button tone="error" onClick={() => setDeleting(true)}>
+            작품 삭제
+          </Button>
+        </section>
+      )}
+      {deleting && <DeleteProjectDialog project={project} onCancel={() => setDeleting(false)} />}
     </div>
   )
 }

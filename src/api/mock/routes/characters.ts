@@ -61,6 +61,34 @@ function toDraft(d: MockDraft): CharacterDraft {
   }
 }
 
+type AttrField = 'personality_tags' | 'core_values' | 'influence_relations' | 'emotion_keywords'
+const ATTR_FIELDS: AttrField[] = ['personality_tags', 'core_values', 'influence_relations', 'emotion_keywords']
+
+function mockValues(c: DemoCharacter, field: AttrField): string[] {
+  return field === 'influence_relations' ? c.influence_relations.map((r) => r.target) : c[field]
+}
+
+function mockSetValues(c: DemoCharacter, field: AttrField, values: string[]) {
+  if (field === 'influence_relations') {
+    const old = new Map(c.influence_relations.map((r) => [r.target, r]))
+    c.influence_relations = values.map((target) => old.get(target) ?? { target, type: '영향', status: null })
+  } else {
+    c[field] = values
+  }
+}
+
+/** 모의 서버의 속성 id는 "분류:값"이다 (값이 같은 속성은 한 인물에 겹치지 않는다) */
+function mockAttributes(c: DemoCharacter) {
+  return ATTR_FIELDS.flatMap((field) =>
+    mockValues(c, field).map((value) => ({
+      attribute_id: `${field}:${value}`,
+      field,
+      value,
+      origin: 'user_added' as const,
+    })),
+  )
+}
+
 /** 인물이 등장하는 관계에서 연결 수와 "12장 · 재현과 신뢰" 같은 주요 변화를 모은다 */
 export function toCharacter(db: MockDb, projectId: string, c: DemoCharacter): Character {
   const w = world(db, projectId)
@@ -82,6 +110,7 @@ export function toCharacter(db: MockDb, projectId: string, c: DemoCharacter): Ch
     core_values: c.core_values,
     influence_relations: c.influence_relations,
     emotion_keywords: c.emotion_keywords,
+    attributes: mockAttributes(c),
     relationship_count: rels.length,
     key_changes: changes.slice(-4),
   }
@@ -138,6 +167,23 @@ export const characterRoutes: Route[] = [
       }
       db.extractions.push(e)
       return ok(202, toExtraction(e), same ? { notice: '이전에 비슷한 문장을 입력한 기록이 있어요. 추출이 끝나면 병합 여부를 확인해 주세요.' } : {})
+    },
+  ],
+  [
+    'GET',
+    nl,
+    (req, db, { projectId }) => {
+      const access = requireProject(req, db, projectId)
+      if (isResponse(access)) return access
+      settleExtractions(db)
+      const target = req.query.target_character_id
+      const limit = Number(req.query.limit) || 10
+      const rows = db.extractions
+        .filter((e) => e.project_id === projectId && (!target || e.target_character_id === target))
+        .slice()
+        .reverse()
+        .slice(0, limit)
+      return ok(200, rows.map(toExtraction), { next_cursor: null })
     },
   ],
   [
@@ -384,6 +430,69 @@ export const characterRoutes: Route[] = [
       if (isResponse(access)) return access
       const c = world(db, projectId).characters.find((x) => x.character_id === characterId)
       return c ? ok(200, toCharacter(db, projectId, c)) : fail(404, 'CHARACTER_NOT_FOUND', '인물을 찾을 수 없어요.')
+    },
+  ],
+  [
+    'POST',
+    `${chars}/:characterId/attributes`,
+    (req, db, { projectId, characterId }) => {
+      const access = requireProject(req, db, projectId, 'editor')
+      if (isResponse(access)) return access
+      const b = (req.body ?? {}) as Body
+      const c = world(db, projectId).characters.find((x) => x.character_id === characterId)
+      if (!c) return fail(404, 'CHARACTER_NOT_FOUND', '인물을 찾을 수 없어요.')
+      const field = str(b.field) as AttrField
+      const value = str(b.value).trim()
+      if (!ATTR_FIELDS.includes(field) || !value) return fail(400, 'INVALID_INPUT', '분류와 값을 확인해 주세요.')
+      if (mockValues(c, field).some((v) => v.toLowerCase() === value.toLowerCase()))
+        return fail(409, 'DUPLICATE_ATTRIBUTE', '같은 분류에 이미 같은 값이 있어요.')
+      mockSetValues(c, field, [...mockValues(c, field), value])
+      touchProject(db, projectId)
+      return ok(201, { attribute_id: `${field}:${value}`, field, value, origin: 'user_added' })
+    },
+  ],
+  [
+    'PATCH',
+    `${chars}/:characterId/attributes/:attributeId`,
+    (req, db, { projectId, characterId, attributeId }) => {
+      const access = requireProject(req, db, projectId, 'editor')
+      if (isResponse(access)) return access
+      const c = world(db, projectId).characters.find((x) => x.character_id === characterId)
+      if (!c) return fail(404, 'CHARACTER_NOT_FOUND', '인물을 찾을 수 없어요.')
+      const b = (req.body ?? {}) as Body
+      const sep = attributeId.indexOf(':')
+      const oldField = attributeId.slice(0, sep) as AttrField
+      const oldValue = attributeId.slice(sep + 1)
+      if (!ATTR_FIELDS.includes(oldField) || !mockValues(c, oldField).includes(oldValue))
+        return fail(404, 'ATTRIBUTE_NOT_FOUND', '속성을 찾을 수 없어요.')
+      const field = (str(b.field) || oldField) as AttrField
+      const value = (str(b.value) || oldValue).trim()
+      if (!ATTR_FIELDS.includes(field) || !value) return fail(400, 'INVALID_INPUT', '분류와 값을 확인해 주세요.')
+      if (field === oldField && value === oldValue) return ok(200, { attribute_id: attributeId, field, value, origin: 'user_added' })
+      if (mockValues(c, field).some((v) => v.toLowerCase() === value.toLowerCase()))
+        return fail(409, 'DUPLICATE_ATTRIBUTE', '같은 분류에 이미 같은 값이 있어요.')
+      mockSetValues(c, oldField, mockValues(c, oldField).filter((v) => v !== oldValue))
+      mockSetValues(c, field, [...mockValues(c, field), value])
+      touchProject(db, projectId)
+      return ok(200, { attribute_id: `${field}:${value}`, field, value, origin: 'user_added' })
+    },
+  ],
+  [
+    'DELETE',
+    `${chars}/:characterId/attributes/:attributeId`,
+    (req, db, { projectId, characterId, attributeId }) => {
+      const access = requireProject(req, db, projectId, 'editor')
+      if (isResponse(access)) return access
+      const c = world(db, projectId).characters.find((x) => x.character_id === characterId)
+      if (!c) return fail(404, 'CHARACTER_NOT_FOUND', '인물을 찾을 수 없어요.')
+      const sep = attributeId.indexOf(':')
+      const field = attributeId.slice(0, sep) as AttrField
+      const value = attributeId.slice(sep + 1)
+      if (!ATTR_FIELDS.includes(field) || !mockValues(c, field).includes(value))
+        return fail(404, 'ATTRIBUTE_NOT_FOUND', '속성을 찾을 수 없어요.')
+      mockSetValues(c, field, mockValues(c, field).filter((v) => v !== value))
+      touchProject(db, projectId)
+      return noContent()
     },
   ],
   [

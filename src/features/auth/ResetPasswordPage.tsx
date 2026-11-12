@@ -82,7 +82,7 @@ export function ResetPasswordPage() {
         error={loginIdError}
         success={!loginIdError ? sendNotice : null}
         autoComplete="username"
-        placeholder="writer.kim@example.com"
+        placeholder="아이디 또는 이메일 (예: writer@example.com)"
         autoFocus={!initialLoginId}
       />
       {!sent && (
@@ -93,6 +93,7 @@ export function ResetPasswordPage() {
       <TextField
         variant="code"
         label="인증 코드"
+        placeholder={sent ? '6자리 숫자' : '먼저 인증 코드를 받아 주세요'}
         value={code}
         onChange={(v) => {
           setCode(v)
@@ -109,7 +110,8 @@ export function ResetPasswordPage() {
       )}
       <TextField
         type="password"
-        label="새 비밀번호 · 영문·숫자 포함 8자 이상"
+        label="새 비밀번호"
+        placeholder="영문·숫자 포함 8자 이상"
         value={password}
         onChange={(v) => {
           setPassword(v)
@@ -122,6 +124,7 @@ export function ResetPasswordPage() {
       <TextField
         type="password"
         label="새 비밀번호 확인"
+        placeholder="비밀번호를 한 번 더 입력"
         value={confirm}
         onChange={(v) => {
           setConfirm(v)

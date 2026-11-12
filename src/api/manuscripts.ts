@@ -1,6 +1,6 @@
 import { splitChapters } from '../lib/chapters'
 import { chapterHeading, joinChapters, toChapter, toManuscript, toMessage, toThread, toThreadDetail, toVersion, type BackendChapter, type BackendManuscript, type BackendMessage, type BackendThread, type BackendThreadDetail, type BackendVersion } from './backendShapes'
-import { ApiError, request, requestAll, requestWithMeta } from './client'
+import { ApiError, download, request, requestAll, requestWithMeta } from './client'
 import { IS_REAL } from './config'
 import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
@@ -13,11 +13,33 @@ export function listManuscripts(accessToken: string, projectId: string) {
   return request<Manuscript[]>('GET', base(projectId), { accessToken, query: { limit: '100' } })
 }
 
-export async function createManuscript(accessToken: string, projectId: string, input: { title: string; source_type: ManuscriptSource }) {
+/** 제목을 비우면 서버가 "N차 원고"를 붙인다. N은 작품에서 원고를 만든 횟수라 지워도 줄지 않는다 */
+export async function createManuscript(accessToken: string, projectId: string, input: { title?: string; source_type: ManuscriptSource }) {
   if (!IS_REAL) return request<Manuscript>('POST', base(projectId), { body: input, accessToken })
   // 백엔드는 업로드 원고를 source_type "upload"로 부른다
   const m = await request<BackendManuscript>('POST', base(projectId), { body: { title: input.title, source_type: input.source_type === 'file' ? 'upload' : 'editor' }, accessToken })
   return toManuscript(m)
+}
+
+export type ExportFormat = 'txt' | 'docx'
+
+const BLANK_LINE = '\n\n'
+
+/** 4.11 원고 내보내기 — 장을 순서대로 이은 파일. 백엔드는 viewer 이상이면 받을 수 있고, 준비된 원고만 된다 */
+export async function exportManuscript(accessToken: string, projectId: string, manuscriptId: string, format: ExportFormat, title: string) {
+  const fallback = `${title}.${format}`
+  if (IS_REAL) {
+    const { blob, fileName } = await download(`${base(projectId)}/${manuscriptId}/export`, { accessToken, query: { format } })
+    return { blob, fileName: fileName ?? fallback }
+  }
+  // 목업은 txt만 만든다 (docx는 실제 서버에서)
+  if (format !== 'txt') throw new ApiError(501, { code: 'NOT_SUPPORTED', message: 'docx 내보내기는 실제 서버에서만 돼요.', details: {} })
+  const chapters = await listChapters(accessToken, projectId, manuscriptId)
+  const text = [...chapters]
+    .sort((a, b) => a.chapter_no - b.chapter_no)
+    .map((c) => [chapterHeading(c), c.content].join(BLANK_LINE))
+    .join(BLANK_LINE)
+  return { blob: new Blob([text], { type: 'text/plain;charset=utf-8' }), fileName: fallback }
 }
 
 export function getManuscript(accessToken: string, projectId: string, manuscriptId: string) {
@@ -164,7 +186,17 @@ const real = {
 
   async splitIntoChapters(token: string, projectId: string, manuscriptId: string): Promise<Chapter[]> {
     const m = await request<BackendManuscript>('GET', `${base(projectId)}/${manuscriptId}`, { accessToken: token })
-    if (m.status !== 'ready' || !m.content?.trim()) return []
+    if (m.status !== 'ready') return []
+    if (!m.content?.trim()) {
+      // 빈 편집기 원고는 1장부터 시작한다. 서버가 1장을 만들어 주기 전에 만든 원고(이전 버전)를 위한 안전망이다
+      if (m.source_type !== 'editor') return []
+      try {
+        await request<BackendChapter>('POST', `/projects/${projectId}/chapters`, { body: { manuscript_id: manuscriptId, chapter_no: 1, content: '' }, accessToken: token })
+      } catch {
+        // 다른 탭이 먼저 만들었거나 보기 전용이면 아래에서 다시 확인한다
+      }
+      return (await chaptersOf(token, projectId, manuscriptId)).map(toChapter)
+    }
     const parts = splitChapters(m.content)
     try {
       for (const [i, p] of parts.entries()) {

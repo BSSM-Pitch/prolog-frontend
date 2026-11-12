@@ -8,20 +8,26 @@ import './ui.css'
  */
 export function InviteLink({ url, compact }: { url: string; compact?: boolean }) {
   const [copied, setCopied] = useState(false)
+  // 클립보드를 쓸 수 없으면 링크를 선택해 둔 입력창을 보여 줘서 직접 복사하게 한다
+  const [manual, setManual] = useState(false)
   async function copy() {
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
+      setManual(false)
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
-      window.prompt('초대 링크를 복사해 주세요', url)
+      setManual(true)
     }
   }
   if (compact) {
     return (
-      <Button tone="soft" onClick={copy}>
-        {copied ? '복사했어요' : '링크 복사'}
-      </Button>
+      <>
+        <Button tone="soft" onClick={copy}>
+          {copied ? '복사했어요' : '링크 복사'}
+        </Button>
+        {manual && <ManualCopy url={url} />}
+      </>
     )
   }
   return (
@@ -30,7 +36,24 @@ export function InviteLink({ url, compact }: { url: string; compact?: boolean })
       <Button tone="soft" onClick={copy}>
         {copied ? '복사했어요' : '링크 복사'}
       </Button>
+      {manual && <ManualCopy url={url} />}
       <p className="panel__label">초대받은 사람이 이 링크를 열고 로그인하면 참가할 수 있어요. 링크는 7일 동안 쓸 수 있어요.</p>
+    </div>
+  )
+}
+
+function ManualCopy({ url }: { url: string }) {
+  return (
+    <div className="invite-link" role="status">
+      <input
+        className="invite-link__url"
+        value={url}
+        readOnly
+        autoFocus
+        aria-label="복사할 초대 링크"
+        onFocus={(e) => e.currentTarget.select()}
+      />
+      <p className="panel__label">자동 복사가 안 돼요. 선택된 링크를 Ctrl+C(맥은 ⌘+C)로 복사해 주세요.</p>
     </div>
   )
 }

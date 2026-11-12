@@ -39,6 +39,8 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['GET', r('{P}\\/characters$')],
   ['GET|PATCH|DELETE', r('{P}\\/characters\\/{ID}$')],
   ['GET', r('{P}\\/characters\\/{ID}\\/edit-history$')],
+  ['POST', r('{P}\\/characters\\/{ID}\\/attributes$')],
+  ['PATCH|DELETE', r('{P}\\/characters\\/{ID}\\/attributes\\/{ID}$')],
   // REX 직접 입력
   ['GET|POST', r('{P}\\/world-rules$')],
   ['PATCH|DELETE', r('{P}\\/world-rules\\/{ID}$')],

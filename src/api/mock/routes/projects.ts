@@ -1,7 +1,7 @@
 import type { OwnerType, Project, ProjectSort } from '../../types'
 import { requireProject } from '../access'
 import { emptyWorld, type MockDb, type MockProject } from '../db'
-import { authenticate, fail, isResponse, nextId, ok, paginate, stamp, str, type Body, type Route } from '../http'
+import { authenticate, fail, isResponse, nextId, noContent, ok, paginate, stamp, str, type Body, type Route } from '../http'
 
 export function toProject(db: MockDb, p: MockProject, userId: string): Project {
   const member = db.projectMembers.find((m) => m.project_id === p.project_id && m.user_id === userId)
@@ -105,6 +105,26 @@ export const projectRoutes: Route[] = [
     (req, db, { projectId }) => {
       const access = requireProject(req, db, projectId)
       return isResponse(access) ? access : ok(200, toProject(db, access.project, access.user.user_id))
+    },
+  ],
+  [
+    // PRJ 삭제 — owner만. 원고·장·AI 기록 등 딸린 데이터를 함께 지운다
+    'DELETE',
+    '/projects/:projectId',
+    (req, db, { projectId }) => {
+      const access = requireProject(req, db, projectId, 'owner')
+      if (isResponse(access)) return access
+      const msIds = new Set(db.manuscripts.filter((m) => m.project_id === projectId).map((m) => m.manuscript_id))
+      db.projects = db.projects.filter((p) => p.project_id !== projectId)
+      db.projectMembers = db.projectMembers.filter((m) => m.project_id !== projectId)
+      db.projectInvitations = db.projectInvitations.filter((i) => i.target_id !== projectId)
+      db.manuscripts = db.manuscripts.filter((m) => m.project_id !== projectId)
+      db.chapters = db.chapters.filter((c) => !msIds.has(c.manuscript_id))
+      db.versions = db.versions.filter((v) => !msIds.has(v.manuscript_id))
+      db.qaThreads = db.qaThreads.filter((t) => !msIds.has(t.manuscript_id))
+      delete db.worlds[projectId]
+      if (db.manuscriptSeq) delete db.manuscriptSeq[projectId]
+      return noContent()
     },
   ],
   [

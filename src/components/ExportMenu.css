@@ -1,0 +1,51 @@
+.export-menu {
+  position: relative;
+  display: inline-flex;
+}
+.export-menu__list {
+  position: absolute;
+  top: calc(100% + 6px);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 240px;
+  padding: 6px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.export-menu__list--start {
+  left: 0;
+}
+.export-menu__list--end {
+  right: 0;
+}
+.export-menu__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--prolog-radius-8);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.export-menu__item:hover:not(:disabled),
+.export-menu__item:focus-visible {
+  background: var(--itda-muted-bg, rgba(0, 0, 0, 0.05));
+}
+.export-menu__item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.export-menu__label {
+  font-size: 14px;
+  font-weight: 500;
+}
+.export-menu__hint {
+  font-size: 12px;
+  color: var(--itda-muted);
+}

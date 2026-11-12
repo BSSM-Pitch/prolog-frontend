@@ -111,3 +111,16 @@
     padding: 28px 0;
   }
 }
+
+/* 되돌릴 수 없는 작업은 화면 맨 아래에 따로 둔다 */
+.overview__danger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--stroke);
+}
+.overview__danger .page-desc {
+  margin-top: 4px;
+}

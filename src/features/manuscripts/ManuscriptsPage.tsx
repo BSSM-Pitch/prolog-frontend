@@ -7,6 +7,7 @@ import type { Manuscript, Project } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { ExportMenu } from '../../components/ExportMenu'
 import { describeError } from '../../lib/errors'
 import { formatCount } from '../../lib/format'
 import { relativeTime } from '../../lib/relativeTime'
@@ -121,9 +122,7 @@ function ProjectManuscripts({ project }: { project: Project }) {
   async function createEditorManuscript() {
     setCreating(true)
     try {
-      const ms = await withAuth((t) =>
-        api.createManuscript(t, projectId, { title: `${manuscripts.length + 1}차 원고`, source_type: 'editor' }),
-      )
+      const ms = await withAuth((t) => api.createManuscript(t, projectId, { source_type: 'editor' }))
       navigate(projectPath(projectId, `manuscripts/${ms.manuscript_id}`))
     } catch (err) {
       setUploadError(describeError(err))
@@ -304,22 +303,24 @@ function ProjectManuscripts({ project }: { project: Project }) {
                       </span>
                       <span className="badge badge--success">준비됨</span>
                     </div>
-                    {isSelected ? (
+                    {isSelected && (
                       <Link className="btn btn--primary btn--block" to={editorPath}>
                         편집기 열기
                       </Link>
-                    ) : (
-                      <div className="ms-card__actions">
+                    )}
+                    <div className="ms-card__actions">
+                      {!isSelected && (
                         <Link className="btn btn--outline" to={editorPath}>
                           열기
                         </Link>
-                        {canEdit && (
-                          <Button tone="error" onClick={() => setConfirmDelete(m)}>
-                            제거
-                          </Button>
-                        )}
-                      </div>
-                    )}
+                      )}
+                      <ExportMenu projectId={projectId} manuscriptId={m.manuscript_id} title={m.title} />
+                      {canEdit && (
+                        <Button tone="error" onClick={() => setConfirmDelete(m)}>
+                          제거
+                        </Button>
+                      )}
+                    </div>
                     {canEdit && IS_REAL && (
                       <Button
                         tone="outline"

@@ -10,11 +10,11 @@ import { TextField } from '../../components/TextField'
 import { describeError } from '../../lib/errors'
 import { projectPath } from '../app/currentProject'
 import { ManuscriptFilePicker } from '../manuscripts/ManuscriptFilePicker'
-import { validateManuscriptFile } from '../manuscripts/manuscriptUploadModel'
 import { useManuscriptUploads } from '../manuscripts/useManuscriptUploads'
 import './NewProjectPage.css'
 import { Select } from '../../components/Select'
 
+/** 'editor'는 "빈 편집기로 시작" — 작품과 첫 원고를 만들고 바로 편집기로 간다 */
 type Start = 'none' | 'editor'
 
 const OWNER_OPTIONS: Array<{ value: OwnerType; title: string; body: string }> = [
@@ -36,7 +36,6 @@ export function NewProjectPage() {
   const [teamId, setTeamId] = useState(presetTeam)
   const [title, setTitle] = useState('')
   const [titleError, setTitleError] = useState<string | null>(null)
-  const [start, setStart] = useState<Start>('none')
   const [createdId, setCreatedId] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -67,8 +66,12 @@ export function NewProjectPage() {
     })
   }
 
-  async function onSubmit(e: FormEvent) {
+  function onSubmit(e: FormEvent) {
     e.preventDefault()
+    void submit('none')
+  }
+
+  async function submit(start: Start) {
     if (submitting.current || busy) return
     setFormError(null)
     const t = title.trim()
@@ -99,7 +102,7 @@ export function NewProjectPage() {
           return
         }
         if (start === 'editor') {
-          const ms = await withAuth((token) => manuscriptsApi.createManuscript(token, id, { title: '1차 원고', source_type: 'editor' }))
+          const ms = await withAuth((token) => manuscriptsApi.createManuscript(token, id, { source_type: 'editor' }))
           navigate(projectPath(id, `manuscripts/${ms.manuscript_id}`), { replace: true })
           return
         }
@@ -186,27 +189,18 @@ export function NewProjectPage() {
               items={uploads.items}
               errors={uploads.pickErrors}
               disabled={busy}
-              onPick={(files) => {
-                uploads.pick(files)
-                if (files.some((file) => !validateManuscriptFile(file))) setStart('none')
-              }}
+              onPick={uploads.pick}
               onRemove={uploads.remove}
               onRetry={createdId ? (key) => { void uploadFiles(createdId, key) } : undefined}
             />
 
-            <div className={start === 'editor' ? 'dropzone dropzone--selected' : 'dropzone'}>
+            <div className="dropzone">
               <p className="dropzone__title">빈 편집기로 시작</p>
-              <p className="dropzone__hint">편집기 작성본으로 만들어져요</p>
-              <Button
-                tone="soft"
-                aria-pressed={start === 'editor'}
-                disabled={busy || Boolean(createdId)}
-                onClick={() => {
-                  uploads.clear()
-                  setStart((s) => s === 'editor' ? 'none' : 'editor')
-                }}
-              >
-                {start === 'editor' ? '선택됨 · 취소' : '편집기 열기'}
+              <p className="dropzone__hint">
+                {uploads.items.length ? '올릴 파일을 비우면 바로 쓸 수 있어요' : '작품을 만들고 바로 편집기를 열어요'}
+              </p>
+              <Button tone="soft" disabled={busy || Boolean(createdId) || uploads.items.length > 0} onClick={() => submit('editor')} busy={creating}>
+                편집기 열기
               </Button>
             </div>
           </div>

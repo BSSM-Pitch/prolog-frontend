@@ -29,15 +29,6 @@ export function AuthShell() {
             <Logo size={26} />
             <span>prolog</span>
           </Link>
-          {kind === 'login' ? (
-            <Link to="/auth/signup" className="text-link auth__switch">
-              회원가입
-            </Link>
-          ) : (
-            <Link to="/auth/login" className="text-link auth__switch">
-              로그인
-            </Link>
-          )}
         </header>
 
         {/* 로그인 ↔ 회원가입을 오갈 때 내용만 다시 나타난다 */}
