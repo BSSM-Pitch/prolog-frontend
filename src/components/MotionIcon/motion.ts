@@ -18,6 +18,26 @@ export interface DrawAnim {
   ease: Easing[];
 }
 
+/**
+ * 선이 그려지기 전(dasharray '0 1')에는 투명하게 둔다.
+ * 선 끝이 round라 길이 0짜리 선도 브라우저가 점으로 그리기 때문 (Figma trim path는 안 그림).
+ * 그리기 시작하는 시점에 바로 켜지도록 opacity 트랙을 dasharray 타이밍에서 만든다.
+ */
+const REVEAL_EPSILON = 0.001;
+
+export interface RevealTrack {
+  opacity: number[];
+  times: number[];
+}
+
+export function revealTrack({ strokeDasharray, times }: DrawAnim): RevealTrack {
+  const firstDrawn = strokeDasharray.findIndex((v) => v !== strokeDasharray[0]);
+  const start = times[Math.max(firstDrawn - 1, 0)];
+  return start === 0
+    ? { opacity: [0, 1, 1], times: [0, REVEAL_EPSILON, 1] }
+    : { opacity: [0, 0, 1, 1], times: [0, start, start + REVEAL_EPSILON, 1] };
+}
+
 /** 벡터 전체(svg)를 x축으로 이동시키는 트랙 */
 export interface SlideAnim {
   x: number[];
