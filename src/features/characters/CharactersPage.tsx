@@ -122,7 +122,8 @@ export function CharactersPage() {
                 >
                   <span className="char-item__name">{c.name}</span>
                   <span className="char-item__meta">
-                    {c.role_label} · {c.status_label} / 마지막 등장 {c.last_chapter ? `${c.last_chapter}장` : '—'}
+                    {[c.role_label, c.status_label].filter(Boolean).join(' · ')}
+                    {c.role_label || c.status_label ? ' / ' : ''}마지막 등장 {c.last_chapter ? `${c.last_chapter}장` : '—'}
                   </span>
                 </button>
               </li>
@@ -144,10 +145,8 @@ export function CharactersPage() {
           <h2 id="char-detail-title" className="page-title">
             {selected?.name ?? '원고에서 인물 찾기'}
           </h2>
-          {selected && (
-            <p className="panel__label">
-              {selected.role_label} · {selected.status_label}
-            </p>
+          {selected && (selected.role_label || selected.status_label) && (
+            <p className="panel__label">{[selected.role_label, selected.status_label].filter(Boolean).join(' · ')}</p>
           )}
           <CharacterDetails
             key={projectId}
@@ -261,6 +260,11 @@ export function CharactersPage() {
               ))}
             </ul>
             <div className="dialog__actions">
+              {selected && (
+                <Link className="btn btn--primary" to={`${projectPath(projectId, 'relationships')}?character=${selected.character_id}`}>
+                  관계 정리하러 가기
+                </Link>
+              )}
               <Button tone="outline" onClick={() => setBlocked(null)} autoFocus>
                 닫기
               </Button>

@@ -53,6 +53,7 @@ export function NewCharacterPage() {
   if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const existing = characters.data ?? []
   const target = existing.find((c) => c.character_id === targetId)
+  const sameName = mode === 'new' && name.trim() !== '' && existing.some((c) => c.name === name.trim())
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -141,6 +142,7 @@ export function NewCharacterPage() {
                 setErrors((e) => ({ ...e, name: undefined }))
               }}
               error={errors.name}
+              hint={sameName ? '같은 이름의 인물이 이미 있어요. 같은 인물이라면 "기존 인물에 추가"를 쓰세요.' : undefined}
               placeholder="윤서"
             />
           ) : (

@@ -49,8 +49,9 @@ export async function listCharacters(token: string, projectId: string): Promise<
     return {
       character_id: person.character_id,
       name: person.name,
-      role_label: '인물',
-      status_label: '확정됨',
+      // 서버에는 역할·상태가 없다. 없는 값을 사실처럼 보여 주지 않도록 비워 둔다
+      role_label: '',
+      status_label: '',
       last_chapter:
         chapters
           .filter((ch) => ch.content.includes(person.name))
