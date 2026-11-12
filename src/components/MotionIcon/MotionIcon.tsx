@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
 import { ICONS, STROKE_PAD, type IconName, type IconVector } from './icons'
-import { LOOP_DURATION } from './motion'
+import { LOOP_DURATION, revealTrack } from './motion'
 import { PATHS } from './paths'
 
 const STROKE_WIDTH = 1.35
@@ -20,6 +20,7 @@ function AnimatedVector({
   const { d, width, height } = PATHS[vector.path]
   const loop = { duration: LOOP_DURATION, repeat: Infinity }
   const slide = playing ? vector.slide : undefined
+  const reveal = revealTrack(vector.draw)
 
   return (
     <motion.svg
@@ -46,9 +47,16 @@ function AnimatedVector({
         strokeWidth={STROKE_WIDTH}
         strokeLinecap="round"
         pathLength={1}
-        initial={playing ? { strokeDasharray: '0 1', strokeDashoffset: 0 } : false}
-        animate={playing ? { strokeDasharray: vector.draw.strokeDasharray } : undefined}
-        transition={{ ...loop, times: vector.draw.times, ease: vector.draw.ease }}
+        initial={playing ? { strokeDasharray: '0 1', strokeDashoffset: 0, opacity: 0 } : false}
+        animate={
+          playing ? { strokeDasharray: vector.draw.strokeDasharray, opacity: reveal.opacity } : undefined
+        }
+        transition={{
+          ...loop,
+          times: vector.draw.times,
+          ease: vector.draw.ease,
+          opacity: { ...loop, times: reveal.times, ease: 'linear' },
+        }}
       />
     </motion.svg>
   )
