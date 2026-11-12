@@ -12,7 +12,7 @@ import {
 import { ApiError, request, requestLenient, requestAll } from './client'
 import { IS_REAL } from './config'
 import { listRelationships } from './relationships'
-import type { Character, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
+import type { Character, CharacterAttribute, CharacterCategory, CharacterDraft, EditHistoryEntry, NLExtraction } from './types'
 
 // real 모드에서는 인물과 관계 모두 서버 데이터를 읽는다.
 const p = (projectId: string) => `/projects/${projectId}`
@@ -58,6 +58,14 @@ export async function listCharacters(token: string, projectId: string): Promise<
       personality_tags: person.personality_tags.map((item) => item.value),
       core_values: person.core_values.map((item) => item.value),
       emotion_keywords: person.emotion_keywords.map((item) => item.value),
+      attributes: CATEGORY_FIELDS.flatMap((field) =>
+        person[field].map((item) => ({
+          attribute_id: item.attribute_id,
+          field,
+          value: item.value,
+          origin: item.origin,
+        })),
+      ),
       influence_relations: person.influence_relations.map((item) => ({
         target: item.value,
         type: '영향',
@@ -67,6 +75,40 @@ export async function listCharacters(token: string, projectId: string): Promise<
       relationship_data_available: relationships !== null,
       key_changes: changes.slice(-4),
     }
+  })
+}
+
+const CATEGORY_FIELDS = ['personality_tags', 'core_values', 'influence_relations', 'emotion_keywords'] as const
+
+const attrPath = (projectId: string, characterId: string) => `${p(projectId)}/characters/${characterId}/attributes`
+
+/** 추출 없이 확정된 인물에 속성(태그·가치관 등)을 바로 더한다 */
+export function addCharacterAttribute(
+  token: string,
+  projectId: string,
+  characterId: string,
+  input: { field: CharacterCategory; value: string },
+) {
+  return request<CharacterAttribute>('POST', attrPath(projectId, characterId), { body: input, accessToken: token })
+}
+
+/** 값이나 분류를 고친다. 보낸 것만 바뀐다 */
+export function updateCharacterAttribute(
+  token: string,
+  projectId: string,
+  characterId: string,
+  attributeId: string,
+  input: { field?: CharacterCategory; value?: string },
+) {
+  return request<CharacterAttribute>('PATCH', `${attrPath(projectId, characterId)}/${encodeURIComponent(attributeId)}`, {
+    body: input,
+    accessToken: token,
+  })
+}
+
+export function deleteCharacterAttribute(token: string, projectId: string, characterId: string, attributeId: string) {
+  return request<null>('DELETE', `${attrPath(projectId, characterId)}/${encodeURIComponent(attributeId)}`, {
+    accessToken: token,
   })
 }
 

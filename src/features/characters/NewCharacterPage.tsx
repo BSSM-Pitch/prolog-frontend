@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
-import type { NLExtraction } from '../../api/types'
+import type { Character, NLExtraction } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { TextField } from '../../components/TextField'
@@ -157,6 +157,7 @@ export function NewCharacterPage() {
               {errors.name && <span className="field__hint notice--error">{errors.name}</span>}
             </label>
           )}
+          {mode === 'existing' && target && <ExistingAttributes character={target} />}
           <label className="field">
             <span className="field__label">인물 설명</span>
             <TextArea
@@ -243,6 +244,33 @@ export function NewCharacterPage() {
           )}
         </section>
       </div>
+    </div>
+  )
+}
+
+/** 기존 인물에 문장을 더할 때 지금 저장된 내용을 보여 준다. 추출해도 이 내용은 그대로 남는다 */
+function ExistingAttributes({ character }: { character: Character }) {
+  const rows = CATEGORIES.map((c) => ({
+    label: c.label,
+    values:
+      c.field === 'influence_relations'
+        ? character.influence_relations.map((r) => r.target)
+        : (character[c.field] as string[]),
+  })).filter((r) => r.values.length > 0)
+  return (
+    <div className="existing-attrs" aria-label="지금 저장된 내용">
+      <p className="panel__label">지금 저장된 내용 · 추출해도 그대로 남아요</p>
+      {rows.length === 0 && <p className="panel__label">아직 저장된 내용이 없어요.</p>}
+      {rows.map((r) => (
+        <div key={r.label} className="existing-attrs__row">
+          <span className="panel__label">{r.label}</span>
+          {r.values.map((v) => (
+            <span key={v} className="chip">
+              {v}
+            </span>
+          ))}
+        </div>
+      ))}
     </div>
   )
 }

@@ -267,6 +267,14 @@ export interface InfluenceRelation {
   status: string | null
 }
 
+/** 확정된 인물의 속성 한 줄 — 직접 고칠 때 id가 필요하다 */
+export interface CharacterAttribute {
+  attribute_id: string
+  field: CharacterCategory
+  value: string
+  origin: 'ai_extracted' | 'user_added'
+}
+
 /** ASS 2.4 확정된 캐릭터 + (명세 미정의) 등장인물 화면용 필드 */
 export interface Character {
   relationship_data_available?: boolean
@@ -282,6 +290,8 @@ export interface Character {
   core_values: string[]
   influence_relations: InfluenceRelation[]
   emotion_keywords: string[]
+  /** 속성을 id와 함께 담은 목록 — 추출 없이 직접 고칠 때 쓴다 */
+  attributes?: CharacterAttribute[]
   /** (명세 미정의) 연결 관계 수와 주요 변화 — RCV 데이터를 인물 기준으로 모은 것 */
   relationship_count: number
   key_changes: Array<{ chapter: number; text: string }>

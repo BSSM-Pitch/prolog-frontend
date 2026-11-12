@@ -213,7 +213,7 @@ export function CharactersPage() {
                 {canEdit && (
                   <Link
                     className="btn btn--outline"
-                    to={`${projectPath(projectId, 'characters/new')}?target=${selected.character_id}`}
+                    to={projectPath(projectId, `characters/${selected.character_id}/edit`)}
                   >
                     인물 수정
                   </Link>
