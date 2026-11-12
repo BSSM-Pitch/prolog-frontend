@@ -1,23 +1,10 @@
-import { useLayoutEffect, useRef, useState, type ComponentType } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import {
-  IconBell,
-  IconBook2,
-  IconChevronDown,
-  IconChevronLeft,
-  IconChevronRight,
-  IconHome,
-  IconLogout,
-  IconNotebook,
-  IconRoute,
-  IconUser,
-  IconUsersGroup,
-  IconWorld,
-  type IconProps,
-} from '@tabler/icons-react'
+import { IconChevronDown, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import * as notificationsApi from '../../api/notifications'
 import * as teamsApi from '../../api/teams'
 import type { Project } from '../../api/types'
+import { MotionIcon, useHoverPlay, type IconName } from '../../components/MotionIcon'
 import { useSession } from '../../auth/session'
 import { useResource } from '../../lib/useResource'
 import { Logo } from '../landing/components/Logo'
@@ -25,7 +12,6 @@ import { useNotificationsChanged } from '../notifications/labels'
 import { useTeamsChanged } from '../teams/teamEvents'
 import { projectPath } from './currentProject'
 
-type Icon = ComponentType<IconProps>
 interface SidebarProps {
   project: Project | null
   collapsed: boolean
@@ -45,6 +31,9 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
   ])
   useNotificationsChanged(recent.reload)
   const unread = recent.data?.meta.unread_count ?? 0
+  const bellHover = useHoverPlay()
+  const teamHover = useHoverPlay()
+  const logoutHover = useHoverPlay()
   const { asideRef, bar } = useActiveBar(
     `${pathname}|${collapsed}|${teamsOpen}|${project?.project_id ?? ''}|${Boolean(user)}|${teams.data?.length ?? 0}`,
   )
@@ -78,25 +67,25 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
         aria-hidden="true"
       />
       <nav className="sidebar__nav" aria-label="서재 메뉴">
-        <NavItem icon={IconBook2} label="내 서재" to="/projects" end />
+        <NavItem icon="book" label="내 서재" to="/projects" end />
         {project && (
           <>
             <p className="sidebar__project" title={project.title}>
               {project.title}
             </p>
-            <NavItem icon={IconHome} label="작품 홈" to={to()} end />
-            <NavItem icon={IconNotebook} label="원고" to={to('manuscripts')} />
+            <NavItem icon="home" label="작품 홈" to={to()} end />
+            <NavItem icon="notebook" label="원고" to={to('manuscripts')} />
             <NavItem
-              icon={IconRoute}
+              icon="route"
               label="작품 살펴보기"
               to={to('story-map')}
               active={['story-map', 'relationships', 'foreshadowings', 'conflicts'].some(
                 (path) => pathname === to(path),
               )}
             />
-            <NavItem icon={IconUser} label="등장인물" to={to('characters')} />
-            <NavItem icon={IconWorld} label="세계관" to={to('rules')} />
-            <NavItem icon={IconUsersGroup} label="팀원 초대" to={to('members')} />
+            <NavItem icon="user" label="등장인물" to={to('characters')} />
+            <NavItem icon="world" label="세계관" to={to('rules')} />
+            <NavItem icon="usersGroup" label="팀원 초대" to={to('members')} />
           </>
         )}
       </nav>
@@ -106,8 +95,9 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
           className="sidebar__item"
           aria-label={unread ? `알림 ${unread}개 안 읽음` : '알림'}
           title="알림"
+          {...bellHover.hoverProps}
         >
-          <IconBell size={19} stroke={1.7} aria-hidden="true" />
+          <MotionIcon name="bell" playing={bellHover.playing} />
           <span className="sidebar__label">알림</span>
           {unread > 0 && (
             <span className="sidebar__badge" aria-hidden="true">
@@ -121,12 +111,13 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
           title="팀"
           aria-label="팀"
           aria-expanded={showTeams && !collapsed}
+          {...teamHover.hoverProps}
           onClick={() => {
             if (collapsed) onToggle()
             setTeamsOpen(collapsed ? true : !showTeams)
           }}
         >
-          <IconUsersGroup size={19} stroke={1.7} aria-hidden="true" />
+          <MotionIcon name="usersGroup" playing={teamHover.playing} />
           <span className="sidebar__label">팀</span>
           <IconChevronDown className="sidebar__chevron" size={14} aria-hidden="true" />
         </button>
@@ -145,8 +136,15 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
       </nav>
       <div className="sidebar__account">
         <span className="sidebar__name">{user.username}</span>
-        <button type="button" className="sidebar__logout" onClick={onLogout} aria-label="로그아웃" title="로그아웃">
-          <IconLogout size={19} stroke={1.7} aria-hidden="true" />
+        <button
+          type="button"
+          className="sidebar__logout"
+          onClick={onLogout}
+          aria-label="로그아웃"
+          title="로그아웃"
+          {...logoutHover.hoverProps}
+        >
+          <MotionIcon name="logout" playing={logoutHover.playing} />
         </button>
       </div>
     </aside>
@@ -182,18 +180,19 @@ function useActiveBar(key: string) {
 }
 
 function NavItem({
-  icon: I,
+  icon,
   label,
   to,
   end,
   active,
 }: {
-  icon: Icon
+  icon: IconName
   label: string
   to: string
   end?: boolean
   active?: boolean
 }) {
+  const { playing, hoverProps } = useHoverPlay()
   return (
     <NavLink
       to={to}
@@ -202,8 +201,9 @@ function NavItem({
       aria-current={active ? 'page' : undefined}
       aria-label={label}
       title={label}
+      {...hoverProps}
     >
-      <I size={19} stroke={1.7} aria-hidden="true" />
+      <MotionIcon name={icon} playing={playing} />
       <span className="sidebar__label">{label}</span>
     </NavLink>
   )
