@@ -5,6 +5,7 @@ import type { WorldRule } from '../../api/types'
 import * as api from '../../api/world'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
+import { LogoLoader } from '../../components/LogoLoader'
 import { describeError } from '../../lib/errors'
 import { useJob } from '../../lib/useJob'
 import { useResource } from '../../lib/useResource'
@@ -155,7 +156,7 @@ export function RulesPage() {
 
           {running && (
             <div className="state-block" role="status">
-              <span className="answer__spinner" aria-hidden="true" />
+              <LogoLoader className="answer__loader" />
               <p className="answer__title">설정 규칙을 찾고 있어요</p>
               <p className="answer__body">세계관 규칙으로 볼 만한 문장을 원고에서 모으는 중이에요.</p>
             </div>

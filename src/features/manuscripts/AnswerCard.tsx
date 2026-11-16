@@ -1,5 +1,6 @@
 import type { Citation, QAMessage } from '../../api/types'
 import { Button } from '../../components/Button'
+import { LogoLoader } from '../../components/LogoLoader'
 
 interface AnswerCardProps {
   message: QAMessage | null
@@ -16,7 +17,7 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
   if (message.status === 'pending') {
     return (
       <div className="answer answer--pending" role="status">
-        <span className="answer__spinner" aria-hidden="true" />
+        <LogoLoader className="answer__loader" />
         <div>
           <p className="answer__title">원고에서 근거가 되는 문장을 찾고 있어요</p>
           <p className="answer__body">답변이 오는 동안 다른 화면으로 이동해도 괜찮아요. 준비되면 이 대화에 표시돼요.</p>
