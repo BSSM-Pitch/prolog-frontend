@@ -6,6 +6,7 @@ import type { Conflict } from '../../api/types'
 import * as api from '../../api/world'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
+import { LogoLoader } from '../../components/LogoLoader'
 import { describeError } from '../../lib/errors'
 import { useJob } from '../../lib/useJob'
 import { useResource } from '../../lib/useResource'
@@ -221,7 +222,7 @@ function ConflictReview() {
 
       {check.running && (
         <div className="state-block" role="status">
-          <span className="answer__spinner" aria-hidden="true" />
+          <LogoLoader className="answer__loader" />
           <p className="answer__title">설정 충돌을 검토하고 있어요</p>
           <p className="answer__body">
             {job?.status === 'analyzing'

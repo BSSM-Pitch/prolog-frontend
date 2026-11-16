@@ -4,6 +4,7 @@ import * as api from '../../api/characters'
 import type { NLExtraction } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
+import { LogoLoader } from '../../components/LogoLoader'
 import { TextField } from '../../components/TextField'
 import { describeError, errorCode } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
@@ -200,7 +201,7 @@ export function NewCharacterPage() {
           )}
           {analyzing && (
             <div className="state-block" role="status">
-              <span className="answer__spinner" aria-hidden="true" />
+              <LogoLoader className="answer__loader" />
               <p className="answer__title">문장에서 인물 정보를 읽고 있어요</p>
               <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 나누고 있어요.</p>
             </div>

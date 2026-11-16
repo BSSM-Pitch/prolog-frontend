@@ -1,3 +1,4 @@
+import { LogoLoader } from '../../../components/LogoLoader'
 import { AppScreen } from './AppWindow'
 
 // 설정 규칙(RulesPage) — 원고에서 규칙 후보를 뽑고, 하나를 열면 원문 근거가 붙어 있다.
@@ -39,7 +40,7 @@ export function WorldDemo({ t }: { t: number }) {
             </div>
             {!found && (
               <div className="state-block">
-                {running && <span className="answer__spinner" aria-hidden="true" />}
+                {running && <LogoLoader className="answer__loader" />}
                 <p className="answer__title">{running ? '원고에서 규칙을 찾고 있어요' : '찾은 규칙이 없어요'}</p>
                 <p className="answer__body">원고에서 규칙을 추출하거나 필요한 규칙을 직접 추가해 보세요.</p>
               </div>

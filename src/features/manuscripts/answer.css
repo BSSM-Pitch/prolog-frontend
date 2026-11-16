@@ -74,25 +74,9 @@
   color: var(--itda-muted);
 }
 
-.answer__spinner {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 4px;
-  border: 2px solid var(--input-stroke);
-  border-top-color: var(--prolog-color-interaction);
-  border-radius: 50%;
-  animation: answer-spin 0.9s linear infinite;
-}
-@keyframes answer-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .answer__spinner {
-    animation-duration: 3s;
-  }
+/* AI 응답 대기 표시 (LogoLoader). 크기는 컴포넌트가 정하고, 여기서는 첫 줄 글자와 높이만 맞춘다 */
+.answer--pending .answer__loader {
+  margin-top: 1px;
 }
 
 .citation {
