@@ -36,7 +36,7 @@
 }
 .narrative-filters input,
 .narrative-filters select,
-.writer-form input,
+.writer-form input:not([type="checkbox"]):not([type="radio"]),
 .writer-form select,
 .writer-form textarea {
   box-sizing: border-box;
@@ -85,4 +85,18 @@
 }
 .writer-actions button:disabled {
   opacity: 0.45;
+}
+
+.writer-form label:has(> input[type="checkbox"]),
+.writer-form label:has(> input[type="radio"]) {
+  flex-direction: row;
+  align-items: flex-start;
+  line-height: 1.6;
+}
+.writer-form input[type="checkbox"],
+.writer-form input[type="radio"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 3px 0 0;
 }
