@@ -132,6 +132,12 @@ function ConflictReview() {
         api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content, source_hash: c.source_hash }),
       )
       conflicts.setData((prev) => prev?.map((x) => (x.conflict_id === updated.conflict_id ? updated : x)) ?? null)
+      // One chapter can contain several findings. Refresh every source revision
+      // after an edit so the next unchanged quote can be edited safely as well.
+      if (action === 'modified') {
+        const refreshed = await withAuth((t) => api.listConflicts(t, projectId))
+        conflicts.setData(() => refreshed)
+      }
       setEditing(null)
       setNotice(
         action === 'modified'
