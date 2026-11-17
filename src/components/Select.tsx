@@ -181,7 +181,7 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
             id={listId}
             role="listbox"
             className={box.up ? 'select__menu select__menu--up' : 'select__menu'}
-            style={{ left: box.left, top: box.top, minWidth: box.width }}
+            style={{ left: box.left, top: box.top, minWidth: box.width, margin: 0 }}
           >
             {options.map((o, i) => (
               <li
