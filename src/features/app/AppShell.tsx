@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Outlet, useLocation, useMatch } from 'react-router-dom'
 import * as projectsApi from '../../api/projects'
 import { useSession } from '../../auth/session'
-import { VOICE } from '../../content/voice'
 import { describeError } from '../../lib/errors'
 import { CurrentProjectContext, type CurrentProjectState } from './currentProject'
 import { Sidebar } from './Sidebar'
@@ -88,23 +87,18 @@ export function AppShell() {
           </button>
         </header>
         <Sidebar project={state.status === 'ready' ? state.project : null} collapsed={collapsed} onToggle={toggle} />
-        <main className="app__main app__main--shell">
-          <div className="app__page">
-            {state.status === 'error' ? (
-              <div className="app__problem" role="alert">
-                <h1>작품을 열 수 없어요</h1>
-                <p>{state.message}</p>
-                <Link className="btn btn--outline" to="/projects">
-                  내 서재로 돌아가기
-                </Link>
-              </div>
-            ) : (
-              <Outlet />
-            )}
-          </div>
-          <a className="app__feedback" href={VOICE.feedback.href} target="_blank" rel="noopener noreferrer">
-            {VOICE.feedback.label}
-          </a>
+        <main className="app__main">
+          {state.status === 'error' ? (
+            <div className="app__problem" role="alert">
+              <h1>작품을 열 수 없어요</h1>
+              <p>{state.message}</p>
+              <Link className="btn btn--outline" to="/projects">
+                내 서재로 돌아가기
+              </Link>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </CurrentProjectContext.Provider>

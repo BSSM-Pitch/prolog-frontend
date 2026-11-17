@@ -15,33 +15,6 @@
   max-width: 1600px;
   padding: 64px clamp(28px, 4.5vw, 80px) 80px;
 }
-/* 실제 서비스 화면에서만: 본문 아래 남는 공간을 채워 의견 링크를 맨 아래로 */
-.app__main--shell {
-  display: flex;
-  flex-direction: column;
-  padding-bottom: 20px;
-}
-.app__page {
-  flex: 1 0 auto;
-  min-width: 0;
-}
-/* 작업 영역 맨 아래 오른쪽: 사이드바의 선택되지 않은 메뉴와 같은 글꼴·색, 크기만 작게 */
-.app__feedback {
-  align-self: flex-end;
-  margin-top: auto;
-  padding-top: 40px;
-  /* 본문 오른쪽 여백(clamp(28px, 4.5vw, 80px))은 그대로 두고, 링크만 화면 너비의 2.5% 지점까지 오른쪽으로 */
-  margin-right: calc(2.5vw - clamp(28px, 4.5vw, 80px));
-  color: #65655f;
-  font-size: 10px;
-  font-weight: 500;
-  text-decoration: none;
-}
-.app__feedback:hover {
-  color: var(--itda-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
 .app__mobile-bar {
   display: none;
 }
@@ -138,6 +111,10 @@
 .sidebar__item:hover {
   background: #eeeeea;
   color: var(--itda-ink);
+}
+/* 의견 보내기: 알림·팀과 같은 줄맞춤에 글자만 조금 작게 */
+.sidebar__item--feedback {
+  font-size: 13px;
 }
 .sidebar__item.active {
   background: #e9e9e3;
