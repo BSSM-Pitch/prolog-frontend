@@ -17,7 +17,7 @@ export function NarrativeSummary({ job, projectId }: { job: ConflictCheck; proje
   return <section className="evidence-box" aria-label="원고 전체 설정·복선 검토">
     <h2 className="panel__title">{job.status === 'completed' ? '원고 전체 검토 결과' : job.status === 'failed' ? '원고 전체 검토를 마치지 못했어요' : '원고 전체를 대조하고 있어요'}</h2>
     <p>{result.chapter_count}장 · {result.char_count.toLocaleString()}자 · 설정·관계·복선</p>
-    {result.stale && <p role="status">검사 이후 원고나 저장 규칙이 바뀌었어요. 이전 결과이므로 현재 원고로 다시 검사해 주세요.</p>}
+    {result.stale && <p role="status">현재 원고나 검사 기준과 맞지 않는 이전 결과예요. 현재 원고로 다시 검사해 주세요.</p>}
     {['queued', 'analyzing'].includes(job.status) && <p role="status">앞부분의 설정부터 마지막 장까지 비교하고 원문 근거를 다시 확인해요. 긴 원고는 몇 분 걸릴 수 있어요. 다른 화면으로 이동해도 검사는 계속됩니다.</p>}
     {job.status === 'completed' && <>
       <p>{result.summary}</p>
