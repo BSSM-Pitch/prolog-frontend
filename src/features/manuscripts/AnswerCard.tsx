@@ -53,7 +53,7 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
         <Markdown
           skipHtml
           disallowedElements={['img']}
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[[remarkGfm, { singleTilde: false }]]}
           components={{ table: ({ children }) => (
             <div className="answer__table-scroll" role="region" aria-label="답변 비교표" tabIndex={0}>
               <table>{children}</table>
