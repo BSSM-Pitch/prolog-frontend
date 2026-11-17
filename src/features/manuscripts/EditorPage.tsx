@@ -17,6 +17,8 @@ import { TextArea } from '../../components/TextArea'
 import { Select } from '../../components/Select'
 import { ReviewedManuscript } from './ReviewedManuscript'
 import { exactMemoryRange } from './manuscriptReviewModel'
+import { logicalSections } from '../../lib/chapters'
+import { selectTextSource } from '../../lib/selectTextSource'
 import { ChapterSaveQueue, selectedChapter, withCreatedChapters } from './chapterEditorModel'
 
 type SaveState =
@@ -73,6 +75,7 @@ function DocumentEditor() {
   const queue = useRef(new ChapterSaveQueue())
 
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
+  const sections = logicalSections(text)
 
   async function flush(): Promise<boolean> {
     if (composingRef.current) return false
@@ -164,8 +167,7 @@ function DocumentEditor() {
           : null
       const at = memoryStart === undefined ? (el?.value.indexOf(quote) ?? -1) : (exact?.start ?? -1)
       if (el && at >= 0) {
-        el.focus()
-        el.setSelectionRange(at, exact?.end ?? at + quote.length)
+        selectTextSource(el, quote, at)
       }
     }, 60)
     return () => window.clearTimeout(id)
@@ -178,10 +180,20 @@ function DocumentEditor() {
     setSave({ kind: 'dirty' })
   }
 
+  function selectSource(quote: string, start?: number) {
+    const el = textRef.current
+    if (!el) return
+    selectTextSource(el, quote.replace(/…$/, ''), start)
+  }
+
   async function goToChapter(no: number, select?: string) {
     if (transition.current || !ready || composingRef.current) return
     const target = list.find((c) => c.chapter_no === no)
-    if (!target || target.chapter_id === chapter?.chapter_id) return
+    if (!target) return
+    if (target.chapter_id === chapter?.chapter_id) {
+      if (select) selectSource(select)
+      return
+    }
     transition.current = 'saving'
     setTransitioning(true)
     if (!(await flush())) {
@@ -195,11 +207,7 @@ function DocumentEditor() {
       window.setTimeout(() => {
         const el = textRef.current
         if (!el) return
-        const at = el.value.indexOf(select.replace(/…$/, ''))
-        if (at >= 0) {
-          el.focus()
-          el.setSelectionRange(at, at + select.replace(/…$/, '').length)
-        }
+        selectTextSource(el, select.replace(/…$/, ''))
       }, 60)
     }
   }
@@ -302,6 +310,18 @@ function DocumentEditor() {
               </div>
             </div>
 
+            {sections.length > 1 && (
+              <label className="editor__section-jump">
+                원고 내 회차
+                <Select aria-label="회차로 이동" value="" onChange={(e) => {
+                  const part = sections.find((s) => s.start === Number(e.target.value))
+                  if (part) selectSource(part.title, part.start + text.slice(part.start).indexOf(part.title))
+                }}>
+                  <option value="" disabled>이동할 회차 선택</option>
+                  {sections.map((s) => <option key={s.start} value={String(s.start)}>{s.title}</option>)}
+                </Select>
+              </label>
+            )}
             {transitioning && (
               <p className="page-desc" role="status">
                 장을 전환하고 있어요. 저장을 마칠 때까지 편집을 잠갔어요.
