@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { IconChevronDown, IconChevronLeft, IconChevronRight, IconMessage } from '@tabler/icons-react'
+import { IconChevronDown, IconChevronLeft, IconChevronRight } from '@tabler/icons-react'
 import * as notificationsApi from '../../api/notifications'
 import * as teamsApi from '../../api/teams'
 import type { Project } from '../../api/types'
@@ -142,7 +142,6 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
           title={VOICE.feedback.label}
           aria-label={`${VOICE.feedback.label} (새 탭에서 열림)`}
         >
-          <IconMessage size={19} stroke={1.5} aria-hidden="true" />
           <span className="sidebar__label">{VOICE.feedback.label}</span>
         </a>
       </nav>
