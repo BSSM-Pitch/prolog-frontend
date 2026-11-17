@@ -1,7 +1,7 @@
 import { aggregateChecks as aggregate } from './ruleReviewModel'
-import { codesByCreation, type BackendChapter, type BackendCharacter, type BackendWorldRule } from './backendShapes'
+import { codesByCreation, type BackendCharacter, type BackendWorldRule } from './backendShapes'
 import { ApiError, request, requestAll, requestLenient } from './client'
-import { listChapters, listManuscripts, saveChapter, syncManuscriptContent } from './manuscripts'
+import { listChapters, listManuscripts, syncManuscriptContent } from './manuscripts'
 import type { Conflict, ConflictCheck, RuleAssessment, RuleExtraction, WorldRule } from './types'
 
 // real 모드 AI — prolog-backend 06b8928의 REX 추출과 SCDS를 화면 모양으로 맞춘다.
@@ -274,6 +274,9 @@ interface BackendConflict {
   chapter: number | null
   conflict_target: string | null
   matched_keyword: string | null
+  manuscript_id?: string | null
+  source_hash?: string | null
+  edit_unavailable_reason?: string | null
   input_event: string
   detected_by: 'rule' | 'ai'
   severity: Conflict['severity'] | null
@@ -292,26 +295,21 @@ let scanSeq = 0
 /** 사건 본문은 5,000자까지다. 문단 경계로 자른다 */
 function chunks(text: string, max = 5000) {
   const out: string[] = []
-  let cur = ''
-  for (const para of text
-    .split(/\n+/)
-    .map((s) => s.trim())
-    .filter(Boolean)) {
-    for (let piece = para; piece; piece = piece.slice(max)) {
-      const part = piece.slice(0, max)
-      if (cur && cur.length + 1 + part.length > max) {
-        out.push(cur)
-        cur = ''
-      }
-      cur = cur ? `${cur}\n${part}` : part
+  for (let start = 0; start < text.length;) {
+    let end = Math.min(start + max, text.length)
+    if (end < text.length) {
+      const boundary = text.lastIndexOf('\n', end)
+      if (boundary > start) end = boundary + 1
     }
+    const chunk = text.slice(start, end)
+    if (chunk.trim()) out.push(chunk)
+    start = end
   }
-  if (cur) out.push(cur)
   return out
 }
 
 /** 같은 규칙·인물로 이미 검사한 본문은 다시 사건으로 만들지 않는다 (중복 충돌 방지) */
-const SCANNED = 'prolog.scanned-chunks.v2'
+const SCANNED = 'prolog.scanned-chunks.v3'
 function hash(s: string) {
   let h = 5381
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
@@ -427,16 +425,6 @@ export const getConflictCheck = (token: string, projectId: string, jobId: string
 export const retryConflictCheck = (token: string, projectId: string, jobId: string) =>
   refresh(token, projectId, jobId, true)
 
-/** 사건 본문에서 걸린 표현이 있는 문장만 보여 준다 */
-function sentenceOf(text: string, keyword: string | null) {
-  const sentences = text
-    .split(/(?<=[.!?。…"”'’])\s+|\n+/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-  const hit = keyword ? sentences.find((s) => s.includes(keyword)) : undefined
-  return hit ?? (sentences[0] ?? text).slice(0, 200)
-}
-
 async function realConflicts(token: string, projectId: string) {
   const [rows, rules, characters] = await Promise.all([
     requestAll<BackendConflict>(`${p(projectId)}/conflicts`, { accessToken: token }),
@@ -450,8 +438,12 @@ async function realConflicts(token: string, projectId: string) {
   )
   return ordered.map((c, i) => {
     const rule = c.rule_id ? ruleOf.get(c.rule_id) : undefined
+    const ruleSource = rule?.evidence_sources?.find((source) => source.quote === rule.evidence) ?? rule?.evidence_sources?.[0]
     const conflict: Conflict = {
       conflict_id: c.conflict_id,
+      manuscript_id: c.manuscript_id ?? null,
+      source_hash: c.source_hash ?? null,
+      edit_unavailable_reason: c.edit_unavailable_reason ?? (c.source_hash ? null : '원문 위치를 확인하려면 다시 검사해 주세요.'),
       review_kind: c.detected_by === 'ai' ? 'ai' : 'keyword',
       index: i + 1,
       title:
@@ -461,16 +453,17 @@ async function realConflicts(token: string, projectId: string) {
       status: c.status,
       rule_id: c.rule_id,
       evidence: [
-        { chapter: rule?.source_chapter_no ?? 0, character: null, quote: rule?.evidence ?? rule?.description ?? '' },
+        { chapter: ruleSource?.chapter_no ?? rule?.source_chapter_no ?? 0, character: null, quote: ruleSource?.quote ?? rule?.evidence ?? rule?.description ?? '', manuscript_id: ruleSource?.manuscript_id },
         {
           chapter: c.chapter ?? 0,
+          manuscript_id: c.manuscript_id,
           character: c.character_id ? (nameOf.get(c.character_id) ?? null) : null,
-          quote: sentenceOf(c.input_event, c.matched_keyword),
+          quote: c.matched_keyword && c.input_event.includes(c.matched_keyword) ? c.matched_keyword : '정확한 인용을 확인하지 못했어요.',
         },
       ],
       anchor:
         c.chapter_id && c.matched_keyword && c.input_event.includes(c.matched_keyword)
-          ? { chapter_id: c.chapter_id, quote: sentenceOf(c.input_event, c.matched_keyword), context: c.input_event }
+          ? { chapter_id: c.chapter_id, quote: c.matched_keyword, context: c.input_event }
           : undefined,
       advice:
         c.advice ??
@@ -491,20 +484,9 @@ export async function resolveConflict(
   token: string,
   projectId: string,
   conflictId: string,
-  body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string },
+  body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string; source_hash?: string | null },
 ) {
-  const before = (await realConflicts(token, projectId)).find((x) => x.conflict.conflict_id === conflictId)
   await request<BackendConflict>('PATCH', `${p(projectId)}/conflicts/${conflictId}`, { body, accessToken: token })
-  if (body.action === 'modified' && body.modified_content && before?.chapterId) {
-    const quote = before.conflict.evidence[before.conflict.evidence.length - 1].quote
-    const chapter = await request<BackendChapter>('GET', `${p(projectId)}/chapters/${before.chapterId}`, {
-      accessToken: token,
-    })
-    if (quote && chapter.content.includes(quote))
-      await saveChapter(token, projectId, chapter.manuscript_id, chapter.chapter_id, {
-        content: chapter.content.replace(quote, body.modified_content),
-      })
-  }
   const after = (await listConflicts(token, projectId)).find((c) => c.conflict_id === conflictId)
   if (!after) throw new ApiError(404, { code: 'CONFLICT_NOT_FOUND', message: '충돌을 찾을 수 없어요.', details: {} })
   return after

@@ -270,6 +270,7 @@ export function joinChapters(chapters: Array<{ chapter_no: number; title: string
 // --- AIQ 원고 질문 --------------------------------------------------------------------------------
 
 export interface BackendMessage {
+  citations?: QAMessage['citations']
   message_id: string
   thread_id: string
   role: 'user' | 'assistant'
@@ -295,8 +296,8 @@ export interface BackendThreadDetail {
   messages: BackendMessage[]
 }
 
-/** 백엔드 답변에는 근거 장면(citations)이 없다 */
-export const toMessage = (m: BackendMessage): QAMessage => ({ ...m, citations: [] })
+/** 서버가 원문과 대조한 근거만 원고 이동 링크로 표시한다. */
+export const toMessage = (m: BackendMessage): QAMessage => ({ ...m, citations: m.citations ?? [] })
 
 export const toThread = (t: BackendThread): QAThread => ({
   thread_id: t.thread_id,

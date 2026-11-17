@@ -1,3 +1,4 @@
+import { downloadText } from '../../lib/downloadText'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
@@ -64,6 +65,7 @@ function DocumentEditor() {
   // 장별 편집 중인 본문. 저장이 끝나면 서버 값과 같아진다.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [save, setSave] = useState<SaveState | null>(null)
+  const [exporting, setExporting] = useState(false)
   const [adding, setAdding] = useState(false)
   const [composing, setComposing] = useState(false)
   const composingRef = useRef(false)
@@ -71,6 +73,17 @@ function DocumentEditor() {
   const queue = useRef(new ChapterSaveQueue())
 
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
+
+  async function exportText() {
+    setExporting(true)
+    try {
+      if (!(await flush())) return
+      const body = await withAuth((t) => api.exportManuscriptText(t, projectId, manuscriptId))
+      downloadText(manuscript.data?.title ?? '원고', body)
+    } catch (e) {
+      setSave({ kind: 'error', message: describeError(e) })
+    } finally { setExporting(false) }
+  }
 
   async function flush(): Promise<boolean> {
     if (composingRef.current) return false
@@ -336,15 +349,27 @@ function DocumentEditor() {
                 {loadError ??
                   (ready && params.has('chapter')
                     ? '요청한 장을 찾을 수 없어요. 장 목록에서 다시 선택해 주세요.'
-                    : '장을 불러오고 있어요')}
+                    : chapters.loading ? '장을 불러오고 있어요' : '아직 장이 없어요. 장 추가를 눌러 첫 문장을 써 보세요.')}
               </p>
             )}
 
             <div className="editor__foot">
               <span className="panel__label">{text.length.toLocaleString()}자</span>
-              <Link className="text-link" to={projectPath(projectId, `manuscripts/${manuscriptId}/history`)}>
+              <Link className="text-link" to={projectPath(projectId, `manuscripts/${manuscriptId}/history`)}
+                onClick={async (event) => {
+                  event.preventDefault()
+                  if (!(await flush())) return
+                  try {
+                    if (canEdit) await withAuth((t) => api.syncManuscriptContent(t, projectId, manuscriptId))
+                    navigate(projectPath(projectId, `manuscripts/${manuscriptId}/history`))
+                  } catch (e) { setSave({ kind: 'error', message: describeError(e) }) }
+                }}
+              >
                 편집 이력
               </Link>
+              <button type="button" className="text-link" disabled={!ready || exporting || composing} onClick={exportText}>
+                {exporting ? '원고를 준비하고 있어요…' : '원고 내려받기 (.txt)'}
+              </button>
               {!canEdit && <span className="panel__label">보기 전용이라 수정할 수 없어요</span>}
             </div>
           </section>
