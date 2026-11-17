@@ -204,7 +204,7 @@ function MemoryWorkspace({
                   : '원문에서 인물의 디테일을 모으고 있어요'}
             </strong>
             <p>
-              원고 {memory.job?.progress.total_scenes}장 · 확인한 디테일 {memory.job?.progress.observations}개
+              원고 {memory.job?.progress.total_scenes}구간 · 추출한 기록 {memory.job?.progress.observations}개 (검토 중)
               {Boolean(memory.job?.progress.completed_requests) && ` · 검토 단계 ${memory.job?.progress.completed_requests}개 완료`}
             </p>
             {memory.job_stale && <p>요청할 때의 원고로 분석 중이에요. 이후 수정한 내용은 다음 분석에 반영됩니다.</p>}
@@ -300,7 +300,8 @@ function Dossier({
   const [category, setCategory] = useState<DetailCategory>('all')
   const [query, setQuery] = useState('')
   const [ids, setIds] = useState<string[] | null>(null)
-  const [shown, setShown] = useState(12)
+  const [shown, setShown] = useState(24)
+  const [recordOrder, setRecordOrder] = useState('')
   const evidenceRef = useRef<HTMLDivElement>(null)
   if (resource.error)
     return (
@@ -313,7 +314,7 @@ function Dossier({
     )
   if (!resource.data || resource.loading) return <p role="status">원문 근거를 불러오고 있어요.</p>
   const data = resource.data
-  const records = visibleRecords(data, category, query, ids)
+  const records = visibleRecords(data, category, query, ids).filter((r) => !recordOrder || r.order === Number(recordOrder))
   const patterns = patternRecords(data.patterns, data.observations).filter((p) =>
     [
       p.description,
@@ -336,7 +337,8 @@ function Dossier({
     setIds(selected)
     setCategory('all')
     setQuery('')
-    setShown(12)
+    setRecordOrder('')
+    setShown(24)
     requestAnimationFrame(() => {
       evidenceRef.current?.focus({ preventScroll: true })
       evidenceRef.current?.scrollIntoView({ block: 'start' })
@@ -362,13 +364,20 @@ function Dossier({
             onClick={() => {
               setCategory(key)
               setIds(null)
-              setShown(12)
+              setShown(24)
             }}
           >
             {label} <span>{count}</span>
           </button>
         ))}
       </div>
+      <label className="detail-select">
+        <span>기록 구간</span>
+        <Select aria-label="기록 구간" value={recordOrder} onChange={(e) => { setRecordOrder(e.target.value); setShown(24) }}>
+          <option value="">모든 구간</option>
+          {memory.chapters.map((c) => <option key={c.order} value={String(c.order)}>{c.title}</option>)}
+        </Select>
+      </label>
       <div className="detail-search">
         <IconSearch size={18} />
         <input
@@ -378,7 +387,7 @@ function Dossier({
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
-            setShown(12)
+            setShown(24)
           }}
         />
         {ids && (
@@ -402,7 +411,7 @@ function Dossier({
       </div>
       {category === 'patterns' ? (
         <div className="detail-patterns">
-          {patterns.slice(0, shown).map((p) => (
+          {patterns.slice(Math.max(0, shown - 24), shown).map((p) => (
             <article className="detail-pattern" key={p.pattern_id}>
               <div className="detail-card-top">
                 <span className={`detail-badge ${p.status === 'contested' ? 'detail-badge--amber' : ''}`}>
@@ -461,7 +470,7 @@ function Dossier({
         </div>
       ) : (
         <div className="detail-records">
-          {records.slice(0, shown).map((r) => (
+          {records.slice(Math.max(0, shown - 24), shown).map((r) => (
             <Record key={r.observation_id} row={r} {...{ projectId, manuscriptId }} stale={data.stale} />
           ))}
         </div>
@@ -472,10 +481,16 @@ function Dossier({
           <p>추출 누락이 있을 수 있어요. 원문에 해당 행동이 없다는 뜻은 아닙니다.</p>
         </div>
       )}
-      {(category === 'patterns' ? patterns.length : records.length) > shown && (
-        <Button block tone="outline" onClick={() => setShown((n) => n + 12)}>
-          기록 더 보기
-        </Button>
+      {(category === 'patterns' ? patterns.length : records.length) > 24 && (
+        <nav className="detail-pagination" aria-label="인물 기록 페이지">
+          <Button tone="outline" disabled={shown <= 24} onClick={() => setShown(24)}>처음</Button>
+          <Button tone="outline" disabled={shown <= 24} onClick={() => setShown((n) => Math.max(24, n - 24))}>이전</Button>
+          <Select aria-label="기록 페이지" value={String(Math.ceil(shown / 24))} onChange={(e) => setShown(Number(e.target.value) * 24)}>
+            {Array.from({ length: Math.ceil((category === 'patterns' ? patterns.length : records.length) / 24) }, (_, i) => <option key={i} value={i + 1}>{i + 1}페이지</option>)}
+          </Select>
+          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : records.length)} onClick={() => setShown((n) => n + 24)}>다음</Button>
+          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : records.length)} onClick={() => setShown(Math.ceil((category === 'patterns' ? patterns.length : records.length) / 24) * 24)}>마지막</Button>
+        </nav>
       )}
       <p className="detail-footnote">
         원문 위치를 대조한 기록입니다. 발화 주체와 해석은 AI가 분류했으므로 작가의 확인이 필요해요. 분석{' '}
@@ -650,7 +665,7 @@ function Record({
         </div>
         <span>{row.scene_title}</span>
       </div>
-      <h4>{row.summary}</h4>
+      {row.summary.trim() !== row.evidence.quote.trim() && <h4>{row.summary}</h4>}
       <blockquote>{row.evidence.quote}</blockquote>
       <p className="detail-context">{row.context}</p>
       {row.perception_context && <p className="detail-context">앞뒤 인지 문맥으로 연결한 기록입니다. 인물은 아직 확정되지 않았어요.</p>}
@@ -701,11 +716,11 @@ function Record({
           </div>
         )}
         <Link
-          to={`${projectPath(projectId, `manuscripts/${manuscriptId}`)}${row.chapter_id ? `?chapter=${row.order}` : ''}`}
+          to={`${projectPath(projectId, `manuscripts/${manuscriptId}`)}${row.chapter_id ? `?chapter=${row.chapter_no ?? row.order}` : ''}`}
           state={
             stale
               ? undefined
-              : { highlight: row.evidence.quote, memoryRange: { start: row.evidence.start, end: row.evidence.end } }
+              : { highlight: row.evidence.quote, memoryRange: { start: row.evidence.start + (row.source_start ?? 0), end: row.evidence.end + (row.source_start ?? 0) } }
           }
         >
           <IconBook2 size={16} /> {stale ? '수정된 현재 원고 열기' : '원고에서 보기'}

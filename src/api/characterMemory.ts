@@ -47,6 +47,8 @@ export interface MemoryOverview {
   chapters: Array<{ order: number; title: string }>
 }
 export interface DetailRecord {
+  source_start?: number
+  chapter_no?: number
   observation_id: string
   kind: 'speech' | 'action' | 'inner_thought' | 'narration'
   presentation: 'depicted' | 'character_claim' | 'narrator_claim' | 'thought'
