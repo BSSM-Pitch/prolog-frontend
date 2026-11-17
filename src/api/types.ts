@@ -410,10 +410,37 @@ export interface ConflictCheck {
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   result_ids: string[]
   assessments?: RuleAssessment[]
-  analysis_kind?: 'ai_rule_review' | 'legacy_keyword'
+  analysis_kind?: 'ai_rule_review' | 'legacy_keyword' | 'narrative_review'
+  narrative?: NarrativeResult | null
   keyword_candidate_count?: number
   skipped_reason: string | null
   manuscript_id: string | null
+}
+export interface NarrativeEvidence { chapter_id: string; chapter_no: number; quote: string }
+export interface NarrativeTrack {
+  title: string
+  kind: 'setting' | 'relationship' | 'foreshadowing'
+  status: 'established' | 'changed' | 'paid_off' | 'unresolved' | 'reinterpreted'
+  explanation: string
+  evidence: NarrativeEvidence[]
+}
+export interface NarrativeFinding {
+  title: string
+  category: 'contradiction' | 'explanation_gap'
+  severity: 'low' | 'medium' | 'high'
+  reason: string
+  evidence: NarrativeEvidence[]
+}
+export interface NarrativeResult {
+  manuscript_id: string
+  source_hash: string
+  chapter_count: number
+  char_count: number
+  stale: boolean
+  summary: string
+  tracks: NarrativeTrack[]
+  findings: NarrativeFinding[]
+  more_items: boolean
 }
 export type RuleExtraction = ConflictCheck
 

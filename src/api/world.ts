@@ -100,6 +100,10 @@ export function getConflictCheck(token: string, projectId: string, jobId: string
   return request<ConflictCheck>('GET', `${p(projectId)}/conflict-checks/${jobId}`, { accessToken: token })
 }
 
+export function latestNarrativeReview(token: string, projectId: string, manuscriptId: string) {
+  return IS_REAL ? ai.latestNarrativeReview(token, projectId, manuscriptId) : Promise.resolve(null)
+}
+
 export function retryConflictCheck(token: string, projectId: string, jobId: string) {
   if (IS_REAL) return ai.retryConflictCheck(token, projectId, jobId)
   return request<ConflictCheck>('POST', `${p(projectId)}/conflict-checks/${jobId}/retry`, { accessToken: token })

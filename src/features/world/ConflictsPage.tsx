@@ -77,6 +77,9 @@ function ConflictReview() {
 
   const conflicts = useResource(project ? (t) => api.listConflicts(t, projectId) : null, [projectId])
   const manuscripts = useResource(project ? (t) => manuscriptsApi.listManuscripts(t, projectId) : null, [projectId])
+  const ready = (manuscripts.data ?? []).filter((m) => m.status === 'ready')
+  const latest = ready.find((m) => m.manuscript_id === params.get('manuscript')) ?? ready[0] ?? null
+  const reviewEpoch = useRef(0)
   const [showResolved, setShowResolved] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -98,12 +101,27 @@ function ConflictReview() {
         setNotice(
           job.result_ids.length
             ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.`
-            : job.analysis_kind === 'ai_rule_review'
+            : job.analysis_kind === 'narrative_review'
+              ? '원고 전체 검토를 마쳤어요. 설정·관계·복선과 앞뒤 근거를 확인해 주세요.'
+              : job.analysis_kind === 'ai_rule_review'
               ? 'AI 검토를 마쳤어요. 규칙별 지지·위반·판단 불가를 확인해 주세요.'
               : '키워드 검색을 마쳤어요. AI 의미 검토가 없는 이전 검사 결과예요.',
         )
     },
   )
+
+  const reviewManuscriptId = latest?.manuscript_id
+  useEffect(() => {
+    if (!reviewManuscriptId) return
+    let cancelled = false
+    const epoch = ++reviewEpoch.current
+    check.setJob(null)
+    withAuth((token) => api.latestNarrativeReview(token, projectId, reviewManuscriptId))
+      .then((job) => { if (!cancelled && epoch === reviewEpoch.current) check.setJob(job) })
+      .catch((error) => { if (!cancelled) check.setError(describeError(error)) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, reviewManuscriptId, withAuth])
 
   if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
@@ -113,8 +131,7 @@ function ConflictReview() {
   const list = showResolved ? resolved : pending
   const focus = params.get('focus')
   const selected = list.find((c) => c.conflict_id === focus) ?? null
-  const ready = (manuscripts.data ?? []).filter((m) => m.status === 'ready')
-  const latest = ready.find((m) => m.manuscript_id === params.get('manuscript')) ?? ready[0] ?? null
+
 
   function focusConflict(id: string | null) {
     const next = new URLSearchParams(params)
@@ -157,10 +174,12 @@ function ConflictReview() {
   }
 
   async function startCheck(simulateFailure = false) {
+    if (!latest || check.running) return
+    reviewEpoch.current += 1
     setNotice(null)
     check.setError(null)
     try {
-      check.setJob(await withAuth((t) => api.rescan(t, projectId, simulateFailure)))
+      check.setJob(await withAuth((t) => api.rescan(t, projectId, simulateFailure, { manuscriptId: latest.manuscript_id, chapterId: '' })))
     } catch (e) {
       check.setError(describeError(e))
     }
@@ -184,12 +203,20 @@ function ConflictReview() {
           <h1 className="page-title">설정 검토</h1>
         </div>
         {canEdit && (
-          <Button tone="secondary" onClick={() => startCheck()} busy={check.running}>
+          <Button tone="secondary" onClick={() => startCheck()} busy={check.running} disabled={!latest}>
             {check.running ? '검사하는 중…' : '원고 다시 검사'}
           </Button>
         )}
       </header>
       <InsightNav projectId={projectId} />
+      {ready.length > 0 && <label className="insight-filter">검사할 원고
+        <Select value={latest?.manuscript_id ?? ''} onChange={(event) => {
+          const next = new URLSearchParams(params)
+          next.set('manuscript', event.target.value)
+          setParams(next, { replace: true })
+          setNotice(null)
+        }}>{ready.map((m) => <option key={m.manuscript_id} value={m.manuscript_id}>{m.title}</option>)}</Select>
+      </label>}
 
       {check.running && (
         <div className="state-block" role="status">
@@ -197,17 +224,17 @@ function ConflictReview() {
           <p className="answer__title">설정 충돌을 검토하고 있어요</p>
           <p className="answer__body">
             {job?.status === 'analyzing'
-              ? '키워드 단서를 찾았고, AI가 모든 저장 규칙의 의미와 조건을 비교하고 있어요.'
-              : '확정된 규칙과 인물 설정을 원고와 비교하고 있어요.'}
+              ? '원고 전체에서 설정·인물 관계·복선의 변화와 충돌을 대조하고 있어요.'
+              : '모든 장의 원문을 준비하고 있어요. 저장된 규칙이 없어도 검사할 수 있어요.'}
           </p>
         </div>
       )}
-      <RuleReviewSummary job={job} />
+      <RuleReviewSummary job={job} projectId={projectId} />
       {job?.status === 'failed' && (
         <div className="state-block state-block--error" role="alert">
           <p className="answer__title">AI 검토를 마치지 못했어요</p>
           <p className="answer__body">
-            AI 판정을 완료하지 못했어요. 키워드 일치를 위반으로 표시하지 않아요. 다시 검토할 수 있어요.
+            AI 검토나 근거 확인을 완료하지 못했어요. 확인되지 않은 결과는 표시하지 않으며 다시 검사할 수 있어요.
           </p>
           <Button onClick={retryCheck}>AI 검토 다시 시도</Button>
         </div>

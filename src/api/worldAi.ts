@@ -1,4 +1,3 @@
-import { aggregateChecks as aggregate } from './ruleReviewModel'
 import { codesByCreation, type BackendCharacter, type BackendWorldRule } from './backendShapes'
 import { ApiError, request, requestAll, requestLenient } from './client'
 import { listChapters, listManuscripts, syncManuscriptContent } from './manuscripts'
@@ -8,8 +7,7 @@ import type { Conflict, ConflictCheck, RuleAssessment, RuleExtraction, WorldRule
 //
 // REX: 규칙 후보는 추출 작업 결과 안에만 있고 "추출 목록" API가 없다. 이 브라우저에서 요청한 추출 ID를 기억해 두고
 //   목록을 부를 때 그 결과의 후보를 확정 규칙 뒤에 붙인다. 후보 ID는 "추출ID~번호"다.
-// SCDS: 백엔드는 "사건 저장 → 그 사건만 검사"다. 프로젝트 전체 재검사가 없어, 원고의 장 본문을 사건으로 저장해
-//   검사 여러 개를 만들고 하나의 작업처럼 묶어 보여 준다.
+// SCDS: 서버의 원고 전체 검사 한 건을 사용한다. 규칙 등록 없이 설정·관계·복선을 추적한다.
 
 const p = (projectId: string) => `/projects/${projectId}`
 
@@ -261,11 +259,14 @@ interface BackendCheck {
   status: ConflictCheck['status']
   rule_result: { has_candidate: boolean; skipped: boolean; skipped_reason: string | null; candidates: unknown[] }
   conflict_ids: string[]
-  analysis_kind?: 'ai_rule_review' | 'legacy_keyword'
+  analysis_kind?: ConflictCheck['analysis_kind']
+  narrative?: ConflictCheck['narrative']
   assessments?: RuleAssessment[]
 }
 
 interface BackendConflict {
+  source_evidence?: Array<{chapter_id: string; chapter_no: number; quote: string}>
+  review_stale?: boolean
   conflict_id: string
   check_id: string | null
   character_id: string | null
@@ -287,143 +288,42 @@ interface BackendConflict {
   resolved_at: string | null
 }
 
-const RUNNING = ['queued', 'analyzing']
-/** 재검사 한 번 = 백엔드 검사 여러 개 */
-const scans = new Map<string, BackendCheck[]>()
-let scanSeq = 0
+const toCheck = (c: BackendCheck): ConflictCheck => ({
+  job_id: c.check_id, status: c.status, result_ids: c.conflict_ids,
+  skipped_reason: c.rule_result.skipped_reason,
+  manuscript_id: c.narrative?.manuscript_id ?? null,
+  analysis_kind: c.analysis_kind, assessments: c.assessments,
+  narrative: c.narrative, keyword_candidate_count: c.rule_result.candidates.length,
+})
 
-/** 사건 본문은 5,000자까지다. 문단 경계로 자른다 */
-function chunks(text: string, max = 5000) {
-  const out: string[] = []
-  for (let start = 0; start < text.length;) {
-    let end = Math.min(start + max, text.length)
-    if (end < text.length) {
-      const boundary = text.lastIndexOf('\n', end)
-      if (boundary > start) end = boundary + 1
-    }
-    const chunk = text.slice(start, end)
-    if (chunk.trim()) out.push(chunk)
-    start = end
-  }
-  return out
+/** One durable server job reads every chapter of the selected manuscript. */
+export async function rescan(token: string, projectId: string,
+  target?: { manuscriptId: string; chapterId: string }): Promise<ConflictCheck> {
+  const manuscriptId = target?.manuscriptId ??
+    (await listManuscripts(token, projectId)).find((m) => m.status === 'ready')?.manuscript_id
+  if (!manuscriptId) return {job_id: 'no-manuscript', status: 'skipped', result_ids: [],
+    skipped_reason: 'NO_MANUSCRIPT', manuscript_id: null}
+  return toCheck(await request<BackendCheck>('POST',
+    `${p(projectId)}/manuscripts/${manuscriptId}/narrative-reviews`, {accessToken: token}))
 }
 
-/** 같은 규칙·인물로 이미 검사한 본문은 다시 사건으로 만들지 않는다 (중복 충돌 방지) */
-const SCANNED = 'prolog.scanned-chunks.v3'
-function hash(s: string) {
-  let h = 5381
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
-  return (h >>> 0).toString(36)
+export async function latestNarrativeReview(token: string, projectId: string, manuscriptId: string) {
+  const check = await request<BackendCheck | null>('GET',
+    `${p(projectId)}/manuscripts/${manuscriptId}/narrative-reviews/latest`, {accessToken: token})
+  return check ? toCheck(check) : null
 }
 
-const scanManuscript = new Map<string, string | null>()
-
-export async function rescan(
-  token: string,
-  projectId: string,
-  target?: { manuscriptId: string; chapterId: string },
-): Promise<ConflictCheck> {
-  const jobId = `scan-${++scanSeq}`
-  const [manuscripts, characters, rules] = await Promise.all([
-    listManuscripts(token, projectId),
-    requestAll<BackendCharacter>(`${p(projectId)}/characters`, { accessToken: token }),
-    requestAll<BackendWorldRule>(`${p(projectId)}/world-rules`, { accessToken: token }),
-  ])
-  const latest =
-    manuscripts.find((m) => m.status === 'ready' && (!target || m.manuscript_id === target.manuscriptId)) ?? null
-  scanManuscript.set(jobId, latest?.manuscript_id ?? null)
-  // 세계관 규칙은 인물이 없어도 검토한다. 키워드는 검색 단서다.
-  const missing = !latest ? 'NO_MANUSCRIPT' : !rules.length ? 'NO_RULES' : null
-  if (missing || !latest) {
-    scans.set(jobId, [])
-    return {
-      job_id: jobId,
-      status: 'skipped',
-      result_ids: [],
-      skipped_reason: missing,
-      manuscript_id: latest?.manuscript_id ?? null,
-    }
-  }
-  // 본문에서 확인한 인물만 전달한다. 이름이 없다고 첫 인물에게 사건을 귀속시키지 않는다.
-  const participants = (content: string) => {
-    const named = characters.filter((c) => content.includes(c.name)).slice(0, 50)
-    return named.map((c) => c.character_id)
-  }
-  const context = hash(
-    JSON.stringify([characters.map((c) => [c.character_id, c.name]), rules.map((r) => [r.rule_id, r.updated_at])]),
-  )
-  const store = readStore<Record<string, string>>(SCANNED)
-  const seen = store[projectId] ?? {}
-
-  const checks: BackendCheck[] = []
-  const chapters = await listChapters(token, projectId, latest.manuscript_id)
-  if (target && !chapters.some((c) => c.chapter_id === target.chapterId)) {
-    throw new ApiError(404, { code: 'CHAPTER_NOT_FOUND', message: '검사할 장을 찾을 수 없어요.', details: {} })
-  }
-  for (const chapter of chapters.filter((c) => !target || c.chapter_id === target.chapterId)) {
-    for (const content of chunks(chapter.content)) {
-      const key = `${chapter.chapter_id}:${context}:${hash(content)}`
-      if (seen[key]) {
-        try {
-          const existing = (
-            await requestLenient<BackendCheck>('GET', `${p(projectId)}/conflict-checks/${seen[key]}`, {
-              accessToken: token,
-            })
-          ).data
-          checks.push(existing)
-          continue
-        } catch (error) {
-          if (!(error instanceof ApiError && error.status === 404)) throw error
-        }
-      }
-      const created = await request<{ conflict_check: BackendCheck }>(
-        'POST',
-        `${p(projectId)}/chapters/${chapter.chapter_id}/events`,
-        { body: { character_ids: participants(content), content }, accessToken: token },
-      )
-      checks.push(created.conflict_check)
-      seen[key] = created.conflict_check.check_id
-    }
-  }
-  store[projectId] = Object.fromEntries(Object.entries(seen).slice(-500))
-  writeStore(SCANNED, store)
-  scans.set(jobId, checks)
-  return aggregate(jobId, checks, latest.manuscript_id)
+export async function getConflictCheck(token: string, projectId: string, jobId: string) {
+  return toCheck((await requestLenient<BackendCheck>('GET',
+    `${p(projectId)}/conflict-checks/${jobId}`, {accessToken: token})).data)
 }
-
-async function refresh(token: string, projectId: string, jobId: string, retry: boolean) {
-  const checks = scans.get(jobId)
-  if (!checks)
-    throw new ApiError(404, {
-      code: 'CHECK_SESSION_LOST',
-      message: '검사 상태를 다시 불러오려면 원고 검사를 눌러 주세요. 기존 검사 결과를 이어서 확인해요.',
-      details: {},
-    })
-  const next = await Promise.all(
-    checks.map(async (c) => {
-      if (retry && c.status === 'failed')
-        return (
-          await requestLenient<BackendCheck>('POST', `${p(projectId)}/conflict-checks/${c.check_id}/retry`, {
-            accessToken: token,
-          })
-        ).data
-      if (!retry && RUNNING.includes(c.status))
-        return (
-          await requestLenient<BackendCheck>('GET', `${p(projectId)}/conflict-checks/${c.check_id}`, {
-            accessToken: token,
-          })
-        ).data
-      return c
-    }),
-  )
-  scans.set(jobId, next)
-  return aggregate(jobId, next, scanManuscript.get(jobId) ?? null)
+export async function retryConflictCheck(token: string, projectId: string, jobId: string) {
+  const previous = await getConflictCheck(token, projectId, jobId)
+  if (previous.narrative) return rescan(token, projectId,
+    {manuscriptId: previous.narrative.manuscript_id, chapterId: ''})
+  return toCheck((await requestLenient<BackendCheck>('POST',
+    `${p(projectId)}/conflict-checks/${jobId}/retry`, {accessToken: token})).data)
 }
-
-export const getConflictCheck = (token: string, projectId: string, jobId: string) =>
-  refresh(token, projectId, jobId, false)
-export const retryConflictCheck = (token: string, projectId: string, jobId: string) =>
-  refresh(token, projectId, jobId, true)
 
 async function realConflicts(token: string, projectId: string) {
   const [rows, rules, characters] = await Promise.all([
@@ -443,16 +343,16 @@ async function realConflicts(token: string, projectId: string) {
       conflict_id: c.conflict_id,
       manuscript_id: c.manuscript_id ?? null,
       source_hash: c.source_hash ?? null,
-      edit_unavailable_reason: c.edit_unavailable_reason ?? (c.source_hash ? null : '원문 위치를 확인하려면 다시 검사해 주세요.'),
+      edit_unavailable_reason: c.review_stale ? '원고 전체가 변경됐어요. 다시 검사해 주세요.' : c.edit_unavailable_reason ?? (c.source_hash ? null : '원문 위치를 확인하려면 다시 검사해 주세요.'),
       review_kind: c.detected_by === 'ai' ? 'ai' : 'keyword',
       index: i + 1,
       title:
-        (c.detected_by === 'rule' ? '미검토 키워드 단서 · ' : '') +
+        (c.review_stale ? '이전 원고의 검토 · ' : c.detected_by === 'rule' ? '미검토 키워드 단서 · ' : '') +
         (rule?.title ?? c.conflict_target ?? c.matched_keyword ?? '설정 충돌'),
       severity: c.severity ?? 'medium',
       status: c.status,
       rule_id: c.rule_id,
-      evidence: [
+      evidence: c.source_evidence?.length ? c.source_evidence.map((e) => ({chapter: e.chapter_no, character: null, quote: e.quote, manuscript_id: c.manuscript_id})) : [
         { chapter: ruleSource?.chapter_no ?? rule?.source_chapter_no ?? 0, character: null, quote: ruleSource?.quote ?? rule?.evidence ?? rule?.description ?? '', manuscript_id: ruleSource?.manuscript_id },
         {
           chapter: c.chapter ?? 0,
@@ -462,7 +362,7 @@ async function realConflicts(token: string, projectId: string) {
         },
       ],
       anchor:
-        c.chapter_id && c.matched_keyword && c.input_event.includes(c.matched_keyword)
+        !c.review_stale && c.chapter_id && c.matched_keyword && c.input_event.includes(c.matched_keyword)
           ? { chapter_id: c.chapter_id, quote: c.matched_keyword, context: c.input_event }
           : undefined,
       advice:
