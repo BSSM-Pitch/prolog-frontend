@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import {
   Fragment,
   useCallback,
@@ -409,7 +410,7 @@ export function ReviewedManuscript(props: Props) {
             </div>
             <h2 id={titleId}>{conflict.title}</h2>
             {conflict.evidence[0]?.quote && <blockquote>{conflict.evidence[0].quote}</blockquote>}
-            <p className="manuscript-review__advice">{conflict.advice}</p>
+            <RichText className="manuscript-review__advice">{conflict.advice}</RichText>
             {actionError && <p role="alert">{actionError}</p>}
             <div className="manuscript-review__actions">
               <button type="button" className="text-link" onClick={() => props.onOpenReview(conflict)}>

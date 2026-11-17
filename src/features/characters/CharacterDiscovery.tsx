@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useState } from 'react'
 import * as api from '../../api/characterMemory'
 import type { DiscoveredCharacter, MemoryJob } from '../../api/characterMemory'
@@ -141,7 +142,7 @@ function ReviewCandidate({
     <article className="discovery-candidate">
       <strong>{candidate.name}</strong>
       {candidate.alias_of && <span className="panel__label"> · {candidate.alias_of}의 다른 표기일 수 있어요</span>}
-      <p>{candidate.reason}</p>
+      <RichText>{candidate.reason}</RichText>
       <blockquote>{candidate.evidence.quote}</blockquote>
       {canEdit &&
         (working ? (

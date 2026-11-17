@@ -1,3 +1,5 @@
+import { useProjectImages } from '../../components/useProjectImages'
+import { ProjectCover, ImagePicker } from '../../components/ProjectImages'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import * as projectsApi from '../../api/projects'
@@ -18,6 +20,8 @@ export function OverviewPage() {
   const [reloadKey, setReloadKey] = useState(0)
   const projectId = project?.project_id
   const key = `${projectId}|${reloadKey}`
+  const images = useProjectImages(projectId ?? '')
+  const cover = images.data?.find((image) => image.kind === 'cover')
 
   useEffect(() => {
     if (!projectId) return
@@ -38,9 +42,26 @@ export function OverviewPage() {
   return (
     <div className="overview">
       <header className="overview__header">
-        <p className="page-crumb">{project.owner_type === 'team' ? (project.team_name ?? '팀 작품') : '개인 작품'}</p>
-        <h1 className="page-title">{project.title}</h1>
-        {project.description && <p className="overview__description">{project.description}</p>}
+        <div className="overview__heading">
+          <p className="page-crumb">
+            {project.owner_type === 'team' ? (project.team_name ?? '팀 작품') : '개인 작품'}
+          </p>
+          <h1 className="page-title">{project.title}</h1>
+          {project.description && <p className="overview__description">{project.description}</p>}
+        </div>
+        <section className="overview__cover" aria-label="작품 표지">
+          <ProjectCover title={project.title} src={cover?.url} />
+          {project.my_role !== 'viewer' && (
+            <ImagePicker
+              projectId={project.project_id}
+              targetId={project.project_id}
+              kind="cover"
+              current={cover}
+              onChanged={images.reload}
+            />
+          )}
+          {images.error && <p role="alert">{images.error}</p>}
+        </section>
       </header>
       {error && (
         <div className="panel overview__problem" role="alert">
@@ -76,7 +97,11 @@ export function OverviewPage() {
                   : to('manuscripts')
               }
             >
-              {ov.current_manuscript ? (project.my_role === 'viewer' ? '원고 읽기' : '이어서 쓰기') : '원고 시작하기'}
+              {ov.current_manuscript
+                ? project.my_role === 'viewer'
+                  ? '원고 읽기'
+                  : '이어서 쓰기'
+                : '원고 시작하기'}
             </Link>
             {ov.current_manuscript && (
               <Link className="text-link overview__all" to={to('manuscripts')}>

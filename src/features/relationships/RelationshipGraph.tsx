@@ -1,3 +1,6 @@
+import { useProjectImages } from '../../components/useProjectImages'
+import { Avatar } from '../../components/ProjectImages'
+import { useProject } from '../app/currentProject'
 import { useEffect, useRef, useState } from 'react'
 import type { relationshipView } from '../insights/insightModel'
 
@@ -14,6 +17,10 @@ export function RelationshipGraph({
   onPerson: (id: string) => void
   onRelationship: (id: string) => void
 }) {
+  const project = useProject()
+  const images = useProjectImages(project?.project_id ?? '')
+  const portrait = (id?: string) =>
+    images.data?.find((image) => image.kind === 'portrait' && image.target_id === id)?.url
   const container = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(false)
   useEffect(() => {
@@ -55,7 +62,11 @@ export function RelationshipGraph({
           )
         })}
       </svg>
-      <div className="relation-graph__person relation-graph__center" style={{ left: `${center.x}%`, top: center.y }}>
+      <div
+        className="relation-graph__person relation-graph__center"
+        style={{ left: `${center.x}%`, top: center.y }}
+      >
+        <Avatar name={view.center?.name ?? ''} src={portrait(view.center?.character_id)} />
         <strong>{view.center?.name}</strong>
       </div>
       {view.rows.map((item, index) => {
@@ -69,6 +80,7 @@ export function RelationshipGraph({
               onClick={() => onPerson(item.person.character_id)}
               aria-label={`${item.person.name} 중심으로 보기`}
             >
+              <Avatar name={item.person.name} src={portrait(item.person.character_id)} />
               <strong>{item.person.name}</strong>
             </button>
             <button

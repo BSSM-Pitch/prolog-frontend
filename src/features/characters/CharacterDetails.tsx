@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconArrowUpRight, IconBook2, IconChartBar, IconChevronDown, IconSearch } from '@tabler/icons-react'
@@ -672,7 +673,7 @@ function Record({
         {row.perception_context && (
           <div className="speaker-reason">
             <strong>인지 문맥 연결 근거</strong>
-            <p>{row.perception_context.reason}</p>
+            <RichText>{row.perception_context.reason}</RichText>
             {row.perception_context.evidence.map((proof, index) => <p key={index}><q>{proof.quote}</q></p>)}
           </div>
         )}
@@ -687,7 +688,7 @@ function Record({
                   {' · '}{check.name ?? '인물 미상'}
                   {check.attribution === 'uncertain' ? ' (미확정)' : ''}
                 </p>
-                <p>{check.reason}</p>
+                <RichText>{check.reason}</RichText>
                 {check.evidence.map((proof, proofIndex) => <p key={proofIndex}><q>{proof.quote}</q></p>)}
               </div>
             ))}
@@ -695,7 +696,7 @@ function Record({
         ) : row.speaker_check && (
           <div className="speaker-reason">
             <strong>화자 검토 근거</strong>
-            <p>{row.speaker_check.reason}</p>
+            <RichText>{row.speaker_check.reason}</RichText>
             <q>{row.speaker_check.evidence.quote}</q>
           </div>
         )}

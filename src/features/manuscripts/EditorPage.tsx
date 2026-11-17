@@ -1,4 +1,4 @@
-import { downloadText } from '../../lib/downloadText'
+import { ExportDialog } from './ExportDialog'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
@@ -73,17 +73,6 @@ function DocumentEditor() {
   const queue = useRef(new ChapterSaveQueue())
 
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
-
-  async function exportText() {
-    setExporting(true)
-    try {
-      if (!(await flush())) return
-      const body = await withAuth((t) => api.exportManuscriptText(t, projectId, manuscriptId))
-      downloadText(manuscript.data?.title ?? '원고', body)
-    } catch (e) {
-      setSave({ kind: 'error', message: describeError(e) })
-    } finally { setExporting(false) }
-  }
 
   async function flush(): Promise<boolean> {
     if (composingRef.current) return false
@@ -367,13 +356,14 @@ function DocumentEditor() {
               >
                 편집 이력
               </Link>
-              <button type="button" className="text-link" disabled={!ready || exporting || composing} onClick={exportText}>
-                {exporting ? '원고를 준비하고 있어요…' : '원고 내려받기 (.txt)'}
+              <button type="button" className="text-link" disabled={!ready || exporting || composing} onClick={() => setExporting(true)}>
+                원고 내보내기
               </button>
               {!canEdit && <span className="panel__label">보기 전용이라 수정할 수 없어요</span>}
             </div>
           </section>
 
+          {exporting && <ExportDialog projectId={projectId} manuscriptId={manuscriptId} title={manuscript.data?.title ?? '원고'} chapters={list} current={chapter?.chapter_no} beforeExport={flush} onClose={() => setExporting(false)} />}
           <AskPanel
             projectId={projectId}
             manuscriptId={manuscriptId}

@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { IconChevronDown } from '@tabler/icons-react'
@@ -304,7 +305,7 @@ function StoryFlow({
                               {TYPE_LABEL[node.type]}
                               {node.characters.length > 0 ? ` · ${node.characters.join(', ')}` : ''}
                             </p>
-                            {node.summary && <p className="story__summary">{node.summary}</p>}
+                            {node.summary && <RichText>{node.summary}</RichText>}
                             <Connections
                               key={node.node_id}
                               map={data}
