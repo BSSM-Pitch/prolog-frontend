@@ -3,6 +3,7 @@ import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
 import { ApiError } from '../../api/client'
 import type { Character } from '../../api/types'
+import type { MemoryOverview } from '../../api/characterMemory'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -32,6 +33,7 @@ export function CharactersPage() {
 
   const list = useResource(project ? (t) => api.listCharacters(t, projectId) : null, [projectId])
   const [query, setQuery] = useState('')
+  const [overview, setOverview] = useState<MemoryOverview | null>(null)
   const [shown, setShown] = useState(PAGE)
   const [confirm, setConfirm] = useState<Character | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -122,7 +124,9 @@ export function CharactersPage() {
                 >
                   <span className="char-item__name">{c.name}</span>
                   <span className="char-item__meta">
-                    {c.role_label} · {c.status_label} / 마지막 등장 {c.last_chapter ? `${c.last_chapter}장` : '—'}
+                    {c.role_label} · {c.status_label} / {overview?.character_last_records?.[c.character_id]
+                      ? `최근 분석 기록 ${overview.character_last_records[c.character_id]}장${overview.stale ? ' · 이전 원고 기준' : ''}`
+                      : '분석에서 확인된 기록 없음'}
                   </span>
                 </button>
               </li>
@@ -156,6 +160,7 @@ export function CharactersPage() {
             canEdit={canEdit}
             characters={all}
             onCharactersChanged={list.reload}
+            onOverview={setOverview}
             initialManuscriptId={params.get('manuscript') ?? undefined}
           />
           {selected && (

@@ -195,3 +195,12 @@
 .insight-page .conflict-layout--closed {
   grid-template-columns: minmax(0, 1fr);
 }
+.insight-review {
+  margin-block: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid var(--border, #ddd);
+}
+.insight-review .insight-actions { justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.insight-review details { margin-top: 1rem; }
+.insight-review summary { cursor: pointer; font-weight: 600; }
+.insight-review .answer { max-width: 76ch; margin-top: 1rem; }

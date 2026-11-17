@@ -31,6 +31,7 @@ export function CharacterDetails({
   characters,
   onCharactersChanged,
   initialManuscriptId,
+  onOverview,
 }: {
   projectId: string
   characterId?: string
@@ -38,6 +39,7 @@ export function CharacterDetails({
   characters: PersonOption[]
   onCharactersChanged: () => void
   initialManuscriptId?: string
+  onOverview?: (overview: MemoryOverview | null) => void
 }) {
   const manuscripts = useResource((t) => listManuscripts(t, projectId), [projectId])
   const [chosen, setChosen] = useState(initialManuscriptId ?? '')
@@ -88,7 +90,7 @@ export function CharacterDetails({
       </div>
       <MemoryWorkspace
         key={`${projectId}:${manuscript.manuscript_id}`}
-        {...{ projectId, characterId, canEdit, characters, onCharactersChanged }}
+        {...{ projectId, characterId, canEdit, characters, onCharactersChanged, onOverview }}
         manuscriptId={manuscript.manuscript_id}
       />
     </div>
@@ -102,6 +104,7 @@ function MemoryWorkspace({
   canEdit,
   characters,
   onCharactersChanged,
+  onOverview,
 }: {
   projectId: string
   manuscriptId: string
@@ -109,6 +112,7 @@ function MemoryWorkspace({
   canEdit: boolean
   characters: PersonOption[]
   onCharactersChanged: () => void
+  onOverview?: (overview: MemoryOverview | null) => void
 }) {
   const state = useResource((t) => api.getMemory(t, projectId, manuscriptId), [projectId, manuscriptId])
   const [busy, setBusy] = useState(false)
@@ -116,6 +120,10 @@ function MemoryWorkspace({
   const [order, setOrder] = useState('')
   const { withAuth } = useSession()
   const memory = state.data
+  useEffect(() => {
+    onOverview?.(memory)
+    return () => onOverview?.(null)
+  }, [memory, onOverview])
   const working = memory?.job?.status === 'queued' || memory?.job?.status === 'running'
   useInterval(state.reload, 4000, working)
   const discoveryComplete = memory?.job?.discovery?.complete
