@@ -30,6 +30,7 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['GET|POST', /^\/projects\/[^/]+\/chapters$/],
   ['GET|PATCH|DELETE', /^\/projects\/[^/]+\/chapters\/[^/]+$/],
   ['GET', /^\/projects\/[^/]+\/manuscripts\/[^/]+\/versions$/],
+  ['POST', /^\/projects\/[^/]+\/manuscripts\/[^/]+\/versions\/[^/]+\/restore$/],
   // ASS 수동 경로
   ['GET|POST', r('{P}\\/character-drafts$')],
   ['GET|PATCH', r('{P}\\/character-drafts\\/{ID}$')],
