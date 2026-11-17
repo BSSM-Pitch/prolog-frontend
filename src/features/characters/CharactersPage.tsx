@@ -128,7 +128,7 @@ export function CharactersPage() {
                   <span className="char-item__name"><Avatar name={c.name} src={images.data?.find((image) => image.kind === 'portrait' && image.target_id === c.character_id)?.url} />{c.name}</span>
                   <span className="char-item__meta">
                     {c.role_label} · {c.status_label} / {overview?.character_last_records?.[c.character_id]
-                      ? `최근 분석 기록 ${overview.character_last_records[c.character_id]}장${overview.stale ? ' · 이전 원고 기준' : ''}`
+                      ? `최근 분석 기록 ${overview.chapters.find((part) => part.order === overview.character_last_records?.[c.character_id])?.title ?? `${overview.character_last_records[c.character_id]}구간`}${overview.stale ? ' · 이전 원고 기준' : ''}`
                       : '분석에서 확인된 기록 없음'}
                   </span>
                 </button>
