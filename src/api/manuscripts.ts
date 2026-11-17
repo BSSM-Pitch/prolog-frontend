@@ -17,6 +17,10 @@ export async function createManuscript(accessToken: string, projectId: string, i
   if (!IS_REAL) return request<Manuscript>('POST', base(projectId), { body: input, accessToken })
   // 백엔드는 업로드 원고를 source_type "upload"로 부른다
   const m = await request<BackendManuscript>('POST', base(projectId), { body: { title: input.title, source_type: input.source_type === 'file' ? 'upload' : 'editor' }, accessToken })
+  if (input.source_type === 'editor' && m.chapter_count === 0) {
+    await real.addChapter(accessToken, projectId, m.manuscript_id, {})
+    return toManuscript({ ...m, chapter_count: 1 })
+  }
   return toManuscript(m)
 }
 
@@ -307,4 +311,15 @@ function nearestIndex(text: string, needle: string, near: number) {
     if (best < 0 || Math.abs(i - near) < Math.abs(best - near)) best = i
   }
   return best
+}
+
+/** Restore into a new manuscript so today's draft always remains recoverable. */
+export async function restoreVersionCopy(token: string, projectId: string, manuscriptId: string, versionId: string) {
+  const copy = await request<BackendManuscript>('POST', `${base(projectId)}/${manuscriptId}/versions/${versionId}/restore`, { accessToken: token })
+  return toManuscript(copy)
+}
+
+export async function exportManuscriptText(token: string, projectId: string, manuscriptId: string) {
+  const chapters = await listChapters(token, projectId, manuscriptId)
+  return joinChapters(chapters)
 }

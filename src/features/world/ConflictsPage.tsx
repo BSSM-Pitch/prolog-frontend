@@ -18,7 +18,7 @@ import { Select } from '../../components/Select'
 import { RuleReviewSummary } from './RuleReviewSummary'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
-const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
+const STATUS = { pending: '검토 대기', accepted: '검토 완료 · 원고 유지', ignored: '무시함', modified: '직접 수정' } as const
 const pad = (n: number) => String(n).padStart(2, '0')
 
 type SkipInfo = { title: string; body: string; action: string; to: string }
@@ -129,7 +129,7 @@ function ConflictReview() {
     setError(null)
     try {
       const updated = await withAuth((t) =>
-        api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content }),
+        api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content, source_hash: c.source_hash }),
       )
       conflicts.setData((prev) => prev?.map((x) => (x.conflict_id === updated.conflict_id ? updated : x)) ?? null)
       setEditing(null)
@@ -138,7 +138,7 @@ function ConflictReview() {
           ? `${c.evidence[c.evidence.length - 1].chapter}장 문장을 고쳤어요.`
           : action === 'ignored'
             ? '무시한 충돌은 같은 문장에서 다시 감지하지 않아요.'
-            : '제안을 수용했어요.',
+            : '검토 완료로 표시했어요. 원고는 바뀌지 않았어요.',
       )
       // 다음 미검토 항목으로 넘어간다
       const next = pending.find((x) => x.conflict_id !== c.conflict_id)
@@ -305,10 +305,10 @@ function ConflictReview() {
                     {e.character ? ` · ${e.character}` : ''}
                   </p>
                   <p className="evidence-card__quote">“{e.quote}”</p>
-                  {latest && e.chapter > 0 && (
+                  {(e.manuscript_id || (i > 0 && (selected.manuscript_id || latest))) && e.chapter > 0 && (
                     <Link
                       className="text-link"
-                      to={`${projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}?chapter=${e.chapter}`}
+                      to={`${projectPath(projectId, `manuscripts/${e.manuscript_id ?? selected.manuscript_id ?? latest?.manuscript_id}`)}?chapter=${e.chapter}`}
                       state={{ highlight: e.quote }}
                     >
                       {e.chapter}장 원문 보기
@@ -338,6 +338,11 @@ function ConflictReview() {
                 <span className="panel__label">저장하면 원고의 해당 문장이 이 내용으로 바뀌어요.</span>
               </label>
             )}
+            {selected.status === 'pending' && (
+              <p className="panel__label">
+                {selected.edit_unavailable_reason ?? '직접 수정은 원고를 바꾸고, 검토만 완료는 원고를 그대로 둡니다.'}
+              </p>
+            )}
             {error && (
               <p className="notice notice--error" role="alert">
                 {error}
@@ -349,6 +354,7 @@ function ConflictReview() {
                   <>
                     <Button
                       tone="outline"
+                      disabled={busy || Boolean(selected.edit_unavailable_reason)}
                       onClick={() => setEditing(selected.evidence[selected.evidence.length - 1].quote)}
                     >
                       직접 수정
@@ -357,7 +363,7 @@ function ConflictReview() {
                       무시
                     </Button>
                     <Button onClick={() => resolve(selected, 'accepted')} busy={busy}>
-                      제안 수용
+                      검토만 완료
                     </Button>
                   </>
                 ) : (

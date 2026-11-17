@@ -180,21 +180,32 @@ function MemoryWorkspace({
             <strong>
               {memory.job?.status === 'queued'
                 ? '인물 기록 분석을 기다리고 있어요'
+                : memory.job?.progress.stage?.includes('repair:')
+                  ? '빠진 디테일이 있는 부분만 다시 확인하고 있어요'
+                : memory.job?.progress.stage?.startsWith('attribution:')
+                  ? '판정이 엇갈린 행동과 특징의 주인을 확인하고 있어요'
+                : memory.job?.progress.stage?.startsWith('verify-repair:')
+                  ? '검증이 빠졌거나 근거가 잘못된 기록만 다시 확인하고 있어요'
+                : memory.job?.progress.stage?.startsWith('verify:')
+                  ? '대사와 행동의 주체를 원문과 대조하고 있어요'
+                  : memory.job?.progress.stage?.startsWith('patterns:') || memory.job?.progress.stage === 'synthesis'
+                    ? '인물의 말버릇과 심리 변화를 정리하고 있어요'
                 : memory.job?.discovery && !memory.job.discovery.complete
-                  ? '원고에서 등장인물을 찾고 있어요'
+                  ? '등장인물과 작은 행동을 함께 찾고 있어요'
                   : '원문에서 인물의 디테일을 모으고 있어요'}
             </strong>
             <p>
-              장면 추출 {memory.job?.progress.processed_scenes} / {memory.job?.progress.total_scenes} · 관찰{' '}
-              {memory.job?.progress.observations}개 · 대사 검증 {memory.job?.progress.verified_speakers}개
+              원고 {memory.job?.progress.total_scenes}장 · 확인한 디테일 {memory.job?.progress.observations}개
+              {Boolean(memory.job?.progress.completed_requests) && ` · 검토 단계 ${memory.job?.progress.completed_requests}개 완료`}
             </p>
+            {memory.job_stale && <p>요청할 때의 원고로 분석 중이에요. 이후 수정한 내용은 다음 분석에 반영됩니다.</p>}
             <small>다른 작업을 하거나 화면을 닫아도 분석은 계속됩니다.</small>
           </div>
         </div>
       ) : memory.job?.status === 'failed' ? (
         <div className="detail-notice">
-          <p>분석이 중단됐어요. 완료한 구간은 보관했습니다.</p>
-          {canEdit && (
+          <p>{memory.job.error?.message ?? '분석이 중단됐어요. 완료한 구간은 보관했습니다.'}</p>
+          {canEdit && (memory.job_stale || !['AI_MEMORY_BUDGET_EXCEEDED', 'AI_MEMORY_PLAN_TOO_LARGE'].includes(memory.job.error?.code ?? '')) && (
             <Button busy={busy} disabled={busy} onClick={() => analyze(!memory.job_stale)}>
               {memory.job_stale ? '현재 원고로 분석' : '이어서 분석'}
             </Button>
@@ -211,7 +222,7 @@ function MemoryWorkspace({
           <p>
             원고에서 새 인물을 자동 추가하고, 발화와 작은 행동을 인물별로 모아요.
             <br />
-            장편의 상세 분석은 수시간 걸릴 수 있어요.
+            분량에 따라 시간이 걸려요. 단계별 진행 상황을 확인하면서 계속 집필할 수 있어요.
           </p>
           {canEdit && memory.can_analyze && (memory.job?.status !== 'completed' || memory.job_stale) ? (
             <Button disabled={busy} busy={busy} onClick={() => analyze()}>
@@ -624,7 +635,7 @@ function Record({
       <div className="detail-card-top">
         <div>
           <span className={`detail-badge ${row.attribution === 'uncertain' ? 'detail-badge--amber' : ''}`}>
-            {row.attribution === 'uncertain' ? '화자 확인 필요' : kindLabel[row.kind]}
+            {row.perception_context ? '인지 문맥 연결 · 추론' : row.attribution === 'uncertain' ? '인물 확인 필요' : kindLabel[row.kind]}
           </span>
           {roleLabel[row.behavior_role] && <span className="detail-role">{roleLabel[row.behavior_role]}</span>}
         </div>
@@ -633,6 +644,7 @@ function Record({
       <h4>{row.summary}</h4>
       <blockquote>{row.evidence.quote}</blockquote>
       <p className="detail-context">{row.context}</p>
+      {row.perception_context && <p className="detail-context">앞뒤 인지 문맥으로 연결한 기록입니다. 인물은 아직 확정되지 않았어요.</p>}
       <div className="detail-record-footer">
         <span>
           {presentationLabel[row.presentation]}
@@ -649,7 +661,30 @@ function Record({
           <mark>{row.source.quote}</mark>
           {row.source.after}
         </p>
-        {row.speaker_check && (
+        {row.perception_context && (
+          <div className="speaker-reason">
+            <strong>인지 문맥 연결 근거</strong>
+            <p>{row.perception_context.reason}</p>
+            {row.perception_context.evidence.map((proof, index) => <p key={index}><q>{proof.quote}</q></p>)}
+          </div>
+        )}
+        {row.attribution_checks?.length ? (
+          <div className="speaker-reason">
+            <strong>인물 연결 검토 근거</strong>
+            {row.attribution === 'uncertain' && <p>아래는 단계별 후보이며, 이 기록의 인물은 아직 확정되지 않았어요.</p>}
+            {row.attribution_checks.map((check, index) => (
+              <div key={index}>
+                <p>
+                  {{ extract: '원문 추출', verify: '독립 검증', adjudicate: '재검토' }[check.stage]}
+                  {' · '}{check.name ?? '인물 미상'}
+                  {check.attribution === 'uncertain' ? ' (미확정)' : ''}
+                </p>
+                <p>{check.reason}</p>
+                {check.evidence.map((proof, proofIndex) => <p key={proofIndex}><q>{proof.quote}</q></p>)}
+              </div>
+            ))}
+          </div>
+        ) : row.speaker_check && (
           <div className="speaker-reason">
             <strong>화자 검토 근거</strong>
             <p>{row.speaker_check.reason}</p>

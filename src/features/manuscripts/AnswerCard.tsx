@@ -1,5 +1,6 @@
 import type { Citation, QAMessage } from '../../api/types'
 import { Button } from '../../components/Button'
+import Markdown from 'react-markdown'
 
 interface AnswerCardProps {
   message: QAMessage | null
@@ -47,7 +48,11 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
 
   return (
     <div className="answer">
-      <p className="answer__text">{message.content}</p>
+      <div className="answer__text answer__markdown">
+        <Markdown skipHtml disallowedElements={['img']}>
+          {message.content ?? ''}
+        </Markdown>
+      </div>
       {message.citations.length > 0 && (
         <ul className="answer__citations">
           {message.citations.map((c) => (

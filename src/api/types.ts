@@ -376,6 +376,9 @@ export interface WorldRule {
 
 /** SCDS 2.7 Conflict — Figma 05는 "두 근거 비교"라서 evidence[] 구조로 받는다 (명세 미정의) */
 export interface Conflict {
+  manuscript_id?: string | null
+  source_hash?: string | null
+  edit_unavailable_reason?: string | null
   conflict_id: string
   review_kind?: 'ai' | 'keyword'
   index: number
@@ -383,7 +386,7 @@ export interface Conflict {
   severity: 'high' | 'medium' | 'low'
   status: 'pending' | 'accepted' | 'ignored' | 'modified'
   rule_id: string | null
-  evidence: Array<{ chapter: number; character: string | null; quote: string }>
+  evidence: Array<{ chapter: number; character: string | null; quote: string; manuscript_id?: string | null }>
   /** 실제 검사 대상 장과 원문. 위치를 확인할 수 없는 결과는 인라인 표시하지 않는다. */
   anchor?: { chapter_id: string; quote: string; context?: string }
   advice: string

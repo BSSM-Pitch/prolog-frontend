@@ -78,7 +78,7 @@ export function listConflicts(token: string, projectId: string) {
 }
 
 /** SCDS 4.11 수용 / 무시 / 수정 */
-export function resolveConflict(token: string, projectId: string, conflictId: string, body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string }) {
+export function resolveConflict(token: string, projectId: string, conflictId: string, body: { action: 'accepted' | 'ignored' | 'modified'; modified_content?: string; source_hash?: string | null }) {
   if (IS_REAL) return ai.resolveConflict(token, projectId, conflictId, body)
   return request<Conflict>('PATCH', `${p(projectId)}/conflicts/${conflictId}`, { body, accessToken: token })
 }

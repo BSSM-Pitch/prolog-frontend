@@ -54,6 +54,7 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
   const selectedIndex = options.findIndex((o) => o.value === current)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null)
   const [box, setBox] = useState<{ left: number; top: number; width: number; up: boolean } | null>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLUListElement>(null)
@@ -69,6 +70,7 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
 
   function show() {
     if (disabled) return
+    setPortalRoot(trigger.current?.closest('dialog[open]') as HTMLElement | null ?? document.body)
     setActive(selectedIndex >= 0 ? selectedIndex : enabled(-1, 1))
     setOpen(true)
   }
@@ -83,7 +85,7 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
     if (o.value !== current) onChange({ target: { value: o.value }, currentTarget: { value: o.value } })
   }
 
-  // 열릴 때 트리거 아래(자리가 모자라면 위)에 맞춰 놓는다. 스크롤 영역에 잘리지 않도록 body에 그린다
+  // 열릴 때 트리거 아래(자리가 모자라면 위)에 맞춰 놓는다. 대화상자 안에서는 같은 최상위 레이어에 그린다
   useLayoutEffect(() => {
     if (!open || !trigger.current) return
     const r = trigger.current.getBoundingClientRect()
@@ -198,7 +200,7 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
               </li>
             ))}
           </ul>,
-          document.body,
+          portalRoot ?? document.body,
         )}
     </>
   )
