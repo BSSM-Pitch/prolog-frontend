@@ -198,7 +198,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       )}
       {!list.loading && !list.error && !rows.length && (
         <div className="insight-state">
-          <h2>{all.length ? '조건에 맞는 복선이 없어요.' : '아직 심어 둔 복선이 없어요.'}</h2>
+          <h2>{all.length ? '조건에 맞는 복선이 없어요.' : '직접 기록한 복선은 아직 없어요.'}</h2>
           {all.length ? (
             <button
               type="button"
@@ -208,7 +208,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
               전체 복선 보기
             </button>
           ) : (
-            <p>나중에 이어질 장면을 기록해 두세요.</p>
+            <p>자동으로 찾은 후보는 위 검토에서 볼 수 있어요. 따로 관리할 복선을 여기에 기록해 두세요.</p>
           )}
         </div>
       )}
