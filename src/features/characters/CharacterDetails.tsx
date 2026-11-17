@@ -14,6 +14,7 @@ import { useInterval, useResource } from '../../lib/useResource'
 import { projectPath } from '../app/currentProject'
 import {
   kindLabel,
+  groupSourceRecords,
   patternRecords,
   periodLabel,
   presentationLabel,
@@ -315,6 +316,7 @@ function Dossier({
   if (!resource.data || resource.loading) return <p role="status">원문 근거를 불러오고 있어요.</p>
   const data = resource.data
   const records = visibleRecords(data, category, query, ids).filter((r) => !recordOrder || r.order === Number(recordOrder))
+  const groups = groupSourceRecords(records)
   const patterns = patternRecords(data.patterns, data.observations).filter((p) =>
     [
       p.description,
@@ -407,7 +409,8 @@ function Dossier({
         </p>
       )}
       <div className="detail-result-count">
-        {category === 'patterns' ? patterns.length : records.length}개 기록 {ids && '· 선택한 평가·수치의 근거'}
+        {category === 'patterns' ? patterns.length : records.length}개 기록
+        {category !== 'patterns' && groups.length !== records.length && ` · 원문 ${groups.length}곳`} {ids && '· 선택한 평가·수치의 근거'}
       </div>
       {category === 'patterns' ? (
         <div className="detail-patterns">
@@ -470,26 +473,32 @@ function Dossier({
         </div>
       ) : (
         <div className="detail-records">
-          {records.slice(Math.max(0, shown - 24), shown).map((r) => (
-            <Record key={r.observation_id} row={r} {...{ projectId, manuscriptId }} stale={data.stale} />
+          {groups.slice(Math.max(0, shown - 24), shown).map((rows) => (
+            <div className="detail-source-group" key={rows[0].observation_id}>
+              <Record row={rows[0]} {...{ projectId, manuscriptId }} stale={data.stale} />
+              {rows.length > 1 && <details className="detail-related-records">
+                <summary>같은 원문의 다른 분류 {rows.length - 1}개 · {Array.from(new Set(rows.slice(1).map((r) => kindLabel[r.kind]))).join(' · ')}</summary>
+                {rows.slice(1).map((r) => <Record key={r.observation_id} row={r} {...{ projectId, manuscriptId }} stale={data.stale} />)}
+              </details>}
+            </div>
           ))}
         </div>
       )}
-      {(category === 'patterns' ? patterns.length : records.length) === 0 && (
+      {(category === 'patterns' ? patterns.length : groups.length) === 0 && (
         <div className="detail-empty detail-empty--small">
           <h4>이 조건에 맞는 기록이 없어요</h4>
           <p>추출 누락이 있을 수 있어요. 원문에 해당 행동이 없다는 뜻은 아닙니다.</p>
         </div>
       )}
-      {(category === 'patterns' ? patterns.length : records.length) > 24 && (
+      {(category === 'patterns' ? patterns.length : groups.length) > 24 && (
         <nav className="detail-pagination" aria-label="인물 기록 페이지">
           <Button tone="outline" disabled={shown <= 24} onClick={() => setShown(24)}>처음</Button>
           <Button tone="outline" disabled={shown <= 24} onClick={() => setShown((n) => Math.max(24, n - 24))}>이전</Button>
           <Select aria-label="기록 페이지" value={String(Math.ceil(shown / 24))} onChange={(e) => setShown(Number(e.target.value) * 24)}>
-            {Array.from({ length: Math.ceil((category === 'patterns' ? patterns.length : records.length) / 24) }, (_, i) => <option key={i} value={i + 1}>{i + 1}페이지</option>)}
+            {Array.from({ length: Math.ceil((category === 'patterns' ? patterns.length : groups.length) / 24) }, (_, i) => <option key={i} value={i + 1}>{i + 1}페이지</option>)}
           </Select>
-          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : records.length)} onClick={() => setShown((n) => n + 24)}>다음</Button>
-          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : records.length)} onClick={() => setShown(Math.ceil((category === 'patterns' ? patterns.length : records.length) / 24) * 24)}>마지막</Button>
+          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : groups.length)} onClick={() => setShown((n) => n + 24)}>다음</Button>
+          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : groups.length)} onClick={() => setShown(Math.ceil((category === 'patterns' ? patterns.length : groups.length) / 24) * 24)}>마지막</Button>
         </nav>
       )}
       <p className="detail-footnote">

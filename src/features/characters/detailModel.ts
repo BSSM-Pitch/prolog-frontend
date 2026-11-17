@@ -45,3 +45,16 @@ export function visibleRecords(
 export function periodLabel(orders: number[]) {
   return orders.length ? `${orders[0]}–${orders[orders.length - 1]} 구간` : '이전 구간 없음'
 }
+
+/** Group display only: preserve every classification, decision and evidence ID. */
+export function groupSourceRecords(records: DetailRecord[]): DetailRecord[][] {
+  const groups = new Map<string, DetailRecord[]>()
+  for (const record of records) {
+    const e = record.evidence
+    const key = JSON.stringify([e.scene_id, e.revision, e.start, e.end, e.quote])
+    const rows = groups.get(key) ?? []
+    rows.push(record)
+    groups.set(key, rows)
+  }
+  return [...groups.values()]
+}
