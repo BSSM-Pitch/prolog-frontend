@@ -19,6 +19,8 @@
 .app__main--shell {
   display: flex;
   flex-direction: column;
+  /* 맨 아래까지 내렸을 때 의견 링크가 사이드바 아래 사용자 아이디와 같은 높이에 오도록 */
+  padding-bottom: 29px;
 }
 .app__page {
   flex: 1 0 auto;
