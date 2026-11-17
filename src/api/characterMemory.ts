@@ -38,6 +38,7 @@ export interface MemoryOverview {
   manuscript_id: string
   job: MemoryJob | null
   available_analysis_id: string | null
+  patterns_pending?: boolean
   stale: boolean
   job_stale: boolean
   mode: 'real' | 'fake' | null

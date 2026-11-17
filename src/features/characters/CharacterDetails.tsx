@@ -180,6 +180,9 @@ function MemoryWorkspace({
       {memory.stale && (
         <div className="detail-notice">원고 또는 인물 정보가 바뀌었어요. 아래 기록은 이전 원고를 기준으로 합니다.</div>
       )}
+      {memory.patterns_pending && (
+        <div className="detail-notice">검증이 끝난 인물 기록은 지금 볼 수 있어요. 말버릇과 심리 변화의 종합 검토는 아직 완료되지 않았습니다.</div>
+      )}
       {memory.mode === 'fake' && (
         <div className="detail-notice">테스트 모드로 만든 빈 분석입니다. 실제 디테일 분석 결과가 아니에요.</div>
       )}
@@ -270,7 +273,7 @@ function MemoryWorkspace({
             </Select>
           </div>
           <Dossier
-            key={`${characterId}:${memory.available_analysis_id}:${order}`}
+            key={`${characterId}:${memory.available_analysis_id}:${order}:${Boolean(memory.patterns_pending)}`}
             {...{ projectId, manuscriptId, characterId, order, memory, canEdit }}
           />
         </>
@@ -349,7 +352,8 @@ function Dossier({
   return (
     <>
       <CharacterAssessment
-        {...{ projectId, manuscriptId, characterId, order, data, canEdit }}
+        {...{ projectId, manuscriptId, characterId, order, data }}
+        canEdit={canEdit && !memory.patterns_pending}
         onEvidence={evidence}
         onRefresh={resource.reload}
       />
