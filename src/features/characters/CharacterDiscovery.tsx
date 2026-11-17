@@ -40,7 +40,9 @@ export function CharacterDiscovery({
         </p>
       ) : (
         <p role="status">
-          {job.status === 'failed' ? '분석 중단 · 완료한 구간 보관' : '이름과 근거를 찾는 중'} · {report.processed_chunks} / {report.total_chunks}구간
+          {job.status === 'failed' ? '분석 중단 · 완료한 검토 보관' : '인물 이름과 원문 근거를 확인하고 있어요'}
+          {report.processed_chunks > 0 && ` · ${report.processed_chunks} / ${report.total_chunks}구간`}
+          {report.processed_chunks === 0 && ' · 확인을 마친 뒤 인물 목록에 추가됩니다'}
         </p>
       )}
       {report.complete && report.candidates.length === 0 && (
