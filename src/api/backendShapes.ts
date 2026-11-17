@@ -1,4 +1,4 @@
-import type { WorldRuleEvidence } from './types'
+import type { SourceReview, WorldRuleEvidence } from './types'
 import type { Chapter, CharacterCategory, CharacterDraft, DraftItem, Manuscript, ManuscriptStatus, ManuscriptVersionDetail, Project, ProjectRole, QAMessage, QAThread } from './types'
 
 // prolog-backend 응답 모양(openapi.json · app/**/schemas.py)과 프론트 타입 사이의 변환.
@@ -196,6 +196,7 @@ export interface BackendWorldRule {
 // --- FTS 복선 ------------------------------------------------------------------------------------
 
 export interface BackendForeshadowing {
+  source_review?: SourceReview | null
   foreshadowing_id: string
   project_id: string
   title: string

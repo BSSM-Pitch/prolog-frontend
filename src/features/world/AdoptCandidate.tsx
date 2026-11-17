@@ -59,10 +59,20 @@ export function AdoptCandidate({
       [r.source_character_id, r.target_character_id].includes(source) &&
       [r.source_character_id, r.target_character_id].includes(target),
   )
-  const duplicate = existing?.history.some((h) => h.chapter_id === chapterId)
+  const duplicate = existing?.history.find((h) => h.chapter_id === chapterId)
+  const [accepted, setAccepted] = useState<string | null>(null)
+  const comparison = JSON.stringify([
+    existing?.relationship_id,
+    chapterId,
+    duplicate?.source_review?.revision_token,
+    state,
+    trust,
+    description,
+  ])
+  const confirmed = accepted === comparison
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || duplicate) return
+    if (lock.current || (duplicate && !confirmed)) return
     lock.current = true
     setBusy(true)
     setError(null)
@@ -79,6 +89,8 @@ export function AdoptCandidate({
             },
           },
           relationship_id: existing?.relationship_id,
+          replace_existing: !!duplicate,
+          expected_history_token: duplicate?.source_review?.revision_token,
         }
       : {
           foreshadowing: {
@@ -100,6 +112,8 @@ export function AdoptCandidate({
       )
     } catch (e) {
       setError(describeError(e))
+      setAccepted(null)
+      options.reload()
     } finally {
       lock.current = false
       setBusy(false)
@@ -117,7 +131,12 @@ export function AdoptCandidate({
           <>
             <label>
               첫 번째 인물
-              <select aria-label="첫 번째 인물" required value={source} onChange={(e) => setSource(e.target.value)}>
+              <select
+                aria-label="첫 번째 인물"
+                required
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              >
                 <option value="">인물 선택</option>
                 {options.data?.characters.map((c) => (
                   <option key={c.character_id} value={c.character_id}>
@@ -128,7 +147,12 @@ export function AdoptCandidate({
             </label>
             <label>
               두 번째 인물
-              <select aria-label="두 번째 인물" required value={target} onChange={(e) => setTarget(e.target.value)}>
+              <select
+                aria-label="두 번째 인물"
+                required
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+              >
                 <option value="">인물 선택</option>
                 {options.data?.characters
                   .filter((c) => c.character_id !== source)
@@ -159,9 +183,25 @@ export function AdoptCandidate({
                 onChange={(e) => setTrust(e.target.value)}
               />
             </label>
-            {existing && <p>기존 관계에 이 장의 변화 기록을 추가합니다.</p>}
+            {existing && !duplicate && <p>기존 관계에 이 장의 변화 기록을 추가합니다.</p>}
             {duplicate && (
-              <p role="alert">이 장에는 이미 관계 기록이 있어요. 관계 화면에서 기존 기록을 검토해 주세요.</p>
+              <section className="evidence-box" aria-label="기존 관계 기록 비교">
+                <strong>{duplicate.chapter}장에 저장된 기록</strong>
+                <p>
+                  상태: {duplicate.state} · 신뢰도: {duplicate.trust ?? '미지정'}
+                </p>
+                <RichText>{duplicate.event_title ?? '설명 없음'}</RichText>
+                <p>아래 설명과 위의 관계 상태를 비교해 주세요. 기존 기록을 교체하려면 확인이 필요해요.</p>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={confirmed}
+                    disabled={busy || !duplicate.source_review?.revision_token}
+                    onChange={(e) => setAccepted(e.target.checked ? comparison : null)}
+                  />
+                  기존 기록과 비교했고 입력한 내용으로 바꿉니다
+                </label>
+              </section>
             )}
           </>
         ) : (
@@ -172,7 +212,12 @@ export function AdoptCandidate({
         )}
         <label>
           {relation ? '변화가 일어난 장' : '복선을 심은 장'}
-          <select aria-label={relation ? '변화가 일어난 장' : '복선을 심은 장'} required value={chapterId} onChange={(e) => setChapterId(e.target.value)}>
+          <select
+            aria-label={relation ? '변화가 일어난 장' : '복선을 심은 장'}
+            required
+            value={chapterId}
+            onChange={(e) => setChapterId(e.target.value)}
+          >
             <option value="">장 선택</option>
             {chapters.map((c) => (
               <option key={c.chapter_id} value={c.chapter_id}>
@@ -215,10 +260,14 @@ export function AdoptCandidate({
           <button
             className="btn btn--primary"
             disabled={
-              busy || options.loading || !!options.error || duplicate || (relation && source === target)
+              busy ||
+              options.loading ||
+              !!options.error ||
+              (!!duplicate && !confirmed) ||
+              (relation && source === target)
             }
           >
-            {busy ? '등록 중…' : '확인하고 등록'}
+            {busy ? '저장 중…' : duplicate ? '비교한 기록으로 교체' : '확인하고 등록'}
           </button>
         </div>
       </form>

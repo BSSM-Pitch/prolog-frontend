@@ -47,6 +47,8 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   // REX 직접 입력
   ['GET|POST', r('{P}\\/world-rules$')],
   ['PATCH|DELETE', r('{P}\\/world-rules\\/{ID}$')],
+  ['POST', /^\/projects\/[^/]+\/foreshadowings\/[^/]+\/source-confirmation$/],
+  ['POST', /^\/projects\/[^/]+\/relationships\/[^/]+\/history\/[^/]+\/source-confirmation$/],
   // FTS (사건 연결 제외 전부)
   // RCV — 원고별 실제 관계 기록 (chapter_id로 저장)
   ['GET|POST', /^\/projects\/[^/]+\/relationships$/],

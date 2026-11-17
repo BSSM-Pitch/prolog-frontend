@@ -107,6 +107,7 @@ const real = {
   toForeshadowing(f: BackendForeshadowing, code: string, nameOf: Map<string, string>, chapters: BackendChapter[]): Foreshadowing {
     return {
       foreshadowing_id: f.foreshadowing_id,
+      source_review: f.source_review,
       code,
       title: f.title,
       description: f.description ?? '',
@@ -157,7 +158,8 @@ const real = {
       .map((c) => all.find((f) => f.foreshadowing_id === c.foreshadowing_id))
       .filter((f): f is Foreshadowing => Boolean(f))
       .filter((f) => f.chapter_locations?.some((location) => location.manuscript_id === input.manuscript_id))
-      .map((f): SimilarCandidate => ({ foreshadowing_id: f.foreshadowing_id, code: f.code, title: f.title, setup_chapter: f.setup_chapter, payoff_chapter: f.payoff_chapter }))
+      .map((f): SimilarCandidate => ({ foreshadowing_id: f.foreshadowing_id,
+      code: f.code, title: f.title, setup_chapter: f.setup_chapter, payoff_chapter: f.payoff_chapter }))
     return { data: all.find((f) => f.foreshadowing_id === res.data.foreshadowing_id)!, meta: { similar_candidates: similar } }
   },
 

@@ -1,3 +1,4 @@
+import { SourceReviewBadge, SourceReviewNotice } from '../insights/SourceReviewNotice'
 import { RichText } from '../../components/RichText'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -44,7 +45,11 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
   useEffect(() => {
     const refresh = (event: Event) => { if ((event as CustomEvent).detail === projectId) refreshRecords() }
     window.addEventListener('narrative-adopted', refresh)
-    return () => window.removeEventListener('narrative-adopted', refresh)
+    window.addEventListener('focus', refreshRecords)
+    return () => {
+      window.removeEventListener('narrative-adopted', refresh)
+      window.removeEventListener('focus', refreshRecords)
+    }
   }, [projectId, refreshRecords])
   const manuscripts = useResource((token) => manuscriptsApi.listManuscripts(token, projectId), [projectId])
   const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
@@ -241,7 +246,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                     >
                       <span className="fs__track-heading">
                         <strong>{item.title}</strong>
-                        <span>{statusLabel(item)}</span>
+                        <span>{statusLabel(item)}</span><SourceReviewBadge review={item.source_review} />
                       </span>
                       <TrackLane item={item} max={maxChapter} current={current} expanded={open} />
                       <span className="visually-hidden">
@@ -252,6 +257,9 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                   <div id={`fs-detail-${item.foreshadowing_id}`} hidden={!open}>
                     {open && (
                       <div className="fs__detail">
+                        <SourceReviewNotice review={item.source_review} projectId={projectId} canEdit={canEdit}
+                          endpoint={`/projects/${projectId}/foreshadowings/${item.foreshadowing_id}/source-confirmation`}
+                          onSaved={refreshRecords} />
                         {item.description && <p className="fs__description">{item.description}</p>}
                         <StageList
                           key={item.foreshadowing_id}
