@@ -19,8 +19,7 @@
 .app__main--shell {
   display: flex;
   flex-direction: column;
-  /* 맨 아래까지 내렸을 때 의견 링크가 사이드바 아래 사용자 아이디와 같은 높이에 오도록 */
-  padding-bottom: 29px;
+  padding-bottom: 20px;
 }
 .app__page {
   flex: 1 0 auto;
@@ -31,8 +30,10 @@
   align-self: flex-end;
   margin-top: auto;
   padding-top: 40px;
+  /* 본문 오른쪽 여백(clamp(28px, 4.5vw, 80px))은 그대로 두고, 링크만 화면 너비의 2.5% 지점까지 오른쪽으로 */
+  margin-right: calc(2.5vw - clamp(28px, 4.5vw, 80px));
   color: #65655f;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 500;
   text-decoration: none;
 }
