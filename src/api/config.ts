@@ -1,6 +1,6 @@
 // API 모드. real이면 백엔드에 구현된 API는 실제 서버로, 나머지는 목업으로 보낸다(혼합 모드).
-export const IS_REAL = import.meta.env.VITE_API_MODE === 'real'
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/v1'
+export const IS_REAL = import.meta.env?.VITE_API_MODE === 'real'
+export const API_BASE_URL = import.meta.env?.VITE_API_BASE_URL ?? '/v1'
 
 // 백엔드 ID는 UUID다. 목업이 만든 AI 초안·규칙 후보(draft_301, rule_302 등)는 목업이 받는다
 const ID = '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
@@ -96,6 +96,9 @@ const AI_ROUTES: Array<[string, RegExp]> = [
   ['POST', r('{P}\\/manuscripts\\/{ID}\\/qa-threads\\/{ID}\\/messages$')],
   ['GET', r('{P}\\/manuscripts\\/{ID}\\/qa-threads\\/{ID}\\/messages\\/{ID}$')],
   ['POST', r('{P}\\/manuscripts\\/{ID}\\/qa-threads\\/{ID}\\/messages\\/{ID}\\/retry$')],
+  // Durable whole-manuscript narrative review
+  ['POST', /^\/projects\/[^/]+\/manuscripts\/[^/]+\/narrative-reviews$/],
+  ['GET', /^\/projects\/[^/]+\/manuscripts\/[^/]+\/narrative-reviews\/latest$/],
   // SCDS 설정 충돌 (사건 저장 → 검사)
   ['POST', r('{P}\\/chapters\\/{ID}\\/events$')],
   ['GET', r('{P}\\/conflict-checks\\/{ID}$')],
@@ -112,6 +115,10 @@ const AI_ROUTES: Array<[string, RegExp]> = [
 
 const ROUTES = [...BACKEND_ROUTES, ...AI_ROUTES]
 
+export function isBackendRoute(method: string, path: string) {
+  return ROUTES.some(([methods, re]) => methods.split('|').includes(method) && re.test(path))
+}
+
 export function servedByBackend(method: string, path: string) {
-  return IS_REAL && ROUTES.some(([methods, re]) => methods.split('|').includes(method) && re.test(path))
+  return IS_REAL && isBackendRoute(method, path)
 }
