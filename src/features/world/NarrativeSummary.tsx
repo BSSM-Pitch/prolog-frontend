@@ -3,6 +3,7 @@ import type { ConflictCheck, NarrativeEvidence } from '../../api/types'
 
 const states = { established: '설정 확인', changed: '변화 추적', paid_off: '회수 확인', unresolved: '미해결', reinterpreted: '오해·해석 정정' }
 const kinds = { setting: '설정', relationship: '관계', foreshadowing: '복선' }
+const focuses = { general: '', activation: '능력 조건', cost: '대가·약점', matchup: '전투·상성', knowledge: '인물 지식' }
 
 export function NarrativeSummary({ job, projectId }: { job: ConflictCheck; projectId: string }) {
   const result = job.narrative
@@ -22,6 +23,11 @@ export function NarrativeSummary({ job, projectId }: { job: ConflictCheck; proje
     {job.status === 'completed' && <>
       <p>{result.summary}</p>
       <p>충돌 후보 {result.findings.filter((f) => f.category === 'contradiction').length}건 · 설명 확인 {result.findings.filter((f) => f.category === 'explanation_gap').length}건 · 추적 항목 {result.tracks.length}건</p>
+      {result.tracks.some((t) => t.focus && t.focus !== 'general') && <p>
+        {(['activation', 'cost', 'matchup', 'knowledge'] as const).map((focus) =>
+          `${focuses[focus]} ${result.tracks.filter((t) => t.focus === focus).length}건`
+        ).join(' · ')}
+      </p>}
       {result.more_items && <p role="status">주요 항목부터 표시했어요. 표시 한도로 일부 항목이 포함되지 않았습니다.</p>}
       {result.findings.length > 0 && <details>
         <summary>확인할 문제와 앞뒤 근거 {result.findings.length}건</summary>
@@ -32,7 +38,7 @@ export function NarrativeSummary({ job, projectId }: { job: ConflictCheck; proje
       </details>}
       <details><summary>자동으로 추적한 설정·관계·복선 {result.tracks.length}건</summary>
         {result.tracks.map((t, i) => <article className="evidence-box" key={i}>
-          <h3>{kinds[t.kind]} · {t.title} · {states[t.status]}</h3>
+          <h3>{focuses[t.focus ?? 'general'] || kinds[t.kind]} · {t.title} · {states[t.status]}</h3>
           <p>{t.explanation}</p>{evidence(t.evidence)}
         </article>)}
       </details>

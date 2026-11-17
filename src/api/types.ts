@@ -420,6 +420,7 @@ export interface NarrativeEvidence { chapter_id: string; chapter_no: number; quo
 export interface NarrativeTrack {
   title: string
   kind: 'setting' | 'relationship' | 'foreshadowing'
+  focus?: 'general' | 'activation' | 'cost' | 'matchup' | 'knowledge'
   status: 'established' | 'changed' | 'paid_off' | 'unresolved' | 'reinterpreted'
   explanation: string
   evidence: NarrativeEvidence[]
