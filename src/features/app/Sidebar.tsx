@@ -6,6 +6,7 @@ import * as teamsApi from '../../api/teams'
 import type { Project } from '../../api/types'
 import { MotionIcon, useHoverPlay, type IconName } from '../../components/MotionIcon'
 import { useSession } from '../../auth/session'
+import { VOICE } from '../../content/voice'
 import { useResource } from '../../lib/useResource'
 import { Logo } from '../landing/components/Logo'
 import { useNotificationsChanged } from '../notifications/labels'
@@ -133,6 +134,16 @@ export function Sidebar({ project, collapsed, onToggle }: SidebarProps) {
             </NavLink>
           </div>
         )}
+        <a
+          className="sidebar__item sidebar__item--feedback"
+          href={VOICE.feedback.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={VOICE.feedback.label}
+          aria-label={`${VOICE.feedback.label} (새 탭에서 열림)`}
+        >
+          <span className="sidebar__label">{VOICE.feedback.label}</span>
+        </a>
       </nav>
       <div className="sidebar__account">
         <span className="sidebar__name">{user.username}</span>
