@@ -278,7 +278,7 @@ function Relationships({
               />
             ) : (
               <div className="insight-state">
-                <h2>{view.center?.name}의 관계가 아직 없어요.</h2>
+                <h2>{view.center?.name}의 직접 기록한 관계가 아직 없어요.</h2>
                 <p>{chapter}장까지 기록된 관계가 없어요. 다른 인물이나 장을 골라 보세요.</p>
               </div>
             )}
