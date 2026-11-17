@@ -204,3 +204,8 @@
 .insight-review details { margin-top: 1rem; }
 .insight-review summary { cursor: pointer; font-weight: 600; }
 .insight-review .answer { max-width: 76ch; margin-top: 1rem; }
+
+.source-review { padding: 12px 16px; margin: 12px 0; border: 1px solid var(--line, #d1c8ba); border-radius: 8px; background: var(--surface, #fffaf2); }
+.source-review p { margin: 8px 0; line-height: 1.6; }
+.source-review .btn { margin: 8px; }
+.source-review__badge { display: inline-block; font-size: 12px; font-weight: 600; color: #7d4c14; background: #fff1d9; padding: 3px 7px; border-radius: 4px; }

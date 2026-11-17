@@ -1,3 +1,4 @@
+import { SourceReviewBadge } from '../insights/SourceReviewNotice'
 import { useProjectImages } from '../../components/useProjectImages'
 import { Avatar } from '../../components/ProjectImages'
 import { useProject } from '../app/currentProject'
@@ -92,6 +93,7 @@ export function RelationshipGraph({
               onClick={() => onRelationship(item.relationship.relationship_id)}
             >
               {item.snapshot.state}
+              <SourceReviewBadge review={item.snapshot.source_review} />
             </button>
           </div>
         )

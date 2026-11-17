@@ -1,3 +1,4 @@
+import { SourceReviewBadge, SourceReviewNotice } from '../insights/SourceReviewNotice'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
@@ -91,7 +92,11 @@ function Relationships({
   useEffect(() => {
     const refresh = (event: Event) => { if ((event as CustomEvent).detail === projectId) refreshRecords() }
     window.addEventListener('narrative-adopted', refresh)
-    return () => window.removeEventListener('narrative-adopted', refresh)
+    window.addEventListener('focus', refreshRecords)
+    return () => {
+      window.removeEventListener('narrative-adopted', refresh)
+      window.removeEventListener('focus', refreshRecords)
+    }
   }, [projectId, refreshRecords])
   const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
   const chapters = useResource(
@@ -328,6 +333,9 @@ function Relationships({
                     닫기
                   </button>
                 </header>
+                <SourceReviewNotice review={snapshot.source_review} projectId={projectId} canEdit={canEdit}
+                  endpoint={`/projects/${projectId}/relationships/${selected.relationship_id}/history/${snapshot.chapter_id}/source-confirmation`}
+                  onSaved={refreshRecords} />
                 <p className="relations__state">
                   <strong>{snapshot.state}</strong>
                   <span>
@@ -353,7 +361,7 @@ function Relationships({
                             onClick={() => set({ chapter: String(entry.chapter) })}
                           >
                             <span>{entry.chapter}장</span>
-                            <strong>{entry.state}</strong>
+                            <strong>{entry.state}</strong><SourceReviewBadge review={entry.source_review} />
                             {entry.trust !== null && <span>신뢰도 {entry.trust}</span>}
                           </button>
                         </li>

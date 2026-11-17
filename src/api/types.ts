@@ -447,7 +447,15 @@ export type RuleExtraction = ConflictCheck
 
 // RCV 명세 — 관계 변화
 
+export interface SourceReview {
+  status: 'current' | 'changed' | 'unverified'
+  manuscript_id: string | null
+  changed_chapters: number[]
+  revision_token: string | null
+}
+
 export interface RelationshipHistoryEntry {
+  source_review?: SourceReview | null
   chapter_id?: string
   manuscript_id?: string
   chapter: number
@@ -492,6 +500,7 @@ export interface MindmapGraph {
 // FTS 명세 — 복선
 
 export interface Foreshadowing {
+  source_review?: SourceReview | null
   foreshadowing_id: string
   /** (명세 미정의) "F01" 같은 표시 번호 */
   code: string

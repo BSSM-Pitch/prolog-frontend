@@ -289,10 +289,21 @@ export function ReviewedManuscript(props: Props) {
       </Fragment>
     )
   })
+  const [resultsOpen, setResultsOpen] = useState(false)
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const resultsId = useId()
+  useEffect(() => { if (resultsOpen) resultsRef.current?.focus() }, [resultsOpen])
   const error = check.error ?? review.error
   return (
     <div className="manuscript-review">
       <div className="manuscript-review__tools">
+        {check.job && (
+          <button type="button" className="text-link" aria-expanded={resultsOpen} aria-controls={resultsId}
+            onClick={() => setResultsOpen(!resultsOpen)}>
+            {resultsOpen ? '검토 결과 접기' : '저장된 검토 결과 보기'}
+            {(localDirty || check.job.narrative?.stale) ? ' · 원고 변경됨' : ''}
+          </button>
+        )}
         {issues.length > 0 && (
           <button ref={countButton} type="button" className="manuscript-review__count" onClick={() => show(0, true)}>
             검토 {issues.length}곳
@@ -319,9 +330,6 @@ export function ReviewedManuscript(props: Props) {
           )}
         </p>
       )}
-      <RuleReviewSummary projectId={projectId} job={check.job?.narrative && localDirty ? {
-        ...check.job, narrative: { ...check.job.narrative, stale: true },
-      } : check.job} />
       <div className="textbox editor__text manuscript-review__input">
         <div className="manuscript-review__surface">
           <div
@@ -388,6 +396,17 @@ export function ReviewedManuscript(props: Props) {
             }}
           />
         </div>
+      </div>
+      <div id={resultsId} ref={resultsRef} hidden={!resultsOpen} tabIndex={-1} aria-label="저장된 검토 결과">
+        {resultsOpen && <>
+          <button type="button" className="btn btn--outline" onClick={() => {
+            setResultsOpen(false)
+            textRef.current?.focus()
+          }}>결과 접고 원고로 돌아가기</button>
+      <RuleReviewSummary projectId={projectId} job={check.job?.narrative && localDirty ? {
+        ...check.job, narrative: { ...check.job.narrative, stale: true },
+      } : check.job} />
+        </>}
       </div>
       {open &&
         active &&
