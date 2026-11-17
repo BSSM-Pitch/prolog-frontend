@@ -343,7 +343,7 @@ async function realConflicts(token: string, projectId: string) {
       conflict_id: c.conflict_id,
       manuscript_id: c.manuscript_id ?? null,
       source_hash: c.source_hash ?? null,
-      edit_unavailable_reason: c.review_stale ? '원고 전체가 변경됐어요. 다시 검사해 주세요.' : c.edit_unavailable_reason ?? (c.source_hash ? null : '원문 위치를 확인하려면 다시 검사해 주세요.'),
+      edit_unavailable_reason: c.review_stale ? '이전 검사 결과예요. 현재 원고로 다시 검사해 주세요.' : c.edit_unavailable_reason ?? (c.source_hash ? null : '원문 위치를 확인하려면 다시 검사해 주세요.'),
       review_kind: c.detected_by === 'ai' ? 'ai' : 'keyword',
       index: i + 1,
       title:
