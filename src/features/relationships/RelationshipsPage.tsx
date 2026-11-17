@@ -13,6 +13,7 @@ import { describeError } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import { InsightNav } from '../insights/InsightNav'
+import { NarrativeReview } from '../insights/NarrativeReview'
 import { InsightDialog } from '../insights/InsightDialog'
 import { chapterAt, relationshipView, snapshotAt } from '../insights/insightModel'
 import { RelationshipGraph } from './RelationshipGraph'
@@ -181,7 +182,7 @@ function Relationships({
               aria-label="관계를 기록할 원고"
               value={manuscriptId}
               disabled={busy || adding}
-              onChange={(event) => set({ manuscript: event.target.value, chapter: null, rel: null, page: null })}
+              onChange={(event) => set({ manuscript: event.target.value, chapter: null, rel: null, page: null, relationships_review: null })}
             >
               {manuscripts.map((item) => (
                 <option key={item.manuscript_id} value={item.manuscript_id}>
@@ -205,6 +206,7 @@ function Relationships({
         </div>
       </header>
       <InsightNav projectId={projectId} />
+      <NarrativeReview key={manuscriptId} {...{projectId, manuscriptId, canEdit}} kind="relationships" />
       {notice && (
         <p className="insight-note" role="status">
           {notice}
@@ -262,7 +264,7 @@ function Relationships({
                   min={1}
                   max={maxChapter}
                   value={chapter}
-                  onChange={(event) => set({ chapter: event.target.value, rel: null, page: null })}
+                  onChange={(event) => set({ chapter: event.target.value, page: null })}
                   aria-label="관계를 살펴볼 장"
                 />
               </label>
@@ -361,7 +363,7 @@ function Relationships({
                     <RecordForm
                       key={`${selected.relationship_id}:${chapter}`}
                       chapter={chapter}
-                      initial={snapshot.chapter === chapter ? snapshot : null}
+                      initial={{ ...snapshot, event_title: snapshot.chapter === chapter ? snapshot.event_title : null }}
                       busy={busy}
                       onCancel={() => setRecording(false)}
                       onSubmit={(entry) => saveRecord(selected.relationship_id, entry)}
@@ -414,6 +416,7 @@ function Relationships({
         <AddRelationship
           people={people}
           chapter={chapter}
+          chapters={(chapters.data ?? []).map((item) => item.chapter_no)}
           onCancel={() => setAdding(false)}
           onSubmit={async (input) => {
             const item = await withAuth((token) => api.createRelationship(token, projectId, input, manuscriptId))
@@ -462,8 +465,8 @@ function RecordForm({
   onCancel: () => void
   onSubmit: (e: api.EntryInput) => void
 }) {
-  const [state, setState] = useState(initial?.state ?? '신뢰')
-  const [trust, setTrust] = useState(String(initial?.trust ?? 50))
+  const [state, setState] = useState(initial?.state ?? '중립')
+  const [trust, setTrust] = useState(initial?.trust == null ? '' : String(initial.trust))
   const [event, setEvent] = useState(initial?.event_title ?? '')
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -483,7 +486,7 @@ function RecordForm({
           </Select>
         </label>
         <label className="field">
-          <span className="field__label">신뢰도 · 0~100</span>
+          <span className="field__label">신뢰도 · 선택 · 0~100</span>
           <input
             className="char-search"
             type="number"
@@ -518,11 +521,13 @@ function RecordForm({
 function AddRelationship({
   people,
   chapter,
+  chapters,
   onCancel,
   onSubmit,
 }: {
   people: Array<{ character_id: string; name: string }>
   chapter: number
+  chapters: number[]
   onCancel: () => void
   onSubmit: (input: {
     source_character_id: string
@@ -532,9 +537,9 @@ function AddRelationship({
 }) {
   const [a, setA] = useState(people[0]?.character_id ?? '')
   const [b, setB] = useState(people[1]?.character_id ?? '')
-  const [first, setFirst] = useState(String(chapter))
+  const [first, setFirst] = useState(String(chapters.includes(chapter) ? chapter : chapters[0] ?? ''))
   const [state, setState] = useState('우호')
-  const [trust, setTrust] = useState('50')
+  const [trust, setTrust] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -542,6 +547,7 @@ function AddRelationship({
     e.preventDefault()
     if (busy) return
     if (a === b) return setError('서로 다른 두 인물을 골라 주세요.')
+    if (!chapters.includes(Number(first))) return setError('원고에 있는 장을 골라 주세요.')
     setBusy(true)
     setError(null)
     try {
@@ -581,14 +587,9 @@ function AddRelationship({
           ))}
           <label className="field">
             <span className="field__label">첫 기록 장</span>
-            <input
-              className="char-search"
-              type="number"
-              min={1}
-              required
-              value={first}
-              onChange={(e) => setFirst(e.target.value)}
-            />
+            <Select value={first} onChange={(e) => setFirst(e.target.value)}>
+              {chapters.map((no) => <option key={no} value={no}>{no}장</option>)}
+            </Select>
           </label>
           <label className="field">
             <span className="field__label">관계 상태</span>
@@ -599,7 +600,7 @@ function AddRelationship({
             </Select>
           </label>
           <label className="field">
-            <span className="field__label">신뢰도 · 0~100</span>
+            <span className="field__label">신뢰도 · 선택 · 0~100</span>
             <input
               className="char-search"
               type="number"

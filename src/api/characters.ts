@@ -4,7 +4,6 @@ import {
   toDraft,
   toDraftItem,
   type BackendCharacter,
-  type BackendChapter,
   type BackendManuscript,
   type BackendDraft,
   type BackendDraftItem,
@@ -21,14 +20,13 @@ const realDraft = (draftId: string) => IS_REAL && isBackendId(draftId)
 export async function listCharacters(token: string, projectId: string): Promise<Character[]> {
   if (!IS_REAL) return request<Character[]>('GET', `${p(projectId)}/characters`, { accessToken: token })
   const options = { accessToken: token }
-  const [people, relationships, chapters, manuscripts] = await Promise.all([
+  const [people, relationships, manuscripts] = await Promise.all([
     requestAll<BackendCharacter>(`${p(projectId)}/characters`, options),
     listRelationships(token, projectId).catch((error: unknown) => {
       // Older servers do not expose RCV yet. Keep the core character screen usable.
       if (error instanceof ApiError && error.status === 404) return null
       throw error
     }),
-    requestAll<BackendChapter>(`${p(projectId)}/chapters`, options),
     requestAll<BackendManuscript>(`${p(projectId)}/manuscripts`, options),
   ])
   return people.map((person) => {
@@ -51,10 +49,7 @@ export async function listCharacters(token: string, projectId: string): Promise<
       name: person.name,
       role_label: '인물',
       status_label: '확정됨',
-      last_chapter:
-        chapters
-          .filter((ch) => ch.content.includes(person.name))
-          .reduce((last, ch) => Math.max(last, ch.chapter_no), 0) || null,
+      last_chapter: null, // Display manuscript-scoped attributed records from the memory overview.
       personality_tags: person.personality_tags.map((item) => item.value),
       core_values: person.core_values.map((item) => item.value),
       emotion_keywords: person.emotion_keywords.map((item) => item.value),

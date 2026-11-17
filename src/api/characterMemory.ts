@@ -43,6 +43,7 @@ export interface MemoryOverview {
   mode: 'real' | 'fake' | null
   can_analyze: boolean
   character_counts: Record<string, number>
+  character_last_records?: Record<string, number>
   chapters: Array<{ order: number; title: string }>
 }
 export interface DetailRecord {

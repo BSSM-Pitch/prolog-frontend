@@ -58,7 +58,7 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
           {message.citations.map((c) => (
             <li key={`${c.chapter_no}-${c.quote}`} className="citation">
               <p className="citation__label">
-                근거 · {c.chapter_no}장{c.chapter_title ? ` ${c.chapter_title}` : ''}
+                근거 · {c.chapter_no}장{c.chapter_title && c.chapter_title !== `${c.chapter_no}장` ? ` ${c.chapter_title}` : ''}
               </p>
               <p className="citation__quote">“{c.quote}”</p>
               {onOpenCitation && (
