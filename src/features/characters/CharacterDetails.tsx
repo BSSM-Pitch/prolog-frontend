@@ -213,7 +213,7 @@ function MemoryWorkspace({
       ) : memory.job?.status === 'failed' ? (
         <div className="detail-notice">
           <p>{memory.job.error?.message ?? '분석이 중단됐어요. 완료한 구간은 보관했습니다.'}</p>
-          {canEdit && (memory.job_stale || !['AI_MEMORY_BUDGET_EXCEEDED', 'AI_MEMORY_PLAN_TOO_LARGE'].includes(memory.job.error?.code ?? '')) && (
+          {canEdit && (memory.job_stale || memory.job.error?.code !== 'AI_MEMORY_BUDGET_EXCEEDED') && (
             <Button busy={busy} disabled={busy} onClick={() => analyze(!memory.job_stale)}>
               {memory.job_stale ? '현재 원고로 분석' : '이어서 분석'}
             </Button>

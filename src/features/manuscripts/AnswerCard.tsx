@@ -1,6 +1,7 @@
 import type { Citation, QAMessage } from '../../api/types'
 import { Button } from '../../components/Button'
 import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 
 interface AnswerCardProps {
   message: QAMessage | null
@@ -49,7 +50,16 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
   return (
     <div className="answer">
       <div className="answer__text answer__markdown">
-        <Markdown skipHtml disallowedElements={['img']}>
+        <Markdown
+          skipHtml
+          disallowedElements={['img']}
+          remarkPlugins={[remarkGfm]}
+          components={{ table: ({ children }) => (
+            <div className="answer__table-scroll" role="region" aria-label="답변 비교표" tabIndex={0}>
+              <table>{children}</table>
+            </div>
+          ) }}
+        >
           {message.content ?? ''}
         </Markdown>
       </div>
