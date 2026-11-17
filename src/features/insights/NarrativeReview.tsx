@@ -58,6 +58,6 @@ export function NarrativeReview({ projectId, manuscriptId, kind, canEdit }: {
     </div>
     {check.error && <p role="alert">{check.error}</p>}
     {loading && <p role="status">검토 내용을 불러오고 있어요.</p>}
-    {check.job && <NarrativeSummary job={check.job} projectId={projectId} />}
+    {check.job && <NarrativeSummary job={check.job} projectId={projectId} kind={kind === 'relationships' ? 'relationship' : 'foreshadowing'} />}
   </section>
 }

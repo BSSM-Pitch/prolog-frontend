@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
@@ -39,6 +40,12 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
   const list = useResource((token) => api.listForeshadowings(token, projectId), [projectId])
+  const refreshRecords = list.reload
+  useEffect(() => {
+    const refresh = (event: Event) => { if ((event as CustomEvent).detail === projectId) refreshRecords() }
+    window.addEventListener('narrative-adopted', refresh)
+    return () => window.removeEventListener('narrative-adopted', refresh)
+  }, [projectId, refreshRecords])
   const manuscripts = useResource((token) => manuscriptsApi.listManuscripts(token, projectId), [projectId])
   const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
   const ready = (manuscripts.data ?? []).filter((item) => item.status === 'ready')
@@ -257,7 +264,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                         {advice && (
                           <details className="insight-disclosure">
                             <summary>미회수 안내</summary>
-                            <p className="page-desc">{advice.message}</p>
+                            <RichText className="page-desc">{advice.message}</RichText>
                           </details>
                         )}
                         {error && (

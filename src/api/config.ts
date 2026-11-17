@@ -15,6 +15,10 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['POST', /^\/auth\/(oauth\/(google|naver)|signup|login|token\/refresh|logout)$/],
   ['GET|PATCH', /^\/users\/me$/],
   ['GET', /^\/users\/check-username$/],
+  ['GET', /^\/projects\/[^/]+\/media$/],
+  ['PUT|DELETE', /^\/projects\/[^/]+\/media\/(cover|portrait)\/[^/]+$/],
+  ['GET', /^\/projects\/[^/]+\/conflict-checks\/[^/]+\/adoptions$/],
+  ['POST', /^\/projects\/[^/]+\/conflict-checks\/[^/]+\/adoptions\/\d+$/],
   // PRJ
   ['GET|POST', /^\/projects$/],
   ['GET|PATCH|DELETE', /^\/projects\/[^/]+$/],

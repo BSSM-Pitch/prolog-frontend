@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
@@ -352,7 +353,7 @@ function ConflictReview() {
             </div>
             <details className="insight-disclosure">
               <summary>AI 조언</summary>
-              <p>{selected.advice}</p>
+              <RichText>{selected.advice}</RichText>
             </details>
             {selected.modified_content && <p className="check-note">고친 문장 · “{selected.modified_content}”</p>}
 

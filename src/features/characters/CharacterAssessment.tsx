@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useState } from 'react'
 import { IconArrowUpRight, IconChevronDown } from '@tabler/icons-react'
 import {
@@ -217,7 +218,7 @@ export function CharacterAssessment({
                     <span>
                       {sceneTitles.get(r.scene_id) ?? '장면'} <strong>{r.level}단계</strong>
                     </span>
-                    <p>{r.explanation}</p>
+                    <RichText>{r.explanation}</RichText>
                     <button type="button" onClick={() => onEvidence(r.observation_ids)}>
                       근거 원문 {r.observation_ids.length}개 보기 →
                     </button>

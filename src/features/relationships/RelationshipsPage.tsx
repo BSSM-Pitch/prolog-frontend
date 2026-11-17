@@ -87,6 +87,12 @@ function Relationships({
     }
   }, [])
   const rels = useResource((token) => api.listRelationships(token, projectId, manuscriptId), [projectId, manuscriptId])
+  const refreshRecords = rels.reload
+  useEffect(() => {
+    const refresh = (event: Event) => { if ((event as CustomEvent).detail === projectId) refreshRecords() }
+    window.addEventListener('narrative-adopted', refresh)
+    return () => window.removeEventListener('narrative-adopted', refresh)
+  }, [projectId, refreshRecords])
   const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
   const chapters = useResource(
     (token) => manuscriptsApi.listChapters(token, projectId, manuscriptId),
@@ -100,7 +106,8 @@ function Relationships({
     ...list.flatMap((item) => item.history.map((entry) => entry.chapter)),
   )
   const chapter = chapterAt(Number(params.get('chapter')), maxChapter)
-  const view = relationshipView(people, list, chapter, params.get('character'), Number(params.get('page') ?? 1))
+  const linkedRelationship = list.find((item) => item.relationship_id === params.get('rel'))
+  const view = relationshipView(people, list, chapter, params.get('character') ?? linkedRelationship?.source_character_id ?? null, Number(params.get('page') ?? 1))
   const selected =
     view.neighbors.find((item) => item.relationship.relationship_id === params.get('rel'))?.relationship ?? null
   const snapshot = selected ? snapshotAt(selected, chapter) : null

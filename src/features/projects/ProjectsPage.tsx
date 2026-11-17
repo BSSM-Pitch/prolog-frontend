@@ -1,3 +1,5 @@
+import { useProjectImages } from '../../components/useProjectImages'
+import { ProjectCover } from '../../components/ProjectImages'
 import { VOICE } from '../../content/voice'
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
@@ -197,9 +199,12 @@ export function ProjectsPage() {
 }
 
 function ProjectCard({ project: p }: { project: Project }) {
+  const images = useProjectImages(p.project_id)
+  const cover = images.data?.find((image) => image.kind === 'cover')
   return (
     <article className="project-card">
       <Link className="project-card__link" to={`/projects/${p.project_id}`} aria-label={`${p.title} 열기`}>
+        <ProjectCover title={p.title} src={cover?.url} />
         <div className="project-card__owner">
           <span>{p.owner_type === 'team' ? (p.team_name ?? '팀 작품') : '개인 작품'}</span>
           {p.my_role === 'viewer' && <span>보기 전용</span>}

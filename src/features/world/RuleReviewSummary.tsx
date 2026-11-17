@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import type { ConflictCheck } from '../../api/types'
 import { NarrativeSummary } from './NarrativeSummary'
 
@@ -42,7 +43,7 @@ export function RuleReviewSummary({ job, projectId }: { job: ConflictCheck | nul
               </p>
               <p className="panel__label">저장 규칙: {assessment.rule_description}</p>
               {assessment.evidence && <p>원문: “{assessment.evidence}”</p>}
-              <p>{assessment.reason}</p>
+              <RichText>{assessment.reason}</RichText>
             </div>
           ))}
         </details>
