@@ -117,7 +117,7 @@ export function AdoptCandidate({
           <>
             <label>
               첫 번째 인물
-              <select required value={source} onChange={(e) => setSource(e.target.value)}>
+              <select aria-label="첫 번째 인물" required value={source} onChange={(e) => setSource(e.target.value)}>
                 <option value="">인물 선택</option>
                 {options.data?.characters.map((c) => (
                   <option key={c.character_id} value={c.character_id}>
@@ -128,7 +128,7 @@ export function AdoptCandidate({
             </label>
             <label>
               두 번째 인물
-              <select required value={target} onChange={(e) => setTarget(e.target.value)}>
+              <select aria-label="두 번째 인물" required value={target} onChange={(e) => setTarget(e.target.value)}>
                 <option value="">인물 선택</option>
                 {options.data?.characters
                   .filter((c) => c.character_id !== source)
@@ -172,7 +172,7 @@ export function AdoptCandidate({
         )}
         <label>
           {relation ? '변화가 일어난 장' : '복선을 심은 장'}
-          <select required value={chapterId} onChange={(e) => setChapterId(e.target.value)}>
+          <select aria-label={relation ? '변화가 일어난 장' : '복선을 심은 장'} required value={chapterId} onChange={(e) => setChapterId(e.target.value)}>
             <option value="">장 선택</option>
             {chapters.map((c) => (
               <option key={c.chapter_id} value={c.chapter_id}>
@@ -184,7 +184,7 @@ export function AdoptCandidate({
         {!relation && (
           <label>
             회수한 장 (선택)
-            <select value={payoff} onChange={(e) => setPayoff(e.target.value)}>
+            <select aria-label="회수한 장 (선택)" value={payoff} onChange={(e) => setPayoff(e.target.value)}>
               <option value="">아직 회수하지 않음</option>
               {chapters
                 .filter(

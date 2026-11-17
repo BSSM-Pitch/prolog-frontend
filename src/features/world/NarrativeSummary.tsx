@@ -175,7 +175,7 @@ export function NarrativeSummary({
             </label>
             <label>
               근거가 있는 장
-              <select value={filters.chapter} onChange={(e) => change('chapter', e.target.value)}>
+              <select aria-label="근거가 있는 장" value={filters.chapter} onChange={(e) => change('chapter', e.target.value)}>
                 <option value="">모든 장</option>
                 {chapters.map((n) => (
                   <option key={n} value={n}>
@@ -215,7 +215,7 @@ export function NarrativeSummary({
               ).map(([key, label, options]) => (
                 <label key={key}>
                   {label}
-                  <select value={filters[key]} onChange={(e) => change(key, e.target.value)}>
+                  <select aria-label={label} value={filters[key]} onChange={(e) => change(key, e.target.value)}>
                     <option value="">전체</option>
                     {Object.entries(options).map(([value, text]) => (
                       <option key={value} value={value}>

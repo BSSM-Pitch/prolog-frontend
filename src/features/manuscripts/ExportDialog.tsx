@@ -67,7 +67,7 @@ export function ExportDialog({
       <form className="writer-form" onSubmit={submit}>
         <label>
           파일 형식
-          <select value={format} onChange={(e) => setFormat(e.target.value)}>
+          <select aria-label="파일 형식" value={format} onChange={(e) => setFormat(e.target.value)}>
             <option value="pdf">PDF · 읽기와 공유</option>
             <option value="docx">DOCX · 문서 편집</option>
             <option value="txt">TXT · 텍스트 원문</option>
@@ -75,7 +75,7 @@ export function ExportDialog({
         </label>
         <label>
           내보낼 범위
-          <select value={scope} onChange={(e) => setScope(e.target.value)}>
+          <select aria-label="내보낼 범위" value={scope} onChange={(e) => setScope(e.target.value)}>
             <option value="all">전체 원고</option>
             {current && <option value="current">현재 {current}장</option>}
             {ordered.length > 1 && <option value="range">장 범위 선택</option>}
@@ -91,7 +91,7 @@ export function ExportDialog({
             ).map(([label, value, setter]) => (
               <label key={label}>
                 {label}
-                <select value={value} onChange={(e) => setter(Number(e.target.value))}>
+                <select aria-label={label} value={value} onChange={(e) => setter(Number(e.target.value))}>
                   {ordered.map((c) => (
                     <option key={c.chapter_id} value={c.chapter_no}>
                       {c.chapter_no}장 {c.title}
