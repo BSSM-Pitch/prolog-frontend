@@ -215,6 +215,10 @@ export interface MockJob {
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   manuscript_id: string | null
   chapter_id?: string
+  /** 시연 원고를 검사했을 때 붙는 AI 검토 결과 (routes/world.ts settleJobs) */
+  analysis_kind?: 'narrative_review'
+  narrative?: unknown
+  assessments?: unknown[]
   ready_at: number | null
   will_fail: boolean
   result_ids: string[]
@@ -233,6 +237,8 @@ export interface MockWorld {
   /** 본편이 아닌 원고의 스토리 지도 (원고 ID별) */
   stories?: Record<string, MockStory>
   rules: DemoRule[]
+  /** 시연 이야기("붉은 문 너머")를 채운 작품 — 원고 검사가 시연 검토 결과를 돌려준다 */
+  demo?: boolean
 }
 
 export type MockStory = { acts: typeof DEMO_STORY.acts; nodes: DemoStoryNode[]; edges: typeof DEMO_STORY.edges }
@@ -341,6 +347,7 @@ export function emptyWorld(): MockWorld {
 
 function demoWorld(): MockWorld {
   return {
+    demo: true,
     characters: clone(DEMO_CHARACTERS),
     relationships: clone(DEMO_RELATIONSHIPS),
     conflicts: clone(DEMO_CONFLICTS),
@@ -463,6 +470,45 @@ function seedVersions(chapters: MockChapter[]): MockVersion[] {
       created_at: ago(hours),
     }
   })
+}
+
+/**
+ * 이미 있는 작품에 시연 이야기("붉은 문 너머")를 채운다: 원고 3개(12·26·27장), 인물·관계·복선·스토리 지도.
+ * 작품 제목·설명·멤버는 그대로 두고, 그 작품의 기존 원고와 이야기 세계는 바꾼다. 개발 콘솔의 prologMock.fillDemo가 부른다.
+ */
+export function fillProjectWithDemo(db: MockDb, projectId: string) {
+  const ago = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
+  const old = new Set(db.manuscripts.filter((m) => m.project_id === projectId).map((m) => m.manuscript_id))
+  db.manuscripts = db.manuscripts.filter((m) => !old.has(m.manuscript_id))
+  db.chapters = db.chapters.filter((c) => !old.has(c.manuscript_id))
+  const drafts: Array<[string, typeof DEMO_CHAPTERS, number]> = [
+    ['1차 원고', DEMO_CHAPTERS.slice(0, 12), 24 * 60],
+    ['2차 원고', DEMO_CHAPTERS.slice(0, 26), 24 * 37],
+    ['3차 원고', DEMO_CHAPTERS, 2],
+  ]
+  for (const [title, texts, hours] of drafts) {
+    db.seq += 1
+    const manuscript_id = `ms_${db.seq}`
+    db.manuscripts.push({
+      manuscript_id,
+      project_id: projectId,
+      title,
+      source_type: 'editor',
+      file_name: null,
+      file_format: null,
+      file_size: null,
+      status: 'ready',
+      processing_until: null,
+      fail_extraction: false,
+      created_at: ago(hours + 24),
+      updated_at: ago(hours),
+    })
+    for (const c of texts)
+      db.chapters.push({ chapter_id: `${manuscript_id}_ch${c.no}`, manuscript_id, chapter_no: c.no, title: c.title, content: c.body, updated_at: ago(hours) })
+  }
+  db.worlds[projectId] = demoWorld()
+  const project = db.projects.find((p) => p.project_id === projectId)
+  if (project) project.updated_at = new Date().toISOString()
 }
 
 /** 나중에 추가된 테이블이 예전 저장본에 없으면 빈 값으로 채운다 */
