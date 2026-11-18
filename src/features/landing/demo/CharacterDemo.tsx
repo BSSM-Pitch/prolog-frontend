@@ -1,3 +1,4 @@
+import { LogoLoader } from '../../../components/LogoLoader'
 import { Stepper } from '../../characters/shared'
 import { AppScreen, Caret } from './AppWindow'
 import { typed, typingTime } from './clock'
@@ -75,7 +76,7 @@ export function CharacterDemo({ t }: { t: number }) {
             <h2 className="panel__title">{t >= RESULT ? '추출 미리보기 / 4개 카테고리' : '추출 미리보기'}</h2>
             {t < RESULT ? (
               <div className="state-block">
-                {extracting && <span className="answer__spinner" aria-hidden="true" />}
+                {extracting && <LogoLoader className="answer__loader" />}
                 <p className="answer__title">
                   {extracting ? '문장에서 인물 속성을 나누고 있어요' : '문장을 입력하고 추출 미리보기를 눌러 보세요'}
                 </p>

@@ -4,10 +4,12 @@
   flex-direction: column;
   gap: var(--itda-space-16);
 }
+/* 대기: 로고 모션을 박스 가운데에 두고, 문구는 그 아래에 가운데 정렬 */
 .answer--pending {
-  flex-direction: row;
-  align-items: flex-start;
-  padding: var(--itda-space-16);
+  align-items: center;
+  gap: var(--itda-space-12);
+  padding: var(--itda-space-24) var(--itda-space-16);
+  text-align: center;
   border-radius: var(--prolog-radius-8);
   background: var(--itda-background);
 }
@@ -74,25 +76,10 @@
   color: var(--itda-muted);
 }
 
-.answer__spinner {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 4px;
-  border: 2px solid var(--input-stroke);
-  border-top-color: var(--prolog-color-interaction);
-  border-radius: 50%;
-  animation: answer-spin 0.9s linear infinite;
-}
-@keyframes answer-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .answer__spinner {
-    animation-duration: 3s;
-  }
+.answer__pending-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .citation {
