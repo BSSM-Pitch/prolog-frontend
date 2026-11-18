@@ -7,6 +7,10 @@ export const VOICE = {
     { href: '#features', label: '도구' },
     { href: '#start', label: '시작하기' },
   ],
+  feedback: {
+    href: 'https://docs.google.com/forms/d/e/1FAIpQLSfU0aukDyGDuRgnSkgvZ7CVXtOc9Hoe_-JTEWbL9j4IbRc-1Q/viewform?usp=publish-editor',
+    label: '의견 보내기',
+  },
   cta: { start: '첫 문장 쓰기', resume: '이어서 쓰기', library: '내 서재', features: '도구 살펴보기' },
   statement: {
     title: ['이야기는 길고,', '기억은 짧으니까.'],

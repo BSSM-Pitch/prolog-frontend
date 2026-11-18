@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useState } from 'react'
 import * as api from '../../api/characterMemory'
 import type { DiscoveredCharacter, MemoryJob } from '../../api/characterMemory'
@@ -35,12 +36,14 @@ export function CharacterDiscovery({
       <h4>원고에서 찾은 인물</h4>
       {report.complete ? (
         <p role="status">
-          새 인물 {summary.added}명 자동 추가 · 기존 인물 {summary.existing}명 확인 · 검토할 이름{' '}
+          새 인물 {summary.added}명 자동 추가 · 기존 인물 {summary.existing}명 확인 · 추가로 확인할 이름{' '}
           {summary.review.length}개
         </p>
       ) : (
         <p role="status">
-          이름과 근거를 찾는 중 · {report.processed_chunks} / {report.total_chunks}구간
+          {job.status === 'failed' ? '분석 중단 · 완료한 검토 보관' : '인물 이름과 원문 근거를 확인하고 있어요'}
+          {report.processed_chunks > 0 && ` · ${report.processed_chunks} / ${report.total_chunks}구간`}
+          {report.processed_chunks === 0 && ' · 확인을 마친 뒤 인물 목록에 추가됩니다'}
         </p>
       )}
       {report.complete && report.candidates.length === 0 && (
@@ -68,10 +71,10 @@ export function CharacterDiscovery({
       )}
       {report.complete && summary.review.length > 0 && (
         <details>
-          <summary>동일인 여부가 불분명한 이름 확인하기 ({summary.review.length})</summary>
+          <summary>필요할 때 호칭·별칭 확인하기 ({summary.review.length})</summary>
           <p>
-            근거를 확인해 새 인물로 추가하거나 기존 인물의 별칭으로 연결하세요. 반영한 뒤 원고를 다시 분석하면 기록에도
-            적용됩니다.
+            이 확인을 모두 마치지 않아도 인물 기록을 볼 수 있어요. 원문 근거가 부족한 호칭만 남겨 둡니다.
+            기존 인물의 별칭으로 연결하면 작품 전체에 적용되므로, 여러 사람이 쓰는 “엄마” 같은 호칭은 신중히 확인해 주세요.
           </p>
           {summary.review.map((candidate) => (
             <ReviewCandidate
@@ -139,7 +142,7 @@ function ReviewCandidate({
     <article className="discovery-candidate">
       <strong>{candidate.name}</strong>
       {candidate.alias_of && <span className="panel__label"> · {candidate.alias_of}의 다른 표기일 수 있어요</span>}
-      <p>{candidate.reason}</p>
+      <RichText>{candidate.reason}</RichText>
       <blockquote>{candidate.evidence.quote}</blockquote>
       {canEdit &&
         (working ? (

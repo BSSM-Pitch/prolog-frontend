@@ -1,5 +1,6 @@
+import { downloadText } from '../../lib/downloadText'
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
 import type { ManuscriptVersion, VersionReason } from '../../api/types'
 import { useSession } from '../../auth/session'
@@ -27,6 +28,9 @@ export function HistoryPage() {
 
 function History() {
   const project = useProject()
+  const navigate = useNavigate()
+  const [restoring, setRestoring] = useState(false)
+  const [restoreError, setRestoreError] = useState<string | null>(null)
   const { manuscriptId = '' } = useParams()
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
@@ -49,6 +53,17 @@ function History() {
   useEffect(() => {
     document.querySelector('.history__text')?.scrollTo({ top: 0 })
   }, [selected?.version_id])
+
+  async function restoreCopy() {
+    if (!selected) return
+    setRestoring(true)
+    setRestoreError(null)
+    try {
+      const copy = await withAuth((t) => api.restoreVersionCopy(t, projectId, manuscriptId, selected.version_id))
+      navigate(projectPath(projectId, `manuscripts/${copy.manuscript_id}`))
+    } catch (e) { setRestoreError(describeError(e)) }
+    finally { setRestoring(false) }
+  }
 
   async function loadMore() {
     if (!cursor) return
@@ -144,6 +159,14 @@ function History() {
 
           {selected && (
             <section className="panel history__detail" aria-labelledby="snapshot-title">
+              {shown && <div className="actions-row">
+                <Button tone="outline" onClick={() => downloadText(`${ms?.title ?? '원고'} - ${titleOf(selected)}`, shown.content)}>
+                  이 버전 내려받기
+                </Button>
+                {project.my_role !== 'viewer' && <Button busy={restoring} onClick={restoreCopy}>새 복사본으로 복원</Button>}
+              </div>}
+              <p className="panel__label">복원하면 이 버전으로 새 원고를 만듭니다. 현재 원고도 보관됩니다.</p>
+              {restoreError && <p className="notice notice--error" role="alert">{restoreError}</p>}
               <div className="world__list-head">
                 <h2 id="snapshot-title" className="panel__title">
                   {formatStamp(selected.created_at)} 스냅샷

@@ -21,7 +21,7 @@ export function useAnswer(target: Target | null, source: QAMessage | null) {
   const [error, setError] = useState<string | null>(null)
 
   // 다른 메시지로 바뀌었으면 이전에 받은 값은 버린다
-  const message = latest && (!source || latest.message_id === source.message_id) ? latest : source
+  const message = latest && latest.message_id === target?.messageId ? latest : source
   const pending = message?.status === 'pending'
   const key = target ? `${target.threadId}/${target.messageId}` : ''
 

@@ -1,8 +1,11 @@
+import { useProjectImages } from '../../components/useProjectImages'
+import { Avatar, ImagePicker } from '../../components/ProjectImages'
 import { useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
 import { ApiError } from '../../api/client'
 import type { Character } from '../../api/types'
+import type { MemoryOverview } from '../../api/characterMemory'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
@@ -29,9 +32,11 @@ export function CharactersPage() {
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
   const projectId = project?.project_id ?? ''
+  const images = useProjectImages(projectId)
 
   const list = useResource(project ? (t) => api.listCharacters(t, projectId) : null, [projectId])
   const [query, setQuery] = useState('')
+  const [overview, setOverview] = useState<MemoryOverview | null>(null)
   const [shown, setShown] = useState(PAGE)
   const [confirm, setConfirm] = useState<Character | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -120,9 +125,11 @@ export function CharactersPage() {
                   aria-current={selected?.character_id === c.character_id || undefined}
                   onClick={() => setParams({ selected: c.character_id }, { replace: true })}
                 >
-                  <span className="char-item__name">{c.name}</span>
+                  <span className="char-item__name"><Avatar name={c.name} src={images.data?.find((image) => image.kind === 'portrait' && image.target_id === c.character_id)?.url} />{c.name}</span>
                   <span className="char-item__meta">
-                    {c.role_label} · {c.status_label} / 마지막 등장 {c.last_chapter ? `${c.last_chapter}장` : '—'}
+                    {c.role_label} · {c.status_label} / {overview?.character_last_records?.[c.character_id]
+                      ? `최근 분석 기록 ${overview.chapters.find((part) => part.order === overview.character_last_records?.[c.character_id])?.title ?? `${overview.character_last_records[c.character_id]}구간`}${overview.stale ? ' · 이전 원고 기준' : ''}`
+                      : '분석에서 확인된 기록 없음'}
                   </span>
                 </button>
               </li>
@@ -142,13 +149,15 @@ export function CharactersPage() {
 
         <section className="panel" aria-labelledby="char-detail-title">
           <h2 id="char-detail-title" className="page-title">
-            {selected?.name ?? '원고에서 인물 찾기'}
+            {selected && <Avatar name={selected.name} src={images.data?.find((image) => image.kind === 'portrait' && image.target_id === selected.character_id)?.url} />}{selected?.name ?? '원고에서 인물 찾기'}
           </h2>
           {selected && (
             <p className="panel__label">
               {selected.role_label} · {selected.status_label}
             </p>
           )}
+          {selected && canEdit && <ImagePicker key={selected.character_id} projectId={projectId} targetId={selected.character_id} kind="portrait" current={images.data?.find((image) => image.kind === 'portrait' && image.target_id === selected.character_id)} onChanged={images.reload} />}
+          {images.error && <p role="alert">{images.error}</p>}
           <CharacterDetails
             key={projectId}
             projectId={projectId}
@@ -156,6 +165,7 @@ export function CharactersPage() {
             canEdit={canEdit}
             characters={all}
             onCharactersChanged={list.reload}
+            onOverview={setOverview}
             initialManuscriptId={params.get('manuscript') ?? undefined}
           />
           {selected && (

@@ -1,4 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { SourceReviewBadge, SourceReviewNotice } from '../insights/SourceReviewNotice'
+import { RichText } from '../../components/RichText'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
 import * as api from '../../api/foreshadowings'
@@ -11,6 +13,8 @@ import { describeError } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import { InsightNav } from '../insights/InsightNav'
+import { NarrativeReview } from '../insights/NarrativeReview'
+import { foreshadowingManuscript, scopedForeshadowings, eligibleChapters } from '../insights/manuscriptScopeModel'
 import { InsightDialog } from '../insights/InsightDialog'
 import { chapterPosition, foreshadowStages, pageOf, VIEW_LIMIT } from '../insights/insightModel'
 import '../characters/characters.css'
@@ -37,15 +41,37 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
   const list = useResource((token) => api.listForeshadowings(token, projectId), [projectId])
+  const refreshRecords = list.reload
+  useEffect(() => {
+    const refresh = (event: Event) => { if ((event as CustomEvent).detail === projectId) refreshRecords() }
+    window.addEventListener('narrative-adopted', refresh)
+    window.addEventListener('focus', refreshRecords)
+    return () => {
+      window.removeEventListener('narrative-adopted', refresh)
+      window.removeEventListener('focus', refreshRecords)
+    }
+  }, [projectId, refreshRecords])
   const manuscripts = useResource((token) => manuscriptsApi.listManuscripts(token, projectId), [projectId])
   const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
-  const latest = (manuscripts.data ?? []).find((item) => item.status === 'ready')
+  const ready = (manuscripts.data ?? []).filter((item) => item.status === 'ready')
+  const requested = (list.data ?? []).find((item) => item.foreshadowing_id === params.get('selected'))
+  const latest = ready.find((item) => item.manuscript_id === params.get('manuscript'))
+    ?? ready.find((item) => item.manuscript_id === (requested && foreshadowingManuscript(requested))) ?? ready[0]
+  useEffect(() => {
+    if (!latest || params.get('manuscript') === latest.manuscript_id) return
+    const next = new URLSearchParams(params)
+    next.set('manuscript', latest.manuscript_id)
+    setParams(next, { replace: true })
+  }, [latest, params, setParams])
   const demoChapters = useResource(
-    !IS_REAL && latest ? (token) => manuscriptsApi.listChapters(token, projectId, latest.manuscript_id) : null,
+    latest ? (token) => manuscriptsApi.listChapters(token, projectId, latest.manuscript_id) : null,
     [projectId, latest?.manuscript_id],
   )
-  const current = latest?.chapter_count ?? 1
-  const all = list.data ?? []
+  const chapterNumbers = (demoChapters.data ?? []).filter((item) => item.manuscript_id === latest?.manuscript_id).map((item) => item.chapter_no)
+  const current = Math.max(1, ...chapterNumbers)
+  const unassigned = (list.data ?? []).filter((item) => !foreshadowingManuscript(item))
+  const all = params.get('unassigned') === 'true' && IS_REAL ? unassigned
+    : scopedForeshadowings(list.data ?? [], latest?.manuscript_id ?? '', IS_REAL)
   const target = all.find((item) => item.foreshadowing_id === params.get('selected'))
   const status = params.get('status') ?? target?.status ?? 'unresolved'
   const character = params.get('character') ?? ''
@@ -84,6 +110,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       else next.set(key, value)
     }
     setPanel(null)
+    setCreating(false)
     setError(null)
     setParams(next, { replace: true })
   }
@@ -115,9 +142,18 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
     <div className="fs insight-page">
       <header className="insight-header">
         <h1 className="page-title">복선</h1>
+        <label className="insight-field">
+          <span>원고</span>
+          <Select aria-label="복선을 기록할 원고" value={latest?.manuscript_id ?? ''}
+            disabled={!ready.length}
+            onChange={(event) => set({ manuscript: event.target.value, selected: null, page: null, status: null, unassigned: null, foreshadowings_review: null })}>
+            {ready.map((item) => <option key={item.manuscript_id} value={item.manuscript_id}>{item.title}</option>)}
+          </Select>
+        </label>
         {canEdit && (
           <Button
             tone="outline"
+            disabled={!chapterNumbers.length || demoChapters.loading}
             onClick={(event) => {
               event.currentTarget.focus()
               setCreating(true)
@@ -128,6 +164,12 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
         )}
       </header>
       <InsightNav projectId={projectId} />
+      {latest && <NarrativeReview key={latest.manuscript_id} projectId={projectId} manuscriptId={latest.manuscript_id} canEdit={canEdit} kind="foreshadowings" />}
+      {(manuscripts.error || demoChapters.error) && <p role="alert">{manuscripts.error || demoChapters.error}</p>}
+      {!manuscripts.loading && !latest && <Link to={projectPath(projectId, 'manuscripts')}>먼저 원고를 만들어 주세요.</Link>}
+      {IS_REAL && unassigned.length > 0 && <button className="text-link" onClick={() => set({ unassigned: params.get('unassigned') === 'true' ? null : 'true', selected: null, status: 'all' })}>
+        {params.get('unassigned') === 'true' ? '선택한 원고의 복선 보기' : `연결된 원고가 없는 복선 ${unassigned.length}개 보기`}
+      </button>}
       <div className="fs__controls">
         <label className="insight-field">
           <span className="visually-hidden">복선 상태</span>
@@ -168,7 +210,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       )}
       {!list.loading && !list.error && !rows.length && (
         <div className="insight-state">
-          <h2>{all.length ? '조건에 맞는 복선이 없어요.' : '아직 심어 둔 복선이 없어요.'}</h2>
+          <h2>{all.length ? '조건에 맞는 복선이 없어요.' : '직접 기록한 복선은 아직 없어요.'}</h2>
           {all.length ? (
             <button
               type="button"
@@ -178,7 +220,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
               전체 복선 보기
             </button>
           ) : (
-            <p>나중에 이어질 장면을 기록해 두세요.</p>
+            <p>자동으로 찾은 후보는 위 검토에서 볼 수 있어요. 따로 관리할 복선을 여기에 기록해 두세요.</p>
           )}
         </div>
       )}
@@ -204,7 +246,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                     >
                       <span className="fs__track-heading">
                         <strong>{item.title}</strong>
-                        <span>{statusLabel(item)}</span>
+                        <span>{statusLabel(item)}</span><SourceReviewBadge review={item.source_review} />
                       </span>
                       <TrackLane item={item} max={maxChapter} current={current} expanded={open} />
                       <span className="visually-hidden">
@@ -215,6 +257,9 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                   <div id={`fs-detail-${item.foreshadowing_id}`} hidden={!open}>
                     {open && (
                       <div className="fs__detail">
+                        <SourceReviewNotice review={item.source_review} projectId={projectId} canEdit={canEdit}
+                          endpoint={`/projects/${projectId}/foreshadowings/${item.foreshadowing_id}/source-confirmation`}
+                          onSaved={refreshRecords} />
                         {item.description && <p className="fs__description">{item.description}</p>}
                         <StageList
                           key={item.foreshadowing_id}
@@ -227,7 +272,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                         {advice && (
                           <details className="insight-disclosure">
                             <summary>미회수 안내</summary>
-                            <p className="page-desc">{advice.message}</p>
+                            <RichText className="page-desc">{advice.message}</RichText>
                           </details>
                         )}
                         {error && (
@@ -239,8 +284,9 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                           <ChapterForm
                             key={`${item.foreshadowing_id}:payoff`}
                             label="회수한 장"
-                            hint="복선을 심은 장보다 뒤의 장을 골라 주세요."
-                            initial={Math.max(item.setup_chapter + 1, current)}
+                            hint="같은 원고에서 복선을 심은 장 또는 그 뒤의 장을 골라 주세요."
+                            chapters={eligibleChapters(chapterNumbers, item.setup_chapter)}
+                            initial={current}
                             busy={busy}
                             onCancel={() => setPanel(null)}
                             onSubmit={(chapter) =>
@@ -257,6 +303,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                             key={`${item.foreshadowing_id}:link`}
                             label="이어진 장"
                             hint="이 복선이 다시 등장한 장을 골라 주세요."
+                            chapters={eligibleChapters(chapterNumbers, item.setup_chapter, Infinity, [item.setup_chapter, ...item.linked_chapters, ...(item.payoff_chapter === null ? [] : [item.payoff_chapter])])}
                             initial={current}
                             busy={busy}
                             onCancel={() => setPanel(null)}
@@ -270,11 +317,12 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                           <EditForm
                             key={item.foreshadowing_id}
                             fs={item}
+                            chapters={eligibleChapters(chapterNumbers, 1, item.payoff_chapter ?? Infinity)}
                             characters={(characters.data ?? []).map((person) => person.name)}
                             busy={busy}
                             onCancel={() => setPanel(null)}
                             onSubmit={(input) =>
-                              act((token) => api.updateForeshadowing(token, projectId, item.foreshadowing_id, input))
+                              act((token) => api.updateForeshadowing(token, projectId, item.foreshadowing_id, { ...input, manuscript_id: latest?.manuscript_id }), () => set({unassigned: null}))
                             }
                           />
                         )}
@@ -364,14 +412,15 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       <p className="insight-caption">저장한 복선 기준 · 점선은 아직 회수하지 않은 구간이에요.</p>
       {creating && (
         <CreateDialog
+          chapters={chapterNumbers}
           characters={(characters.data ?? []).map((person) => person.name)}
           defaultChapter={current}
           onCancel={() => setCreating(false)}
           onSubmit={async (input) => {
-            const result = await withAuth((token) => api.createForeshadowing(token, projectId, input))
+            const result = await withAuth((token) => api.createForeshadowing(token, projectId, { ...input, manuscript_id: latest?.manuscript_id }))
             list.setData((previous) => [...(previous ?? []), result.data])
             setCreating(false)
-            set({ selected: result.data.foreshadowing_id, status: 'unresolved', character: null, page: null })
+            set({ selected: result.data.foreshadowing_id, status: 'unresolved', character: null, page: null, unassigned: null })
             if (result.meta.similar_candidates?.length) setSimilar(result.meta.similar_candidates)
           }}
         />
@@ -506,6 +555,7 @@ function StageList({
   )
 }
 function ChapterForm({
+  chapters,
   label,
   hint,
   initial,
@@ -514,6 +564,7 @@ function ChapterForm({
   onCancel,
   onSubmit,
 }: {
+  chapters: number[]
   label: string
   hint: string
   initial: number
@@ -522,33 +573,28 @@ function ChapterForm({
   onCancel: () => void
   onSubmit: (c: number) => void
 }) {
-  const [value, setValue] = useState(String(initial))
+  const [value, setValue] = useState(String(chapters.includes(initial) ? initial : chapters[0] ?? ''))
   return (
     <form
       className="record-form"
       onSubmit={(e) => {
         e.preventDefault()
-        if (!busy) onSubmit(Number(value))
+        if (!busy && chapters.includes(Number(value))) onSubmit(Number(value))
       }}
     >
       <label className="field">
         <span className="field__label">{label}</span>
-        <input
-          className="char-search"
-          type="number"
-          min={1}
-          required
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          autoFocus
-        />
+        <Select value={value} onChange={(e) => setValue(e.target.value)} disabled={!chapters.length} autoFocus>
+          {chapters.map((no) => <option key={no} value={no}>{no}장</option>)}
+        </Select>
         <span className="panel__label">{hint}</span>
+        {!chapters.length && <span role="status">연결할 수 있는 장이 없어요.</span>}
       </label>
       <div className="actions-row">
         <Button tone="outline" onClick={onCancel}>
           취소
         </Button>
-        <Button type="submit" busy={busy}>
+        <Button type="submit" busy={busy} disabled={!chapters.includes(Number(value))}>
           {submitLabel}
         </Button>
       </div>
@@ -558,12 +604,14 @@ function ChapterForm({
 
 function EditForm({
   fs,
+  chapters,
   characters,
   busy,
   onCancel,
   onSubmit,
 }: {
   fs: Foreshadowing
+  chapters: number[]
   characters: string[]
   busy: boolean
   onCancel: () => void
@@ -571,11 +619,11 @@ function EditForm({
 }) {
   const [title, setTitle] = useState(fs.title)
   const [description, setDescription] = useState(fs.description)
-  const [setup, setSetup] = useState(String(fs.setup_chapter))
+  const [setup, setSetup] = useState(String(chapters.includes(fs.setup_chapter) ? fs.setup_chapter : chapters[0] ?? ''))
   const [people, setPeople] = useState<string[]>(fs.linked_characters)
   function submit(e: FormEvent) {
     e.preventDefault()
-    if (busy) return
+    if (busy || !chapters.includes(Number(setup))) return
     onSubmit({
       title: title.trim(),
       description: description.trim(),
@@ -586,6 +634,7 @@ function EditForm({
   return (
     <form className="record-form" onSubmit={submit}>
       <FsFields
+        chapters={chapters}
         title={title}
         setTitle={setTitle}
         description={description}
@@ -609,11 +658,13 @@ function EditForm({
 }
 
 function CreateDialog({
+  chapters,
   characters,
   defaultChapter,
   onCancel,
   onSubmit,
 }: {
+  chapters: number[]
   characters: string[]
   defaultChapter: number
   onCancel: () => void
@@ -632,7 +683,7 @@ function CreateDialog({
   const [busy, setBusy] = useState(false)
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (busy) return
+    if (busy || !chapters.includes(Number(setup))) return
     if (!title.trim()) return setError('복선 제목을 입력해 주세요.')
     setBusy(true)
     setError(null)
@@ -652,6 +703,7 @@ function CreateDialog({
     <InsightDialog title="복선 추가" onClose={onCancel} busy={busy}>
       <form className="insight-form" onSubmit={submit}>
         <FsFields
+          chapters={chapters}
           title={title}
           setTitle={setTitle}
           description={description}
@@ -677,6 +729,7 @@ function CreateDialog({
 }
 
 interface FsFieldsProps {
+  chapters: number[]
   title: string
   setTitle: (v: string) => void
   description: string
@@ -689,6 +742,7 @@ interface FsFieldsProps {
 }
 
 function FsFields({
+  chapters,
   title,
   setTitle,
   description,
@@ -723,14 +777,9 @@ function FsFields({
       </label>
       <label className="field">
         <span className="field__label">심은 장</span>
-        <input
-          className="char-search"
-          type="number"
-          min={1}
-          required
-          value={setup}
-          onChange={(e) => setSetup(e.target.value)}
-        />
+        <Select value={setup} onChange={(e) => setSetup(e.target.value)} disabled={!chapters.length}>
+          {chapters.map((no) => <option key={no} value={no}>{no}장</option>)}
+        </Select>
       </label>
       {characters.length > 0 && (
         <fieldset className="fs__people">

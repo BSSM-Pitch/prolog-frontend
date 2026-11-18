@@ -112,6 +112,24 @@
   background: #eeeeea;
   color: var(--itda-ink);
 }
+/* 의견 보내기: 알림·팀과 같은 줄맞춤에 글자만 조금 작게 */
+.sidebar__item--feedback {
+  font-size: 11px;
+  /* 아래 가로선 쪽으로 22px 붙이고, 위 '팀'과의 칸 간격은 16px(4px gap + 12px) */
+  margin-top: 12px;
+  margin-bottom: -22px;
+}
+/* 호버 시 배경 없이 글자에 밑줄만 */
+.sidebar__item--feedback:hover {
+  background: transparent;
+  color: #65655f;
+  text-decoration: underline;
+  text-underline-offset: 1px;
+}
+/* 아이콘이 없으므로 접힌 사이드바에서는 빈 칸이 되지 않게 숨김 */
+.sidebar--collapsed .sidebar__item--feedback {
+  visibility: hidden;
+}
 .sidebar__item.active {
   background: #e9e9e3;
   color: var(--itda-ink);

@@ -1,0 +1,131 @@
+.character-avatar {
+  display: inline-flex;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-soft, #e6e5dc);
+  color: var(--color-ink, #454b3b);
+  font-size: 15px;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+.character-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.project-cover {
+  height: 170px;
+  padding: 20px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  overflow: hidden;
+  background: #e5e4d8;
+  color: #454b3b;
+  border-left: 8px solid #69705b;
+  position: relative;
+}
+.project-cover strong {
+  font-size: 23px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.project-cover span {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+.project-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.project-cover--1 {
+  background: #e8dcd4;
+  border-color: #947762;
+  color: #624c42;
+}
+.project-cover--2 {
+  background: #dce3e8;
+  border-color: #617d8a;
+  color: #3d5966;
+}
+.project-cover--3 {
+  background: #e4dfeb;
+  border-color: #82728d;
+  color: #605169;
+}
+.project-cover--4 {
+  background: #e9e4d4;
+  border-color: #978454;
+  color: #655a37;
+}
+.project-card .project-cover {
+  margin-bottom: 16px;
+}
+.overview__cover {
+  width: 200px;
+  max-width: 100%;
+  margin: 0;
+}
+.overview__cover .project-cover {
+  height: 270px;
+}
+.image-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin: 12px 0;
+}
+.image-picker small,
+.image-picker p {
+  flex-basis: 100%;
+  font-size: 12px;
+}
+.relation-graph__person {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.relation-graph__person .character-avatar {
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+}
+
+.overview__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 32px;
+  align-items: start;
+}
+.overview__heading {
+  min-width: 0;
+}
+@media (max-width: 700px) {
+  .overview__header {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .overview__cover {
+    width: 160px;
+  }
+  .overview__cover .project-cover {
+    height: 215px;
+  }
+}

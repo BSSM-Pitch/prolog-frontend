@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
@@ -291,7 +292,7 @@ export function RulesPage() {
                     <p className="panel__title">
                       {selected.duplicate_rule_id ? '기존 규칙과 중복 가능성이 있어요' : '기존 규칙과 같은 내용인가요?'}
                     </p>
-                    {selected.duplicate_reason && <p className="page-desc">{selected.duplicate_reason}</p>}
+                    {selected.duplicate_reason && <RichText className="page-desc">{selected.duplicate_reason}</RichText>}
                     <p className="panel__label">
                       합치면 기존 규칙의 내용은 유지하고 이 후보의 원문 근거를 추가해요. 의미가 다른 규칙은 따로 확정해
                       주세요.

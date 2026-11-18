@@ -1,3 +1,4 @@
+import { SourceReviewBadge, SourceReviewNotice } from '../insights/SourceReviewNotice'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as charactersApi from '../../api/characters'
@@ -13,6 +14,7 @@ import { describeError } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import { InsightNav } from '../insights/InsightNav'
+import { NarrativeReview } from '../insights/NarrativeReview'
 import { InsightDialog } from '../insights/InsightDialog'
 import { chapterAt, relationshipView, snapshotAt } from '../insights/insightModel'
 import { RelationshipGraph } from './RelationshipGraph'
@@ -86,6 +88,16 @@ function Relationships({
     }
   }, [])
   const rels = useResource((token) => api.listRelationships(token, projectId, manuscriptId), [projectId, manuscriptId])
+  const refreshRecords = rels.reload
+  useEffect(() => {
+    const refresh = (event: Event) => { if ((event as CustomEvent).detail === projectId) refreshRecords() }
+    window.addEventListener('narrative-adopted', refresh)
+    window.addEventListener('focus', refreshRecords)
+    return () => {
+      window.removeEventListener('narrative-adopted', refresh)
+      window.removeEventListener('focus', refreshRecords)
+    }
+  }, [projectId, refreshRecords])
   const characters = useResource((token) => charactersApi.listCharacters(token, projectId), [projectId])
   const chapters = useResource(
     (token) => manuscriptsApi.listChapters(token, projectId, manuscriptId),
@@ -99,7 +111,8 @@ function Relationships({
     ...list.flatMap((item) => item.history.map((entry) => entry.chapter)),
   )
   const chapter = chapterAt(Number(params.get('chapter')), maxChapter)
-  const view = relationshipView(people, list, chapter, params.get('character'), Number(params.get('page') ?? 1))
+  const linkedRelationship = list.find((item) => item.relationship_id === params.get('rel'))
+  const view = relationshipView(people, list, chapter, params.get('character') ?? linkedRelationship?.source_character_id ?? null, Number(params.get('page') ?? 1))
   const selected =
     view.neighbors.find((item) => item.relationship.relationship_id === params.get('rel'))?.relationship ?? null
   const snapshot = selected ? snapshotAt(selected, chapter) : null
@@ -181,7 +194,7 @@ function Relationships({
               aria-label="관계를 기록할 원고"
               value={manuscriptId}
               disabled={busy || adding}
-              onChange={(event) => set({ manuscript: event.target.value, chapter: null, rel: null, page: null })}
+              onChange={(event) => set({ manuscript: event.target.value, chapter: null, rel: null, page: null, relationships_review: null })}
             >
               {manuscripts.map((item) => (
                 <option key={item.manuscript_id} value={item.manuscript_id}>
@@ -205,6 +218,7 @@ function Relationships({
         </div>
       </header>
       <InsightNav projectId={projectId} />
+      <NarrativeReview key={manuscriptId} {...{projectId, manuscriptId, canEdit}} kind="relationships" />
       {notice && (
         <p className="insight-note" role="status">
           {notice}
@@ -262,7 +276,7 @@ function Relationships({
                   min={1}
                   max={maxChapter}
                   value={chapter}
-                  onChange={(event) => set({ chapter: event.target.value, rel: null, page: null })}
+                  onChange={(event) => set({ chapter: event.target.value, page: null })}
                   aria-label="관계를 살펴볼 장"
                 />
               </label>
@@ -276,7 +290,7 @@ function Relationships({
               />
             ) : (
               <div className="insight-state">
-                <h2>{view.center?.name}의 관계가 아직 없어요.</h2>
+                <h2>{view.center?.name}의 직접 기록한 관계가 아직 없어요.</h2>
                 <p>{chapter}장까지 기록된 관계가 없어요. 다른 인물이나 장을 골라 보세요.</p>
               </div>
             )}
@@ -319,6 +333,9 @@ function Relationships({
                     닫기
                   </button>
                 </header>
+                <SourceReviewNotice review={snapshot.source_review} projectId={projectId} canEdit={canEdit}
+                  endpoint={`/projects/${projectId}/relationships/${selected.relationship_id}/history/${snapshot.chapter_id}/source-confirmation`}
+                  onSaved={refreshRecords} />
                 <p className="relations__state">
                   <strong>{snapshot.state}</strong>
                   <span>
@@ -344,7 +361,7 @@ function Relationships({
                             onClick={() => set({ chapter: String(entry.chapter) })}
                           >
                             <span>{entry.chapter}장</span>
-                            <strong>{entry.state}</strong>
+                            <strong>{entry.state}</strong><SourceReviewBadge review={entry.source_review} />
                             {entry.trust !== null && <span>신뢰도 {entry.trust}</span>}
                           </button>
                         </li>
@@ -361,7 +378,7 @@ function Relationships({
                     <RecordForm
                       key={`${selected.relationship_id}:${chapter}`}
                       chapter={chapter}
-                      initial={snapshot.chapter === chapter ? snapshot : null}
+                      initial={{ ...snapshot, event_title: snapshot.chapter === chapter ? snapshot.event_title : null }}
                       busy={busy}
                       onCancel={() => setRecording(false)}
                       onSubmit={(entry) => saveRecord(selected.relationship_id, entry)}
@@ -414,6 +431,7 @@ function Relationships({
         <AddRelationship
           people={people}
           chapter={chapter}
+          chapters={(chapters.data ?? []).map((item) => item.chapter_no)}
           onCancel={() => setAdding(false)}
           onSubmit={async (input) => {
             const item = await withAuth((token) => api.createRelationship(token, projectId, input, manuscriptId))
@@ -462,8 +480,8 @@ function RecordForm({
   onCancel: () => void
   onSubmit: (e: api.EntryInput) => void
 }) {
-  const [state, setState] = useState(initial?.state ?? '신뢰')
-  const [trust, setTrust] = useState(String(initial?.trust ?? 50))
+  const [state, setState] = useState(initial?.state ?? '중립')
+  const [trust, setTrust] = useState(initial?.trust == null ? '' : String(initial.trust))
   const [event, setEvent] = useState(initial?.event_title ?? '')
   function submit(e: FormEvent) {
     e.preventDefault()
@@ -483,7 +501,7 @@ function RecordForm({
           </Select>
         </label>
         <label className="field">
-          <span className="field__label">신뢰도 · 0~100</span>
+          <span className="field__label">신뢰도 · 선택 · 0~100</span>
           <input
             className="char-search"
             type="number"
@@ -518,11 +536,13 @@ function RecordForm({
 function AddRelationship({
   people,
   chapter,
+  chapters,
   onCancel,
   onSubmit,
 }: {
   people: Array<{ character_id: string; name: string }>
   chapter: number
+  chapters: number[]
   onCancel: () => void
   onSubmit: (input: {
     source_character_id: string
@@ -532,9 +552,9 @@ function AddRelationship({
 }) {
   const [a, setA] = useState(people[0]?.character_id ?? '')
   const [b, setB] = useState(people[1]?.character_id ?? '')
-  const [first, setFirst] = useState(String(chapter))
+  const [first, setFirst] = useState(String(chapters.includes(chapter) ? chapter : chapters[0] ?? ''))
   const [state, setState] = useState('우호')
-  const [trust, setTrust] = useState('50')
+  const [trust, setTrust] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -542,6 +562,7 @@ function AddRelationship({
     e.preventDefault()
     if (busy) return
     if (a === b) return setError('서로 다른 두 인물을 골라 주세요.')
+    if (!chapters.includes(Number(first))) return setError('원고에 있는 장을 골라 주세요.')
     setBusy(true)
     setError(null)
     try {
@@ -581,14 +602,9 @@ function AddRelationship({
           ))}
           <label className="field">
             <span className="field__label">첫 기록 장</span>
-            <input
-              className="char-search"
-              type="number"
-              min={1}
-              required
-              value={first}
-              onChange={(e) => setFirst(e.target.value)}
-            />
+            <Select value={first} onChange={(e) => setFirst(e.target.value)}>
+              {chapters.map((no) => <option key={no} value={no}>{no}장</option>)}
+            </Select>
           </label>
           <label className="field">
             <span className="field__label">관계 상태</span>
@@ -599,7 +615,7 @@ function AddRelationship({
             </Select>
           </label>
           <label className="field">
-            <span className="field__label">신뢰도 · 0~100</span>
+            <span className="field__label">신뢰도 · 선택 · 0~100</span>
             <input
               className="char-search"
               type="number"

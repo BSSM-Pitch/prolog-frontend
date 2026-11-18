@@ -8,7 +8,7 @@ import type { Advisory, Foreshadowing, SimilarCandidate } from './types'
 const base = (projectId: string) => `/projects/${projectId}/foreshadowings`
 const one = (projectId: string, id: string) => `${base(projectId)}/${id}`
 
-type CreateInput = { title: string; description?: string; setup_chapter: number; linked_characters?: string[] }
+type CreateInput = { title: string; description?: string; setup_chapter: number; linked_characters?: string[]; manuscript_id?: string }
 type UpdateInput = Partial<CreateInput>
 
 export function listForeshadowings(token: string, projectId: string) {
@@ -74,7 +74,7 @@ export async function listAdvisories(token: string, projectId: string, currentCh
 // 관련 인물은 이름으로 다루고 백엔드 인물 ID와 바꾼다. 사건 연결은 백엔드에 아직 없다(SCDS 이후).
 
 const real = {
-  async context(token: string, projectId: string, foreshadowingId?: string) {
+  async context(token: string, projectId: string, foreshadowingId?: string, manuscriptId?: string) {
     const [manuscripts, chapters, characters, existing] = await Promise.all([
       requestAll<BackendManuscript>(`/projects/${projectId}/manuscripts`, { accessToken: token }),
       requestAll<BackendChapter>(`/projects/${projectId}/chapters`, { accessToken: token }),
@@ -82,9 +82,15 @@ const real = {
       foreshadowingId ? request<BackendForeshadowing>('GET', one(projectId, foreshadowingId), { accessToken: token }) : Promise.resolve(null),
     ])
     // 화면(toManuscript)과 같은 기준의 ready — 편집기 원고는 draft여도 ready로 본다
-    const main = manuscripts.find((m) => m.status === 'ready' || (m.status === 'draft' && m.source_type === 'editor'))
+    const main = manuscripts.find((m) => m.manuscript_id === manuscriptId)
+    if (!existing && !main) throw new ApiError(400, { code: 'INVALID_INPUT', message: '복선을 기록할 원고를 골라 주세요.', details: {} })
     const setupId = existing?.chapters.find((chapter) => chapter.role === 'setup')?.chapter_id
-    const ownerId = setupId ? chapters.find((chapter) => chapter.chapter_id === setupId)?.manuscript_id : main?.manuscript_id
+    const linkedOwnerIds = new Set((existing?.chapters ?? []).flatMap((ref) => {
+      const chapter = chapters.find((row) => row.chapter_id === ref.chapter_id)
+      return chapter ? [chapter.manuscript_id] : []
+    }))
+    const ownerId = setupId ? chapters.find((chapter) => chapter.chapter_id === setupId)?.manuscript_id
+      : linkedOwnerIds.size === 1 ? [...linkedOwnerIds][0] : main?.manuscript_id
     return {
       chapterId(no: number) {
         const c = chapters.find((x) => x.manuscript_id === ownerId && x.chapter_no === no)
@@ -101,6 +107,7 @@ const real = {
   toForeshadowing(f: BackendForeshadowing, code: string, nameOf: Map<string, string>, chapters: BackendChapter[]): Foreshadowing {
     return {
       foreshadowing_id: f.foreshadowing_id,
+      source_review: f.source_review,
       code,
       title: f.title,
       description: f.description ?? '',
@@ -135,7 +142,7 @@ const real = {
   },
 
   async create(token: string, projectId: string, input: CreateInput) {
-    const ctx = await real.context(token, projectId)
+    const ctx = await real.context(token, projectId, undefined, input.manuscript_id)
     const res = await requestWithMeta<BackendForeshadowing, { similar_candidates?: Array<{ foreshadowing_id: string; title: string }> }>('POST', base(projectId), {
       body: {
         title: input.title,
@@ -150,13 +157,15 @@ const real = {
     const similar = (res.meta.similar_candidates ?? [])
       .map((c) => all.find((f) => f.foreshadowing_id === c.foreshadowing_id))
       .filter((f): f is Foreshadowing => Boolean(f))
-      .map((f): SimilarCandidate => ({ foreshadowing_id: f.foreshadowing_id, code: f.code, title: f.title, setup_chapter: f.setup_chapter, payoff_chapter: f.payoff_chapter }))
+      .filter((f) => f.chapter_locations?.some((location) => location.manuscript_id === input.manuscript_id))
+      .map((f): SimilarCandidate => ({ foreshadowing_id: f.foreshadowing_id,
+      code: f.code, title: f.title, setup_chapter: f.setup_chapter, payoff_chapter: f.payoff_chapter }))
     return { data: all.find((f) => f.foreshadowing_id === res.data.foreshadowing_id)!, meta: { similar_candidates: similar } }
   },
 
   /** 제목·설명·설치 장은 PATCH, 관련 인물은 연결을 더하고 푸는 것으로 맞춘다 */
   async update(token: string, projectId: string, id: string, input: UpdateInput) {
-    const [ctx, current] = await Promise.all([real.context(token, projectId, id), request<BackendForeshadowing>('GET', one(projectId, id), { accessToken: token })])
+    const [ctx, current] = await Promise.all([real.context(token, projectId, id, input.manuscript_id), request<BackendForeshadowing>('GET', one(projectId, id), { accessToken: token })])
     const body: Record<string, unknown> = {}
     if (input.title !== undefined) body.title = input.title
     if (input.description !== undefined) body.description = input.description || null

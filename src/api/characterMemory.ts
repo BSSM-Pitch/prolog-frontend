@@ -10,6 +10,10 @@ export interface MemoryJob {
     verified_speakers: number
     patterns: number
     completed_requests: number
+    stage?: string
+    http_requests?: number
+    request_limit?: number | null
+    planned_requests?: number | null
   }
   error: { code: string; message: string } | null
   discovery: {
@@ -34,19 +38,30 @@ export interface MemoryOverview {
   manuscript_id: string
   job: MemoryJob | null
   available_analysis_id: string | null
+  patterns_pending?: boolean
   stale: boolean
   job_stale: boolean
   mode: 'real' | 'fake' | null
   can_analyze: boolean
   character_counts: Record<string, number>
+  character_last_records?: Record<string, number>
   chapters: Array<{ order: number; title: string }>
 }
 export interface DetailRecord {
+  source_start?: number
+  chapter_no?: number
   observation_id: string
   kind: 'speech' | 'action' | 'inner_thought' | 'narration'
   presentation: 'depicted' | 'character_claim' | 'narrator_claim' | 'thought'
   behavior_role: 'trigger' | 'awareness' | 'desire' | 'involuntary_reaction' | 'choice' | 'other'
   attribution: 'certain' | 'uncertain'
+  perception_context?: {
+    character_id: string
+    basis: 'context_inference'
+    anchor_observation_ids: string[]
+    reason: string
+    evidence: Array<{ quote: string }>
+  } | null
   summary: string
   context: string
   order: number
@@ -58,6 +73,14 @@ export interface DetailRecord {
   evidence: { scene_id: string; revision: string; start: number; end: number; quote: string }
   source: { before: string; quote: string; after: string }
   speaker_check: { reason: string; adjudicated: boolean; evidence: { quote: string } } | null
+  attribution_checks?: Array<{
+    stage: 'extract' | 'verify' | 'adjudicate'
+    name: string | null
+    character_id: string | null
+    attribution: 'certain' | 'uncertain'
+    reason: string
+    evidence: Array<{ quote: string }>
+  }>
 }
 export interface DetailPattern {
   pattern_id: string

@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import {
   Fragment,
   useCallback,
@@ -47,9 +48,10 @@ const SKIPPED: Record<string, string> = {
 export function ReviewedManuscript(props: Props) {
   const { projectId, manuscriptId, chapterId, chapterNo, value, readOnly, textRef } = props
   const { withAuth } = useSession()
+  const [localDirty, setLocalDirty] = useState(false)
   const review = useResource((token) => api.listConflicts(token, projectId), [projectId, chapterId])
   const reloadReview = review.reload
-  const issues = useMemo(() => manuscriptIssues(value, chapterId, review.data ?? []), [value, chapterId, review.data])
+  const issues = useMemo(() => localDirty ? [] : manuscriptIssues(value, chapterId, review.data ?? []), [value, chapterId, review.data, localDirty])
   const [open, setOpen] = useState<{
     key: string
     item: number
@@ -64,6 +66,7 @@ export function ReviewedManuscript(props: Props) {
   const [message, setMessage] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const submitLock = useRef(false)
+  const reviewEpoch = useRef(0)
   const programmaticScroll = useRef(false)
   const mirror = useRef<HTMLDivElement>(null)
   const mirrorText = useRef<HTMLDivElement>(null)
@@ -88,11 +91,13 @@ export function ReviewedManuscript(props: Props) {
   function completed(job: ConflictCheck) {
     review.reload()
     if (job.status === 'failed')
-      setMessage('AI 검토를 마치지 못했어요. 키워드 일치만으로 위반을 판정하지 않았어요. 다시 시도해 주세요.')
+      setMessage('AI 검토를 마치지 못했어요. 확인되지 않은 결과는 표시하지 않았어요. 다시 시도해 주세요.')
     else if (job.status === 'skipped') setMessage(SKIPPED[job.skipped_reason ?? ''] ?? '지금은 검사할 수 없어요.')
     else
       setMessage(
-        job.result_ids.length
+        job.analysis_kind === 'narrative_review'
+          ? job.narrative?.stale ? '원고가 바뀌었어요. 현재 원고로 다시 검사해 주세요.' : '원고 전체의 설정·관계·복선 검토를 마쳤어요.'
+          : job.result_ids.length
           ? `설정 검사 완료: 충돌 후보 ${job.result_ids.length}건을 찾았어요. 표시된 문장을 확인해 주세요.`
           : job.analysis_kind === 'ai_rule_review'
             ? 'AI 검토를 마쳤어요. 규칙별 지지·위반·판단 불가와 근거를 확인해 주세요.'
@@ -102,9 +107,21 @@ export function ReviewedManuscript(props: Props) {
   const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), completed)
   const checking = starting || check.running
 
+  useEffect(() => {
+    let cancelled = false
+    const epoch = ++reviewEpoch.current
+    withAuth((token) => api.latestNarrativeReview(token, projectId, manuscriptId))
+      .then((job) => { if (!cancelled && epoch === reviewEpoch.current && !submitLock.current) check.setJob(job) })
+      .catch((error) => { if (!cancelled) check.setError(describeError(error)) })
+    return () => { cancelled = true }
+    // Restore the durable job on chapter navigation, without starting a paid review.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, manuscriptId, chapterId, withAuth])
+
   async function startCheck() {
     if (submitLock.current || check.running || readOnly) return
     submitLock.current = true
+    reviewEpoch.current += 1
     setStarting(true)
     setMessage(null)
     check.setError(null)
@@ -114,6 +131,7 @@ export function ReviewedManuscript(props: Props) {
         return
       }
       const job = await withAuth((token) => api.rescan(token, projectId, false, { manuscriptId, chapterId }))
+      setLocalDirty(false)
       check.setJob(job)
       if (!['queued', 'analyzing'].includes(job.status)) completed(job)
     } catch (error) {
@@ -126,7 +144,12 @@ export function ReviewedManuscript(props: Props) {
 
   async function retry() {
     if (!check.job || submitLock.current) return
+    if (check.job.analysis_kind === 'narrative_review') {
+      await startCheck()
+      return
+    }
     submitLock.current = true
+    reviewEpoch.current += 1
     setStarting(true)
     try {
       check.setError(null)
@@ -266,10 +289,21 @@ export function ReviewedManuscript(props: Props) {
       </Fragment>
     )
   })
+  const [resultsOpen, setResultsOpen] = useState(false)
+  const resultsRef = useRef<HTMLDivElement>(null)
+  const resultsId = useId()
+  useEffect(() => { if (resultsOpen) resultsRef.current?.focus() }, [resultsOpen])
   const error = check.error ?? review.error
   return (
     <div className="manuscript-review">
       <div className="manuscript-review__tools">
+        {check.job && (
+          <button type="button" className="text-link" aria-expanded={resultsOpen} aria-controls={resultsId}
+            onClick={() => setResultsOpen(!resultsOpen)}>
+            {resultsOpen ? '검토 결과 접기' : '저장된 검토 결과 보기'}
+            {(localDirty || check.job.narrative?.stale) ? ' · 원고 변경됨' : ''}
+          </button>
+        )}
         {issues.length > 0 && (
           <button ref={countButton} type="button" className="manuscript-review__count" onClick={() => show(0, true)}>
             검토 {issues.length}곳
@@ -282,7 +316,7 @@ export function ReviewedManuscript(props: Props) {
             disabled={checking || composing || !value.trim()}
             onClick={check.job?.status === 'failed' ? retry : startCheck}
           >
-            {checking ? '검사 중…' : check.job?.status === 'failed' ? '검사 다시 시도' : '설정 검사'}
+            {checking ? '전체 원고 검사 중…' : check.job?.status === 'failed' ? '검사 다시 시도' : '설정·복선 검사'}
           </button>
         )}
       </div>
@@ -296,7 +330,6 @@ export function ReviewedManuscript(props: Props) {
           )}
         </p>
       )}
-      <RuleReviewSummary job={check.job} />
       <div className="textbox editor__text manuscript-review__input">
         <div className="manuscript-review__surface">
           <div
@@ -320,6 +353,7 @@ export function ReviewedManuscript(props: Props) {
             placeholder="여기에 이야기를 써 보세요."
             spellCheck={false}
             onChange={(event) => {
+              setLocalDirty(true)
               close()
               props.onChange(event.target.value)
             }}
@@ -363,6 +397,17 @@ export function ReviewedManuscript(props: Props) {
           />
         </div>
       </div>
+      <div id={resultsId} ref={resultsRef} hidden={!resultsOpen} tabIndex={-1} aria-label="저장된 검토 결과">
+        {resultsOpen && <>
+          <button type="button" className="btn btn--outline" onClick={() => {
+            setResultsOpen(false)
+            textRef.current?.focus()
+          }}>결과 접고 원고로 돌아가기</button>
+      <RuleReviewSummary projectId={projectId} job={check.job?.narrative && localDirty ? {
+        ...check.job, narrative: { ...check.job.narrative, stale: true },
+      } : check.job} />
+        </>}
+      </div>
       {open &&
         active &&
         conflict &&
@@ -384,7 +429,7 @@ export function ReviewedManuscript(props: Props) {
             </div>
             <h2 id={titleId}>{conflict.title}</h2>
             {conflict.evidence[0]?.quote && <blockquote>{conflict.evidence[0].quote}</blockquote>}
-            <p className="manuscript-review__advice">{conflict.advice}</p>
+            <RichText className="manuscript-review__advice">{conflict.advice}</RichText>
             {actionError && <p role="alert">{actionError}</p>}
             <div className="manuscript-review__actions">
               <button type="button" className="text-link" onClick={() => props.onOpenReview(conflict)}>

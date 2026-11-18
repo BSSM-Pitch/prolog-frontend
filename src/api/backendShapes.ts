@@ -1,4 +1,4 @@
-import type { WorldRuleEvidence } from './types'
+import type { SourceReview, WorldRuleEvidence } from './types'
 import type { Chapter, CharacterCategory, CharacterDraft, DraftItem, Manuscript, ManuscriptStatus, ManuscriptVersionDetail, Project, ProjectRole, QAMessage, QAThread } from './types'
 
 // prolog-backend 응답 모양(openapi.json · app/**/schemas.py)과 프론트 타입 사이의 변환.
@@ -196,6 +196,7 @@ export interface BackendWorldRule {
 // --- FTS 복선 ------------------------------------------------------------------------------------
 
 export interface BackendForeshadowing {
+  source_review?: SourceReview | null
   foreshadowing_id: string
   project_id: string
   title: string
@@ -270,6 +271,7 @@ export function joinChapters(chapters: Array<{ chapter_no: number; title: string
 // --- AIQ 원고 질문 --------------------------------------------------------------------------------
 
 export interface BackendMessage {
+  citations?: QAMessage['citations']
   message_id: string
   thread_id: string
   role: 'user' | 'assistant'
@@ -295,8 +297,8 @@ export interface BackendThreadDetail {
   messages: BackendMessage[]
 }
 
-/** 백엔드 답변에는 근거 장면(citations)이 없다 */
-export const toMessage = (m: BackendMessage): QAMessage => ({ ...m, citations: [] })
+/** 서버가 원문과 대조한 근거만 원고 이동 링크로 표시한다. */
+export const toMessage = (m: BackendMessage): QAMessage => ({ ...m, citations: m.citations ?? [] })
 
 export const toThread = (t: BackendThread): QAThread => ({
   thread_id: t.thread_id,

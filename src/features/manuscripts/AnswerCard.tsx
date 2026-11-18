@@ -1,6 +1,7 @@
 import type { Citation, QAMessage } from '../../api/types'
 import { Button } from '../../components/Button'
 import { LogoLoader } from '../../components/LogoLoader'
+import { RichText } from '../../components/RichText'
 
 interface AnswerCardProps {
   message: QAMessage | null
@@ -48,13 +49,13 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
 
   return (
     <div className="answer">
-      <p className="answer__text">{message.content}</p>
+      <RichText className="answer__text">{message.content}</RichText>
       {message.citations.length > 0 && (
         <ul className="answer__citations">
           {message.citations.map((c) => (
             <li key={`${c.chapter_no}-${c.quote}`} className="citation">
               <p className="citation__label">
-                근거 · {c.chapter_no}장{c.chapter_title ? ` ${c.chapter_title}` : ''}
+                근거 · {c.chapter_no}장{c.chapter_title && c.chapter_title !== `${c.chapter_no}장` ? ` ${c.chapter_title}` : ''}
               </p>
               <p className="citation__quote">“{c.quote}”</p>
               {onOpenCitation && (

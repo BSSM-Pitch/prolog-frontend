@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
@@ -19,7 +20,7 @@ import { Select } from '../../components/Select'
 import { RuleReviewSummary } from './RuleReviewSummary'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
-const STATUS = { pending: '검토 대기', accepted: '제안 수용', ignored: '무시함', modified: '직접 수정' } as const
+const STATUS = { pending: '검토 대기', accepted: '검토 완료 · 원고 유지', ignored: '무시함', modified: '직접 수정' } as const
 const pad = (n: number) => String(n).padStart(2, '0')
 
 type SkipInfo = { title: string; body: string; action: string; to: string }
@@ -78,6 +79,9 @@ function ConflictReview() {
 
   const conflicts = useResource(project ? (t) => api.listConflicts(t, projectId) : null, [projectId])
   const manuscripts = useResource(project ? (t) => manuscriptsApi.listManuscripts(t, projectId) : null, [projectId])
+  const ready = (manuscripts.data ?? []).filter((m) => m.status === 'ready')
+  const latest = ready.find((m) => m.manuscript_id === params.get('manuscript')) ?? ready[0] ?? null
+  const reviewEpoch = useRef(0)
   const [showResolved, setShowResolved] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -99,12 +103,27 @@ function ConflictReview() {
         setNotice(
           job.result_ids.length
             ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.`
-            : job.analysis_kind === 'ai_rule_review'
+            : job.analysis_kind === 'narrative_review'
+              ? '원고 전체 검토를 마쳤어요. 설정·관계·복선과 앞뒤 근거를 확인해 주세요.'
+              : job.analysis_kind === 'ai_rule_review'
               ? 'AI 검토를 마쳤어요. 규칙별 지지·위반·판단 불가를 확인해 주세요.'
               : '키워드 검색을 마쳤어요. AI 의미 검토가 없는 이전 검사 결과예요.',
         )
     },
   )
+
+  const reviewManuscriptId = latest?.manuscript_id
+  useEffect(() => {
+    if (!reviewManuscriptId) return
+    let cancelled = false
+    const epoch = ++reviewEpoch.current
+    check.setJob(null)
+    withAuth((token) => api.latestNarrativeReview(token, projectId, reviewManuscriptId))
+      .then((job) => { if (!cancelled && epoch === reviewEpoch.current) check.setJob(job) })
+      .catch((error) => { if (!cancelled) check.setError(describeError(error)) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, reviewManuscriptId, withAuth])
 
   if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
@@ -114,8 +133,7 @@ function ConflictReview() {
   const list = showResolved ? resolved : pending
   const focus = params.get('focus')
   const selected = list.find((c) => c.conflict_id === focus) ?? null
-  const ready = (manuscripts.data ?? []).filter((m) => m.status === 'ready')
-  const latest = ready.find((m) => m.manuscript_id === params.get('manuscript')) ?? ready[0] ?? null
+
 
   function focusConflict(id: string | null) {
     const next = new URLSearchParams(params)
@@ -130,16 +148,22 @@ function ConflictReview() {
     setError(null)
     try {
       const updated = await withAuth((t) =>
-        api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content }),
+        api.resolveConflict(t, projectId, c.conflict_id, { action, modified_content, source_hash: c.source_hash }),
       )
       conflicts.setData((prev) => prev?.map((x) => (x.conflict_id === updated.conflict_id ? updated : x)) ?? null)
+      // One chapter can contain several findings. Refresh every source revision
+      // after an edit so the next unchanged quote can be edited safely as well.
+      if (action === 'modified') {
+        const refreshed = await withAuth((t) => api.listConflicts(t, projectId))
+        conflicts.setData(() => refreshed)
+      }
       setEditing(null)
       setNotice(
         action === 'modified'
           ? `${c.evidence[c.evidence.length - 1].chapter}장 문장을 고쳤어요.`
           : action === 'ignored'
             ? '무시한 충돌은 같은 문장에서 다시 감지하지 않아요.'
-            : '제안을 수용했어요.',
+            : '검토 완료로 표시했어요. 원고는 바뀌지 않았어요.',
       )
       // 다음 미검토 항목으로 넘어간다
       const next = pending.find((x) => x.conflict_id !== c.conflict_id)
@@ -152,10 +176,12 @@ function ConflictReview() {
   }
 
   async function startCheck(simulateFailure = false) {
+    if (!latest || check.running) return
+    reviewEpoch.current += 1
     setNotice(null)
     check.setError(null)
     try {
-      check.setJob(await withAuth((t) => api.rescan(t, projectId, simulateFailure)))
+      check.setJob(await withAuth((t) => api.rescan(t, projectId, simulateFailure, { manuscriptId: latest.manuscript_id, chapterId: '' })))
     } catch (e) {
       check.setError(describeError(e))
     }
@@ -179,12 +205,20 @@ function ConflictReview() {
           <h1 className="page-title">설정 검토</h1>
         </div>
         {canEdit && (
-          <Button tone="secondary" onClick={() => startCheck()} busy={check.running}>
+          <Button tone="secondary" onClick={() => startCheck()} busy={check.running} disabled={!latest}>
             {check.running ? '검사하는 중…' : '원고 다시 검사'}
           </Button>
         )}
       </header>
       <InsightNav projectId={projectId} />
+      {ready.length > 0 && <label className="insight-filter">검사할 원고
+        <Select value={latest?.manuscript_id ?? ''} onChange={(event) => {
+          const next = new URLSearchParams(params)
+          next.set('manuscript', event.target.value)
+          setParams(next, { replace: true })
+          setNotice(null)
+        }}>{ready.map((m) => <option key={m.manuscript_id} value={m.manuscript_id}>{m.title}</option>)}</Select>
+      </label>}
 
       {check.running && (
         <div className="state-block" role="status">
@@ -192,17 +226,17 @@ function ConflictReview() {
           <p className="answer__title">설정 충돌을 검토하고 있어요</p>
           <p className="answer__body">
             {job?.status === 'analyzing'
-              ? '키워드 단서를 찾았고, AI가 모든 저장 규칙의 의미와 조건을 비교하고 있어요.'
-              : '확정된 규칙과 인물 설정을 원고와 비교하고 있어요.'}
+              ? '원고 전체에서 설정·인물 관계·복선의 변화와 충돌을 대조하고 있어요.'
+              : '모든 장의 원문을 준비하고 있어요. 저장된 규칙이 없어도 검사할 수 있어요.'}
           </p>
         </div>
       )}
-      <RuleReviewSummary job={job} />
+      <RuleReviewSummary job={job} projectId={projectId} />
       {job?.status === 'failed' && (
         <div className="state-block state-block--error" role="alert">
           <p className="answer__title">AI 검토를 마치지 못했어요</p>
           <p className="answer__body">
-            AI 판정을 완료하지 못했어요. 키워드 일치를 위반으로 표시하지 않아요. 다시 검토할 수 있어요.
+            AI 검토나 근거 확인을 완료하지 못했어요. 확인되지 않은 결과는 표시하지 않으며 다시 검사할 수 있어요.
           </p>
           <Button onClick={retryCheck}>AI 검토 다시 시도</Button>
         </div>
@@ -306,10 +340,10 @@ function ConflictReview() {
                     {e.character ? ` · ${e.character}` : ''}
                   </p>
                   <p className="evidence-card__quote">“{e.quote}”</p>
-                  {latest && e.chapter > 0 && (
+                  {(e.manuscript_id || (i > 0 && (selected.manuscript_id || latest))) && e.chapter > 0 && (
                     <Link
                       className="text-link"
-                      to={`${projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}?chapter=${e.chapter}`}
+                      to={`${projectPath(projectId, `manuscripts/${e.manuscript_id ?? selected.manuscript_id ?? latest?.manuscript_id}`)}?chapter=${e.chapter}`}
                       state={{ highlight: e.quote }}
                     >
                       {e.chapter}장 원문 보기
@@ -320,7 +354,7 @@ function ConflictReview() {
             </div>
             <details className="insight-disclosure">
               <summary>AI 조언</summary>
-              <p>{selected.advice}</p>
+              <RichText>{selected.advice}</RichText>
             </details>
             {selected.modified_content && <p className="check-note">고친 문장 · “{selected.modified_content}”</p>}
 
@@ -339,6 +373,11 @@ function ConflictReview() {
                 <span className="panel__label">저장하면 원고의 해당 문장이 이 내용으로 바뀌어요.</span>
               </label>
             )}
+            {selected.status === 'pending' && (
+              <p className="panel__label">
+                {selected.edit_unavailable_reason ?? '직접 수정은 원고를 바꾸고, 검토만 완료는 원고를 그대로 둡니다.'}
+              </p>
+            )}
             {error && (
               <p className="notice notice--error" role="alert">
                 {error}
@@ -350,6 +389,7 @@ function ConflictReview() {
                   <>
                     <Button
                       tone="outline"
+                      disabled={busy || Boolean(selected.edit_unavailable_reason)}
                       onClick={() => setEditing(selected.evidence[selected.evidence.length - 1].quote)}
                     >
                       직접 수정
@@ -358,7 +398,7 @@ function ConflictReview() {
                       무시
                     </Button>
                     <Button onClick={() => resolve(selected, 'accepted')} busy={busy}>
-                      제안 수용
+                      검토만 완료
                     </Button>
                   </>
                 ) : (

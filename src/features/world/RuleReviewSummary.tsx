@@ -1,7 +1,10 @@
+import { RichText } from '../../components/RichText'
 import type { ConflictCheck } from '../../api/types'
+import { NarrativeSummary } from './NarrativeSummary'
 
 /** Keep keyword matches visibly separate from actual model verdicts. */
-export function RuleReviewSummary({ job }: { job: ConflictCheck | null }) {
+export function RuleReviewSummary({ job, projectId }: { job: ConflictCheck | null; projectId: string }) {
+  if (job?.analysis_kind === 'narrative_review') return <NarrativeSummary job={job} projectId={projectId} />
   if (!job || job.analysis_kind !== 'ai_rule_review') return null
   const assessments = job.assessments ?? []
   const supports = assessments.filter((a) => a.verdict === 'supports').length
@@ -40,7 +43,7 @@ export function RuleReviewSummary({ job }: { job: ConflictCheck | null }) {
               </p>
               <p className="panel__label">저장 규칙: {assessment.rule_description}</p>
               {assessment.evidence && <p>원문: “{assessment.evidence}”</p>}
-              <p>{assessment.reason}</p>
+              <RichText>{assessment.reason}</RichText>
             </div>
           ))}
         </details>

@@ -91,3 +91,17 @@
   font-size: 15px;
   line-height: 1.9;
 }
+.answer__text.answer__markdown { white-space: normal; overflow-wrap: anywhere; }
+.answer__markdown > :first-child { margin-top: 0; }
+.answer__markdown > :last-child { margin-bottom: 0; }
+.answer__markdown p, .answer__markdown ul, .answer__markdown ol { margin-block: 0.75em; }
+.answer__markdown li + li { margin-top: 0.4em; }
+.answer__markdown blockquote { margin-inline: 0; padding-left: 1em; border-left: 3px solid var(--input-stroke); }
+
+.answer__table-scroll { max-width: 100%; overflow-x: auto; margin-block: 1em; }
+.answer__table-scroll table { width: 100%; border-collapse: collapse; font-size: inherit; }
+.answer__table-scroll th, .answer__table-scroll td {
+  min-width: 7rem; padding: 0.65em 0.8em; border: 1px solid var(--input-stroke);
+  text-align: left; vertical-align: top;
+}
+.answer__table-scroll th { font-weight: 600; }

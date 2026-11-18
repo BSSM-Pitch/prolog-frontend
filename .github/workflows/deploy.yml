@@ -24,7 +24,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
 
     steps:
       - name: Check out source
@@ -50,6 +50,8 @@ jobs:
           VITE_API_BASE_URL: /v1
           VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_REDIRECT_URI: https://prolog.kr/auth/callback
+          VITE_NAVER_CLIENT_ID: ${{ vars.VITE_NAVER_CLIENT_ID }}
+          VITE_NAVER_REDIRECT_URI: https://prolog.kr/auth/callback/naver
 
       - name: Package build
         run: tar -C dist -czf frontend-dist.tgz .
@@ -83,6 +85,8 @@ jobs:
             --arg staging "$staging" \
             '{commands: [
               "set -eu",
+              "exec 9>/var/lock/prolog-deploy.lock",
+              "flock -w 1200 9",
               ("aws s3 cp " + $uri + " " + $archive + " --region ap-northeast-2 --only-show-errors"),
               ("rm -rf " + $staging),
               ("install -d -m 755 " + $staging),
@@ -102,13 +106,13 @@ jobs:
             --instance-ids "$EC2_INSTANCE_ID" \
             --document-name AWS-RunShellScript \
             --comment "Deploy frontend ${GITHUB_SHA}" \
-            --timeout-seconds 900 \
+            --timeout-seconds 1800 \
             --parameters "$parameters" \
             --query 'Command.CommandId' \
             --output text)"
 
           exit_code=1
-          for _ in {1..180}; do
+          for _ in {1..360}; do
             status="$(aws ssm get-command-invocation \
               --command-id "$command_id" \
               --instance-id "$EC2_INSTANCE_ID" \

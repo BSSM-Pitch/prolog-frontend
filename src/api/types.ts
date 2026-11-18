@@ -376,6 +376,9 @@ export interface WorldRule {
 
 /** SCDS 2.7 Conflict — Figma 05는 "두 근거 비교"라서 evidence[] 구조로 받는다 (명세 미정의) */
 export interface Conflict {
+  manuscript_id?: string | null
+  source_hash?: string | null
+  edit_unavailable_reason?: string | null
   conflict_id: string
   review_kind?: 'ai' | 'keyword'
   index: number
@@ -383,7 +386,7 @@ export interface Conflict {
   severity: 'high' | 'medium' | 'low'
   status: 'pending' | 'accepted' | 'ignored' | 'modified'
   rule_id: string | null
-  evidence: Array<{ chapter: number; character: string | null; quote: string }>
+  evidence: Array<{ chapter: number; character: string | null; quote: string; manuscript_id?: string | null }>
   /** 실제 검사 대상 장과 원문. 위치를 확인할 수 없는 결과는 인라인 표시하지 않는다. */
   anchor?: { chapter_id: string; quote: string; context?: string }
   advice: string
@@ -407,16 +410,52 @@ export interface ConflictCheck {
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   result_ids: string[]
   assessments?: RuleAssessment[]
-  analysis_kind?: 'ai_rule_review' | 'legacy_keyword'
+  analysis_kind?: 'ai_rule_review' | 'legacy_keyword' | 'narrative_review'
+  narrative?: NarrativeResult | null
   keyword_candidate_count?: number
   skipped_reason: string | null
   manuscript_id: string | null
+}
+export interface NarrativeEvidence { chapter_id: string; chapter_no: number; quote: string }
+export interface NarrativeTrack {
+  title: string
+  kind: 'setting' | 'relationship' | 'foreshadowing'
+  focus?: 'general' | 'activation' | 'cost' | 'matchup' | 'knowledge'
+  status: 'established' | 'changed' | 'paid_off' | 'unresolved' | 'reinterpreted'
+  explanation: string
+  evidence: NarrativeEvidence[]
+}
+export interface NarrativeFinding {
+  title: string
+  category: 'contradiction' | 'explanation_gap'
+  severity: 'low' | 'medium' | 'high'
+  reason: string
+  evidence: NarrativeEvidence[]
+}
+export interface NarrativeResult {
+  manuscript_id: string
+  source_hash: string
+  chapter_count: number
+  char_count: number
+  stale: boolean
+  summary: string
+  tracks: NarrativeTrack[]
+  findings: NarrativeFinding[]
+  more_items: boolean
 }
 export type RuleExtraction = ConflictCheck
 
 // RCV 명세 — 관계 변화
 
+export interface SourceReview {
+  status: 'current' | 'changed' | 'unverified'
+  manuscript_id: string | null
+  changed_chapters: number[]
+  revision_token: string | null
+}
+
 export interface RelationshipHistoryEntry {
+  source_review?: SourceReview | null
   chapter_id?: string
   manuscript_id?: string
   chapter: number
@@ -461,6 +500,7 @@ export interface MindmapGraph {
 // FTS 명세 — 복선
 
 export interface Foreshadowing {
+  source_review?: SourceReview | null
   foreshadowing_id: string
   /** (명세 미정의) "F01" 같은 표시 번호 */
   code: string

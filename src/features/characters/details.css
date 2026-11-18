@@ -607,3 +607,10 @@
   gap: 8px;
   margin-top: 12px;
 }
+
+.detail-pagination { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-block: 16px; }
+.detail-pagination > * { width: auto; }
+
+.detail-related-records { margin: -4px 0 12px; padding: 10px 14px; border: 1px solid var(--border, #ddd); border-radius: 12px; }
+.detail-related-records > summary { cursor: pointer; font-size: 13px; }
+.detail-related-records[open] > summary { margin-bottom: 12px; }

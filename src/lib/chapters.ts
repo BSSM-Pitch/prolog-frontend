@@ -1,21 +1,32 @@
-// 업로드한 본문을 장으로 나눈다 — 목업 추출과 real 모드(백엔드는 본문만 추출한다)가 함께 쓴다
-
-/** "1장", "제 2 장", "Chapter 3" 같은 줄을 기준으로 본문을 장 단위로 나눈다 */
-export function splitChapters(text: string): Array<{ title: string; content: string }> {
-  const lines = text.replace(/\r\n/g, '\n').split('\n')
-  // 한글 '장' 뒤에서는 \b(단어 경계)가 동작하지 않으므로 공백 또는 줄 끝으로 판단한다
-  const heading = /^\s*(?:제\s*)?\d+\s*장(?:\s.*)?$|^\s*chapter\s+\d+(?:\s.*)?$/i
-  const out: Array<{ title: string; content: string[] }> = []
-  for (const line of lines) {
-    if (heading.test(line)) {
-      // "1장 첫 만남" → 제목은 "첫 만남" (편집기가 "1장 · 첫 만남"으로 보여 준다). 제목 없이 "1장"만 있으면 그대로
-      const rest = line.trim().replace(/^(?:제\s*)?\d+\s*장\s*[·:.-]?\s*|^chapter\s+\d+\s*[·:.-]?\s*/i, '')
-      out.push({ title: rest || line.trim(), content: [] })
-    }
-    else {
-      if (out.length === 0) out.push({ title: '1장', content: [] })
-      out[out.length - 1].content.push(line)
+/** Logical headings retain original offsets; importing never treats a late planning note as a new chapter. */
+export function logicalSections(text: string, allowSingle = false): Array<{ title: string; start: number; end: number }> {
+  const heading = /^[\t ]*(?:(?:제[\t ]*)?(\d{1,5})[\t ]*(장|화|회)|chapter[\t ]+(\d{1,5}))(?:[\t ]+[^\n]*|[.:·][^\n]*)?[\t ]*$/gim
+  const accepted: RegExpMatchArray[] = []
+  let previous: number | null = null
+  for (const match of text.matchAll(heading)) {
+    const number = Number(match[1] || match[3])
+    if (previous === null || number > previous) {
+      accepted.push(match)
+      previous = number
     }
   }
-  return out.map((c) => ({ title: c.title, content: c.content.join('\n').trim() })).filter((c) => c.content || out.length === 1)
+  if (accepted.length < (allowSingle ? 1 : 2)) return []
+  return accepted.map((m, i) => ({ title: m[0].trim(), start: m.index!, end: accepted[i + 1]?.index ?? text.length }))
+}
+
+export function splitChapters(text: string): Array<{ title: string; content: string }> {
+  const source = text.replace(/\r\n/g, '\n')
+  const sections = logicalSections(source, true)
+  if (!sections.length) return [{ title: '1장', content: source.trim() }]
+  const out: Array<{ title: string; content: string }> = []
+  const preface = source.slice(0, sections[0].start).trim()
+  if (preface) out.push({ title: '프롤로그', content: preface })
+  for (const part of sections) {
+    const lineEnd = source.indexOf('\n', part.start)
+    const rest = part.title.replace(/^(?:제\s*)?\d+\s*(?:장|화|회)\s*[·:.-]?\s*|^chapter\s+\d+\s*[·:.-]?\s*/i, '')
+    // Preserve episode numbering in its title even when storage ordinals differ.
+    const title = /\d\s*(?:화|회)/.test(part.title) ? part.title : (rest || part.title)
+    out.push({ title, content: lineEnd < 0 ? '' : source.slice(lineEnd + 1, part.end).trim() })
+  }
+  return out.filter((c) => c.content || out.length === 1)
 }

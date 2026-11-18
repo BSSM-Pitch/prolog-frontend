@@ -1,3 +1,4 @@
+import { ExportDialog } from './ExportDialog'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/manuscripts'
@@ -16,6 +17,8 @@ import { TextArea } from '../../components/TextArea'
 import { Select } from '../../components/Select'
 import { ReviewedManuscript } from './ReviewedManuscript'
 import { exactMemoryRange } from './manuscriptReviewModel'
+import { logicalSections } from '../../lib/chapters'
+import { selectTextSource } from '../../lib/selectTextSource'
 import { ChapterSaveQueue, selectedChapter, withCreatedChapters } from './chapterEditorModel'
 
 type SaveState =
@@ -64,6 +67,7 @@ function DocumentEditor() {
   // 장별 편집 중인 본문. 저장이 끝나면 서버 값과 같아진다.
   const [drafts, setDrafts] = useState<Record<string, string>>({})
   const [save, setSave] = useState<SaveState | null>(null)
+  const [exporting, setExporting] = useState(false)
   const [adding, setAdding] = useState(false)
   const [composing, setComposing] = useState(false)
   const composingRef = useRef(false)
@@ -71,6 +75,7 @@ function DocumentEditor() {
   const queue = useRef(new ChapterSaveQueue())
 
   const text = chapter ? (drafts[chapter.chapter_id] ?? chapter.content) : ''
+  const sections = logicalSections(text)
 
   async function flush(): Promise<boolean> {
     if (composingRef.current) return false
@@ -162,8 +167,7 @@ function DocumentEditor() {
           : null
       const at = memoryStart === undefined ? (el?.value.indexOf(quote) ?? -1) : (exact?.start ?? -1)
       if (el && at >= 0) {
-        el.focus()
-        el.setSelectionRange(at, exact?.end ?? at + quote.length)
+        selectTextSource(el, quote, at)
       }
     }, 60)
     return () => window.clearTimeout(id)
@@ -176,10 +180,20 @@ function DocumentEditor() {
     setSave({ kind: 'dirty' })
   }
 
+  function selectSource(quote: string, start?: number) {
+    const el = textRef.current
+    if (!el) return
+    selectTextSource(el, quote.replace(/…$/, ''), start)
+  }
+
   async function goToChapter(no: number, select?: string) {
     if (transition.current || !ready || composingRef.current) return
     const target = list.find((c) => c.chapter_no === no)
-    if (!target || target.chapter_id === chapter?.chapter_id) return
+    if (!target) return
+    if (target.chapter_id === chapter?.chapter_id) {
+      if (select) selectSource(select)
+      return
+    }
     transition.current = 'saving'
     setTransitioning(true)
     if (!(await flush())) {
@@ -193,11 +207,7 @@ function DocumentEditor() {
       window.setTimeout(() => {
         const el = textRef.current
         if (!el) return
-        const at = el.value.indexOf(select.replace(/…$/, ''))
-        if (at >= 0) {
-          el.focus()
-          el.setSelectionRange(at, at + select.replace(/…$/, '').length)
-        }
+        selectTextSource(el, select.replace(/…$/, ''))
       }, 60)
     }
   }
@@ -300,6 +310,18 @@ function DocumentEditor() {
               </div>
             </div>
 
+            {sections.length > 1 && (
+              <label className="editor__section-jump">
+                원고 내 회차
+                <Select aria-label="회차로 이동" value="" onChange={(e) => {
+                  const part = sections.find((s) => s.start === Number(e.target.value))
+                  if (part) selectSource(part.title, part.start + text.slice(part.start).indexOf(part.title))
+                }}>
+                  <option value="" disabled>이동할 회차 선택</option>
+                  {sections.map((s) => <option key={s.start} value={String(s.start)}>{s.title}</option>)}
+                </Select>
+              </label>
+            )}
             {transitioning && (
               <p className="page-desc" role="status">
                 장을 전환하고 있어요. 저장을 마칠 때까지 편집을 잠갔어요.
@@ -336,19 +358,32 @@ function DocumentEditor() {
                 {loadError ??
                   (ready && params.has('chapter')
                     ? '요청한 장을 찾을 수 없어요. 장 목록에서 다시 선택해 주세요.'
-                    : '장을 불러오고 있어요')}
+                    : chapters.loading ? '장을 불러오고 있어요' : '아직 장이 없어요. 장 추가를 눌러 첫 문장을 써 보세요.')}
               </p>
             )}
 
             <div className="editor__foot">
               <span className="panel__label">{text.length.toLocaleString()}자</span>
-              <Link className="text-link" to={projectPath(projectId, `manuscripts/${manuscriptId}/history`)}>
+              <Link className="text-link" to={projectPath(projectId, `manuscripts/${manuscriptId}/history`)}
+                onClick={async (event) => {
+                  event.preventDefault()
+                  if (!(await flush())) return
+                  try {
+                    if (canEdit) await withAuth((t) => api.syncManuscriptContent(t, projectId, manuscriptId))
+                    navigate(projectPath(projectId, `manuscripts/${manuscriptId}/history`))
+                  } catch (e) { setSave({ kind: 'error', message: describeError(e) }) }
+                }}
+              >
                 편집 이력
               </Link>
+              <button type="button" className="text-link" disabled={!ready || exporting || composing} onClick={() => setExporting(true)}>
+                원고 내보내기
+              </button>
               {!canEdit && <span className="panel__label">보기 전용이라 수정할 수 없어요</span>}
             </div>
           </section>
 
+          {exporting && <ExportDialog projectId={projectId} manuscriptId={manuscriptId} title={manuscript.data?.title ?? '원고'} chapters={list} current={chapter?.chapter_no} beforeExport={flush} onClose={() => setExporting(false)} />}
           <AskPanel
             projectId={projectId}
             manuscriptId={manuscriptId}

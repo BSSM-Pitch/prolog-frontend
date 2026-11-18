@@ -1,3 +1,4 @@
+import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { IconArrowUpRight, IconBook2, IconChartBar, IconChevronDown, IconSearch } from '@tabler/icons-react'
@@ -13,6 +14,7 @@ import { useInterval, useResource } from '../../lib/useResource'
 import { projectPath } from '../app/currentProject'
 import {
   kindLabel,
+  groupSourceRecords,
   patternRecords,
   periodLabel,
   presentationLabel,
@@ -31,6 +33,7 @@ export function CharacterDetails({
   characters,
   onCharactersChanged,
   initialManuscriptId,
+  onOverview,
 }: {
   projectId: string
   characterId?: string
@@ -38,6 +41,7 @@ export function CharacterDetails({
   characters: PersonOption[]
   onCharactersChanged: () => void
   initialManuscriptId?: string
+  onOverview?: (overview: MemoryOverview | null) => void
 }) {
   const manuscripts = useResource((t) => listManuscripts(t, projectId), [projectId])
   const [chosen, setChosen] = useState(initialManuscriptId ?? '')
@@ -88,7 +92,7 @@ export function CharacterDetails({
       </div>
       <MemoryWorkspace
         key={`${projectId}:${manuscript.manuscript_id}`}
-        {...{ projectId, characterId, canEdit, characters, onCharactersChanged }}
+        {...{ projectId, characterId, canEdit, characters, onCharactersChanged, onOverview }}
         manuscriptId={manuscript.manuscript_id}
       />
     </div>
@@ -102,6 +106,7 @@ function MemoryWorkspace({
   canEdit,
   characters,
   onCharactersChanged,
+  onOverview,
 }: {
   projectId: string
   manuscriptId: string
@@ -109,6 +114,7 @@ function MemoryWorkspace({
   canEdit: boolean
   characters: PersonOption[]
   onCharactersChanged: () => void
+  onOverview?: (overview: MemoryOverview | null) => void
 }) {
   const state = useResource((t) => api.getMemory(t, projectId, manuscriptId), [projectId, manuscriptId])
   const [busy, setBusy] = useState(false)
@@ -116,6 +122,10 @@ function MemoryWorkspace({
   const [order, setOrder] = useState('')
   const { withAuth } = useSession()
   const memory = state.data
+  useEffect(() => {
+    onOverview?.(memory)
+    return () => onOverview?.(null)
+  }, [memory, onOverview])
   const working = memory?.job?.status === 'queued' || memory?.job?.status === 'running'
   useInterval(state.reload, 4000, working)
   const discoveryComplete = memory?.job?.discovery?.complete
@@ -170,6 +180,9 @@ function MemoryWorkspace({
       {memory.stale && (
         <div className="detail-notice">원고 또는 인물 정보가 바뀌었어요. 아래 기록은 이전 원고를 기준으로 합니다.</div>
       )}
+      {memory.patterns_pending && (
+        <div className="detail-notice">검증이 끝난 인물 기록은 지금 볼 수 있어요. 말버릇과 심리 변화의 종합 검토는 아직 완료되지 않았습니다.</div>
+      )}
       {memory.mode === 'fake' && (
         <div className="detail-notice">테스트 모드로 만든 빈 분석입니다. 실제 디테일 분석 결과가 아니에요.</div>
       )}
@@ -180,21 +193,32 @@ function MemoryWorkspace({
             <strong>
               {memory.job?.status === 'queued'
                 ? '인물 기록 분석을 기다리고 있어요'
+                : memory.job?.progress.stage?.includes('repair:')
+                  ? '빠진 디테일이 있는 부분만 다시 확인하고 있어요'
+                : memory.job?.progress.stage?.startsWith('attribution:')
+                  ? '판정이 엇갈린 행동과 특징의 주인을 확인하고 있어요'
+                : memory.job?.progress.stage?.startsWith('verify-repair:')
+                  ? '검증이 빠졌거나 근거가 잘못된 기록만 다시 확인하고 있어요'
+                : memory.job?.progress.stage?.startsWith('verify:')
+                  ? '대사와 행동의 주체를 원문과 대조하고 있어요'
+                  : memory.job?.progress.stage?.startsWith('patterns:') || memory.job?.progress.stage === 'synthesis'
+                    ? '인물의 말버릇과 심리 변화를 정리하고 있어요'
                 : memory.job?.discovery && !memory.job.discovery.complete
-                  ? '원고에서 등장인물을 찾고 있어요'
+                  ? '등장인물과 작은 행동을 함께 찾고 있어요'
                   : '원문에서 인물의 디테일을 모으고 있어요'}
             </strong>
             <p>
-              장면 추출 {memory.job?.progress.processed_scenes} / {memory.job?.progress.total_scenes} · 관찰{' '}
-              {memory.job?.progress.observations}개 · 대사 검증 {memory.job?.progress.verified_speakers}개
+              원고 {memory.job?.progress.total_scenes}구간 · 추출한 기록 {memory.job?.progress.observations}개 (검토 중)
+              {Boolean(memory.job?.progress.completed_requests) && ` · 검토 단계 ${memory.job?.progress.completed_requests}개 완료`}
             </p>
+            {memory.job_stale && <p>요청할 때의 원고로 분석 중이에요. 이후 수정한 내용은 다음 분석에 반영됩니다.</p>}
             <small>다른 작업을 하거나 화면을 닫아도 분석은 계속됩니다.</small>
           </div>
         </div>
       ) : memory.job?.status === 'failed' ? (
         <div className="detail-notice">
-          <p>분석이 중단됐어요. 완료한 구간은 보관했습니다.</p>
-          {canEdit && (
+          <p>{memory.job.error?.message ?? '분석이 중단됐어요. 완료한 구간은 보관했습니다.'}</p>
+          {canEdit && (memory.job_stale || memory.job.error?.code !== 'AI_MEMORY_BUDGET_EXCEEDED') && (
             <Button busy={busy} disabled={busy} onClick={() => analyze(!memory.job_stale)}>
               {memory.job_stale ? '현재 원고로 분석' : '이어서 분석'}
             </Button>
@@ -211,7 +235,7 @@ function MemoryWorkspace({
           <p>
             원고에서 새 인물을 자동 추가하고, 발화와 작은 행동을 인물별로 모아요.
             <br />
-            장편의 상세 분석은 수시간 걸릴 수 있어요.
+            분량에 따라 시간이 걸려요. 단계별 진행 상황을 확인하면서 계속 집필할 수 있어요.
           </p>
           {canEdit && memory.can_analyze && (memory.job?.status !== 'completed' || memory.job_stale) ? (
             <Button disabled={busy} busy={busy} onClick={() => analyze()}>
@@ -249,7 +273,7 @@ function MemoryWorkspace({
             </Select>
           </div>
           <Dossier
-            key={`${characterId}:${memory.available_analysis_id}:${order}`}
+            key={`${characterId}:${memory.available_analysis_id}:${order}:${Boolean(memory.patterns_pending)}`}
             {...{ projectId, manuscriptId, characterId, order, memory, canEdit }}
           />
         </>
@@ -280,7 +304,8 @@ function Dossier({
   const [category, setCategory] = useState<DetailCategory>('all')
   const [query, setQuery] = useState('')
   const [ids, setIds] = useState<string[] | null>(null)
-  const [shown, setShown] = useState(12)
+  const [shown, setShown] = useState(24)
+  const [recordOrder, setRecordOrder] = useState('')
   const evidenceRef = useRef<HTMLDivElement>(null)
   if (resource.error)
     return (
@@ -293,7 +318,8 @@ function Dossier({
     )
   if (!resource.data || resource.loading) return <p role="status">원문 근거를 불러오고 있어요.</p>
   const data = resource.data
-  const records = visibleRecords(data, category, query, ids)
+  const records = visibleRecords(data, category, query, ids).filter((r) => !recordOrder || r.order === Number(recordOrder))
+  const groups = groupSourceRecords(records)
   const patterns = patternRecords(data.patterns, data.observations).filter((p) =>
     [
       p.description,
@@ -316,7 +342,8 @@ function Dossier({
     setIds(selected)
     setCategory('all')
     setQuery('')
-    setShown(12)
+    setRecordOrder('')
+    setShown(24)
     requestAnimationFrame(() => {
       evidenceRef.current?.focus({ preventScroll: true })
       evidenceRef.current?.scrollIntoView({ block: 'start' })
@@ -324,11 +351,17 @@ function Dossier({
   }
   return (
     <>
-      <CharacterAssessment
-        {...{ projectId, manuscriptId, characterId, order, data, canEdit }}
-        onEvidence={evidence}
-        onRefresh={resource.reload}
-      />
+      {memory.patterns_pending ? (
+        <p className="detail-notice" role="status">
+          성향·판단력·역량 평가는 종합 검토가 끝나면 사용할 수 있어요. 아래의 검증된 기록은 지금 확인할 수 있습니다.
+        </p>
+      ) : (
+        <CharacterAssessment
+          {...{ projectId, manuscriptId, characterId, order, data, canEdit }}
+          onEvidence={evidence}
+          onRefresh={resource.reload}
+        />
+      )}
       <details className="detail-statistics">
         <summary>행동 빈도와 구간별 기록 보기</summary>
         <Metrics data={data} onEvidence={evidence} />
@@ -342,13 +375,20 @@ function Dossier({
             onClick={() => {
               setCategory(key)
               setIds(null)
-              setShown(12)
+              setShown(24)
             }}
           >
             {label} <span>{count}</span>
           </button>
         ))}
       </div>
+      <label className="detail-select">
+        <span>기록 구간</span>
+        <Select aria-label="기록 구간" value={recordOrder} onChange={(e) => { setRecordOrder(e.target.value); setShown(24) }}>
+          <option value="">모든 구간</option>
+          {memory.chapters.map((c) => <option key={c.order} value={String(c.order)}>{c.title}</option>)}
+        </Select>
+      </label>
       <div className="detail-search">
         <IconSearch size={18} />
         <input
@@ -358,7 +398,7 @@ function Dossier({
           value={query}
           onChange={(e) => {
             setQuery(e.target.value)
-            setShown(12)
+            setShown(24)
           }}
         />
         {ids && (
@@ -378,11 +418,12 @@ function Dossier({
         </p>
       )}
       <div className="detail-result-count">
-        {category === 'patterns' ? patterns.length : records.length}개 기록 {ids && '· 선택한 평가·수치의 근거'}
+        {category === 'patterns' ? patterns.length : records.length}개 기록
+        {category !== 'patterns' && groups.length !== records.length && ` · 원문 ${groups.length}곳`} {ids && '· 선택한 평가·수치의 근거'}
       </div>
       {category === 'patterns' ? (
         <div className="detail-patterns">
-          {patterns.slice(0, shown).map((p) => (
+          {patterns.slice(Math.max(0, shown - 24), shown).map((p) => (
             <article className="detail-pattern" key={p.pattern_id}>
               <div className="detail-card-top">
                 <span className={`detail-badge ${p.status === 'contested' ? 'detail-badge--amber' : ''}`}>
@@ -441,21 +482,33 @@ function Dossier({
         </div>
       ) : (
         <div className="detail-records">
-          {records.slice(0, shown).map((r) => (
-            <Record key={r.observation_id} row={r} {...{ projectId, manuscriptId }} stale={data.stale} />
+          {groups.slice(Math.max(0, shown - 24), shown).map((rows) => (
+            <div className="detail-source-group" key={rows[0].observation_id}>
+              <Record row={rows[0]} {...{ projectId, manuscriptId }} stale={data.stale} />
+              {rows.length > 1 && <details className="detail-related-records">
+                <summary>같은 원문의 다른 분류 {rows.length - 1}개 · {Array.from(new Set(rows.slice(1).map((r) => kindLabel[r.kind]))).join(' · ')}</summary>
+                {rows.slice(1).map((r) => <Record key={r.observation_id} row={r} {...{ projectId, manuscriptId }} stale={data.stale} />)}
+              </details>}
+            </div>
           ))}
         </div>
       )}
-      {(category === 'patterns' ? patterns.length : records.length) === 0 && (
+      {(category === 'patterns' ? patterns.length : groups.length) === 0 && (
         <div className="detail-empty detail-empty--small">
           <h4>이 조건에 맞는 기록이 없어요</h4>
           <p>추출 누락이 있을 수 있어요. 원문에 해당 행동이 없다는 뜻은 아닙니다.</p>
         </div>
       )}
-      {(category === 'patterns' ? patterns.length : records.length) > shown && (
-        <Button block tone="outline" onClick={() => setShown((n) => n + 12)}>
-          기록 더 보기
-        </Button>
+      {(category === 'patterns' ? patterns.length : groups.length) > 24 && (
+        <nav className="detail-pagination" aria-label="인물 기록 페이지">
+          <Button tone="outline" disabled={shown <= 24} onClick={() => setShown(24)}>처음</Button>
+          <Button tone="outline" disabled={shown <= 24} onClick={() => setShown((n) => Math.max(24, n - 24))}>이전</Button>
+          <Select aria-label="기록 페이지" value={String(Math.ceil(shown / 24))} onChange={(e) => setShown(Number(e.target.value) * 24)}>
+            {Array.from({ length: Math.ceil((category === 'patterns' ? patterns.length : groups.length) / 24) }, (_, i) => <option key={i} value={i + 1}>{i + 1}페이지</option>)}
+          </Select>
+          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : groups.length)} onClick={() => setShown((n) => n + 24)}>다음</Button>
+          <Button tone="outline" disabled={shown >= (category === 'patterns' ? patterns.length : groups.length)} onClick={() => setShown(Math.ceil((category === 'patterns' ? patterns.length : groups.length) / 24) * 24)}>마지막</Button>
+        </nav>
       )}
       <p className="detail-footnote">
         원문 위치를 대조한 기록입니다. 발화 주체와 해석은 AI가 분류했으므로 작가의 확인이 필요해요. 분석{' '}
@@ -624,15 +677,16 @@ function Record({
       <div className="detail-card-top">
         <div>
           <span className={`detail-badge ${row.attribution === 'uncertain' ? 'detail-badge--amber' : ''}`}>
-            {row.attribution === 'uncertain' ? '화자 확인 필요' : kindLabel[row.kind]}
+            {row.perception_context ? '인지 문맥 연결 · 추론' : row.attribution === 'uncertain' ? '인물 확인 필요' : kindLabel[row.kind]}
           </span>
           {roleLabel[row.behavior_role] && <span className="detail-role">{roleLabel[row.behavior_role]}</span>}
         </div>
         <span>{row.scene_title}</span>
       </div>
-      <h4>{row.summary}</h4>
+      {row.summary.trim() !== row.evidence.quote.trim() && <h4>{row.summary}</h4>}
       <blockquote>{row.evidence.quote}</blockquote>
       <p className="detail-context">{row.context}</p>
+      {row.perception_context && <p className="detail-context">앞뒤 인지 문맥으로 연결한 기록입니다. 인물은 아직 확정되지 않았어요.</p>}
       <div className="detail-record-footer">
         <span>
           {presentationLabel[row.presentation]}
@@ -649,19 +703,42 @@ function Record({
           <mark>{row.source.quote}</mark>
           {row.source.after}
         </p>
-        {row.speaker_check && (
+        {row.perception_context && (
+          <div className="speaker-reason">
+            <strong>인지 문맥 연결 근거</strong>
+            <RichText>{row.perception_context.reason}</RichText>
+            {row.perception_context.evidence.map((proof, index) => <p key={index}><q>{proof.quote}</q></p>)}
+          </div>
+        )}
+        {row.attribution_checks?.length ? (
+          <div className="speaker-reason">
+            <strong>인물 연결 검토 근거</strong>
+            {row.attribution === 'uncertain' && <p>아래는 단계별 후보이며, 이 기록의 인물은 아직 확정되지 않았어요.</p>}
+            {row.attribution_checks.map((check, index) => (
+              <div key={index}>
+                <p>
+                  {{ extract: '원문 추출', verify: '독립 검증', adjudicate: '재검토' }[check.stage]}
+                  {' · '}{check.name ?? '인물 미상'}
+                  {check.attribution === 'uncertain' ? ' (미확정)' : ''}
+                </p>
+                <RichText>{check.reason}</RichText>
+                {check.evidence.map((proof, proofIndex) => <p key={proofIndex}><q>{proof.quote}</q></p>)}
+              </div>
+            ))}
+          </div>
+        ) : row.speaker_check && (
           <div className="speaker-reason">
             <strong>화자 검토 근거</strong>
-            <p>{row.speaker_check.reason}</p>
+            <RichText>{row.speaker_check.reason}</RichText>
             <q>{row.speaker_check.evidence.quote}</q>
           </div>
         )}
         <Link
-          to={`${projectPath(projectId, `manuscripts/${manuscriptId}`)}${row.chapter_id ? `?chapter=${row.order}` : ''}`}
+          to={`${projectPath(projectId, `manuscripts/${manuscriptId}`)}${row.chapter_id ? `?chapter=${row.chapter_no ?? row.order}` : ''}`}
           state={
             stale
               ? undefined
-              : { highlight: row.evidence.quote, memoryRange: { start: row.evidence.start, end: row.evidence.end } }
+              : { highlight: row.evidence.quote, memoryRange: { start: row.evidence.start + (row.source_start ?? 0), end: row.evidence.end + (row.source_start ?? 0) } }
           }
         >
           <IconBook2 size={16} /> {stale ? '수정된 현재 원고 열기' : '원고에서 보기'}
