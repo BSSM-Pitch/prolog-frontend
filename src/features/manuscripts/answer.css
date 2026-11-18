@@ -4,10 +4,12 @@
   flex-direction: column;
   gap: var(--itda-space-16);
 }
+/* 대기: 로고 모션을 박스 가운데에 두고, 문구는 그 아래에 가운데 정렬 */
 .answer--pending {
-  flex-direction: row;
-  align-items: flex-start;
-  padding: var(--itda-space-16);
+  align-items: center;
+  gap: var(--itda-space-12);
+  padding: var(--itda-space-24) var(--itda-space-16);
+  text-align: center;
   border-radius: var(--prolog-radius-8);
   background: var(--itda-background);
 }
@@ -74,9 +76,10 @@
   color: var(--itda-muted);
 }
 
-/* AI 응답 대기 표시 (LogoLoader). 크기는 컴포넌트가 정하고, 여기서는 첫 줄 글자와 높이만 맞춘다 */
-.answer--pending .answer__loader {
-  margin-top: 1px;
+.answer__pending-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .citation {
