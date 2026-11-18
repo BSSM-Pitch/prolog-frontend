@@ -299,6 +299,9 @@
   white-space: nowrap;
   transition: opacity var(--transition-state);
 }
+.social__edge {
+  display: none;
+}
 .social__btn:hover:not(:disabled) {
   opacity: 1;
 }
