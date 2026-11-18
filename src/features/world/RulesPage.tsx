@@ -6,7 +6,7 @@ import type { WorldRule } from '../../api/types'
 import * as api from '../../api/world'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
-import { LogoLoader } from '../../components/LogoLoader'
+import { LogoLoading } from '../../components/LogoLoader'
 import { describeError } from '../../lib/errors'
 import { useJob } from '../../lib/useJob'
 import { useResource } from '../../lib/useResource'
@@ -155,13 +155,7 @@ export function RulesPage() {
             <span className="badge badge--waiting">검토 대기 {pending.length}</span>
           </div>
 
-          {running && (
-            <div className="state-block" role="status">
-              <LogoLoader className="answer__loader" />
-              <p className="answer__title">설정 규칙을 찾고 있어요</p>
-              <p className="answer__body">세계관 규칙으로 볼 만한 문장을 원고에서 모으는 중이에요.</p>
-            </div>
-          )}
+          {running && <LogoLoading />}
           {extraction.job?.status === 'failed' && (
             <div className="state-block state-block--error" role="alert">
               <p className="answer__title">규칙을 추출하지 못했어요</p>

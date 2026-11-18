@@ -4,7 +4,7 @@ import * as api from '../../api/characters'
 import type { NLExtraction } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
-import { LogoLoader } from '../../components/LogoLoader'
+import { LogoLoading } from '../../components/LogoLoader'
 import { TextField } from '../../components/TextField'
 import { describeError, errorCode } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
@@ -199,13 +199,7 @@ export function NewCharacterPage() {
               <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 원문 근거와 함께 나눠 드려요.</p>
             </div>
           )}
-          {analyzing && (
-            <div className="state-block" role="status">
-              <LogoLoader className="answer__loader" />
-              <p className="answer__title">문장에서 인물 정보를 읽고 있어요</p>
-              <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 나누고 있어요.</p>
-            </div>
-          )}
+          {analyzing && <LogoLoading />}
           {extraction?.status === 'failed' && (
             <div className="state-block state-block--error" role="alert">
               <p className="answer__title">인물 정보를 읽지 못했어요</p>

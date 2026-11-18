@@ -74,11 +74,6 @@
   color: var(--itda-muted);
 }
 
-/* AI 응답 대기 표시 (LogoLoader). 크기는 컴포넌트가 정하고, 여기서는 첫 줄 글자와 높이만 맞춘다 */
-.answer--pending .answer__loader {
-  margin-top: 1px;
-}
-
 .citation {
   background: var(--prolog-highlight-setting);
   border-left-color: #b7af86;
