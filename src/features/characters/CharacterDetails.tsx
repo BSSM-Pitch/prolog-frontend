@@ -351,12 +351,17 @@ function Dossier({
   }
   return (
     <>
-      <CharacterAssessment
-        {...{ projectId, manuscriptId, characterId, order, data }}
-        canEdit={canEdit && !memory.patterns_pending}
-        onEvidence={evidence}
-        onRefresh={resource.reload}
-      />
+      {memory.patterns_pending ? (
+        <p className="detail-notice" role="status">
+          성향·판단력·역량 평가는 종합 검토가 끝나면 사용할 수 있어요. 아래의 검증된 기록은 지금 확인할 수 있습니다.
+        </p>
+      ) : (
+        <CharacterAssessment
+          {...{ projectId, manuscriptId, characterId, order, data, canEdit }}
+          onEvidence={evidence}
+          onRefresh={resource.reload}
+        />
+      )}
       <details className="detail-statistics">
         <summary>행동 빈도와 구간별 기록 보기</summary>
         <Metrics data={data} onEvidence={evidence} />
