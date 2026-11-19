@@ -69,7 +69,7 @@ export function VerifyPage() {
       if (c === 'VERIFICATION_CODE_INVALID' || c === 'VERIFICATION_CODE_EXPIRED') setCodeError(CODE_MISMATCH)
       else if (c === 'USERNAME_TAKEN') {
         setUsernameTaken(true)
-        setCodeError('그사이 다른 사람이 이 아이디를 가져갔어요. 회원가입으로 돌아가 아이디를 바꿔 주세요.')
+        setCodeError('그사이 다른 사람이 이 닉네임을 가져갔어요. 회원가입으로 돌아가 닉네임을 바꿔 주세요.')
       } else setCodeError(describeError(err))
     } finally {
       setSubmitting(false)

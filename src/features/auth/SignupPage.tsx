@@ -42,7 +42,7 @@ export function SignupPage() {
   /** 아이디 중복 확인. 사용 가능하면 true */
   async function ensureUsernameAvailable(): Promise<boolean> {
     const { available } = await authApi.checkUsername(username.trim())
-    if (!available) setErrors((e) => ({ ...e, username: '이미 사용 중인 아이디예요. 다른 아이디를 입력해 주세요.' }))
+    if (!available) setErrors((e) => ({ ...e, username: '이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해 주세요.' }))
     return available
   }
 
@@ -113,7 +113,7 @@ export function SignupPage() {
         )}
         <TextField
           size="lg"
-          label="아이디"
+          label="닉네임"
           value={username}
           onChange={set('username', setUsername)}
           error={errors.username}

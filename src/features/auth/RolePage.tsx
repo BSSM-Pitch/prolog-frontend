@@ -41,7 +41,7 @@ export function RolePage() {
       const code = errorCode(err)
       setError(
         code === 'USERNAME_TAKEN'
-          ? '그사이 다른 사람이 이 아이디를 가져갔어요. 이전으로 돌아가 아이디를 바꿔 주세요.'
+          ? '그사이 다른 사람이 이 닉네임을 가져갔어요. 이전으로 돌아가 닉네임을 바꿔 주세요.'
           : code === 'EMAIL_TAKEN'
             ? draft.signupTicket
               ? '이 이메일로 이미 가입된 계정이 있어요. 그 계정으로 로그인해 주세요.'
