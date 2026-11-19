@@ -1,6 +1,11 @@
 import type { Character, Foreshadowing, Relationship } from '../../api/types'
 
 export const VIEW_LIMIT = 6
+/** 관계 상태를 가까움·보통·멀어짐 세 갈래로 묶어 색을 고른다 */
+export function toneOf(state: string) {
+  return ['신뢰', '우호'].includes(state) ? 'close' : ['긴장', '갈등', '적대'].includes(state) ? 'far' : 'neutral'
+}
+
 export const chapterAt = (value: number, max: number) =>
   Number.isFinite(value) && value >= 1 ? Math.min(max, Math.floor(value)) : max
 export function pageOf<T>(rows: T[], requested: number) {
@@ -64,11 +69,11 @@ export function relationshipView(
 export function foreshadowStages(item: Foreshadowing) {
   const stages: Array<{ chapter: number; label: string; role: 'setup' | 'linked' | 'payoff' }> = []
   if (item.status !== 'orphaned' && item.setup_chapter > 0)
-    stages.push({ chapter: item.setup_chapter, label: '심은 장면', role: 'setup' })
+    stages.push({ chapter: item.setup_chapter, label: '심은 장', role: 'setup' })
   for (const chapter of [...new Set(item.linked_chapters)].filter((no) => no > 0))
-    stages.push({ chapter, label: '이어진 장면', role: 'linked' })
+    stages.push({ chapter, label: '다시 나온 장', role: 'linked' })
   if (item.payoff_chapter && item.payoff_chapter > 0)
-    stages.push({ chapter: item.payoff_chapter, label: '회수한 장면', role: 'payoff' })
+    stages.push({ chapter: item.payoff_chapter, label: '회수한 장', role: 'payoff' })
   return stages.sort((a, b) => a.chapter - b.chapter)
 }
 

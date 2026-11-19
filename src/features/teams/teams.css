@@ -141,6 +141,7 @@ a.team__metric:focus-visible {
 .team__projects li,
 .team__people li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--itda-space-16);
   padding: 12px 0;
@@ -179,5 +180,15 @@ a.team__metric:focus-visible {
   .team__tasks,
   .team__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .team-step {
+    padding-left: 56px;
+  }
+  .team-step__no {
+    left: 16px;
+    font-size: 20px;
   }
 }

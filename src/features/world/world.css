@@ -9,25 +9,28 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--itda-space-20);
 }
 .world__list-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--itda-space-12);
 }
-.world__list-head .nl-select {
-  height: 34px;
+.world__list-head > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .rule-tag {
   display: inline-block;
-  margin-right: 8px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: #fdf1e7;
-  color: #b54708;
+  margin-right: var(--itda-space-8);
+  padding: 0 var(--itda-space-8);
+  border-radius: var(--prolog-radius-8);
+  background: var(--prolog-color-warning-soft);
+  color: var(--prolog-color-warning);
   font-size: 12px;
   font-weight: 500;
   vertical-align: middle;
@@ -40,7 +43,7 @@
   color: var(--prolog-color-error);
 }
 .severity--medium {
-  color: #b54708;
+  color: var(--prolog-color-warning);
 }
 .severity--low {
   color: var(--itda-muted);
@@ -48,13 +51,14 @@
 
 .evidence-pair {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* 상세 칸이 좁으면(사이드바 + 2단) 화면 폭과 상관없이 한 줄로 쌓는다 */
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: var(--itda-space-16);
 }
 .evidence-card {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--itda-space-8);
   padding: var(--itda-space-16);
   border: 1px solid var(--input-stroke);
   border-radius: 2px;
@@ -67,23 +71,19 @@
 }
 .evidence-card .text-link {
   align-self: flex-start;
-  font-size: 13px;
 }
 .advice {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--itda-space-8);
   padding: var(--itda-space-16);
-  border-radius: 2px;
+  border-radius: var(--prolog-radius-8);
   background: var(--itda-background);
   font-size: 15px;
   line-height: 24px;
 }
 
 @media (max-width: 900px) {
-  .evidence-pair {
-    grid-template-columns: 1fr;
-  }
   .world__header {
     flex-direction: column;
     align-items: stretch;
@@ -152,4 +152,52 @@
 }
 .world .two-col--list:not(:has(> .panel:nth-child(2))) .actions-row {
   justify-content: flex-start;
+}
+
+/* 설정 검토 목록: 심각도 칩 · 장 · 첫 근거 한 줄 미리보기 */
+.world .char-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--itda-space-4) var(--itda-space-12);
+  font-size: 12px;
+}
+.conflict-severity {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--itda-space-8);
+  border-radius: var(--prolog-radius-8);
+  font-size: 12px;
+  font-weight: 700;
+}
+.conflict-severity--high {
+  background: #fdecea;
+  color: var(--prolog-color-error);
+}
+.conflict-severity--medium {
+  background: var(--prolog-color-warning-soft);
+  color: var(--prolog-color-warning);
+}
+.conflict-severity--low {
+  background: var(--itda-background);
+  color: var(--itda-muted);
+}
+.char-item__quote {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--itda-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 살펴보기 탭 줄이 이미 굵은 선이므로, 바로 아래 목록·상세 칸에 선을 한 번 더 긋지 않는다 */
+.app .world.insight-page > .two-col > .panel {
+  border-top: 0;
+  padding-top: 0;
+}
+.world .two-col--list:not(:has(> .panel:nth-child(2))) .actions-row > * {
+  flex: 0 1 auto;
 }

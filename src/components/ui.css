@@ -135,6 +135,8 @@
   justify-content: center;
   gap: var(--itda-space-16);
   height: var(--prolog-control-height);
+  /* 좁은 자리에서도 부모 밖으로 나가지 않고, 한글 낱말 중간에서 줄을 바꾸지 않는다 */
+  max-width: 100%;
   padding: 0 var(--itda-space-16);
   border: 1px solid var(--stroke);
   border-radius: var(--prolog-radius-8);
@@ -142,11 +144,16 @@
   font-weight: 500;
   line-height: 20px;
   text-align: center;
+  word-break: keep-all;
   transition:
     background var(--transition-state),
     color var(--transition-state),
     border-color var(--transition-state),
     opacity var(--transition-state);
+}
+
+.btn > svg {
+  flex: none;
 }
 
 .btn:focus-visible {
@@ -430,14 +437,22 @@
 }
 .dialog__actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--itda-space-8);
   margin-top: var(--itda-space-12);
+}
+@media (max-width: 600px) {
+  /* 좁은 화면에서는 대화상자 버튼이 줄을 나눠 가로를 채운다 */
+  .dialog__actions > * {
+    flex: 1 1 auto;
+  }
 }
 
 /* 두세 개 중 하나를 고르는 버튼 묶음 */
 .segmented {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: var(--itda-space-8);
 }
 .segmented button {

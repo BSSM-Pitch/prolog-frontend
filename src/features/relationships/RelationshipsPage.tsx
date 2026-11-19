@@ -16,7 +16,7 @@ import { projectPath, useProject } from '../app/currentProject'
 import { InsightNav } from '../insights/InsightNav'
 import { NarrativeReview } from '../insights/NarrativeReview'
 import { InsightDialog } from '../insights/InsightDialog'
-import { chapterAt, relationshipView, snapshotAt } from '../insights/insightModel'
+import { chapterAt, relationshipView, snapshotAt, toneOf } from '../insights/insightModel'
 import { RelationshipGraph } from './RelationshipGraph'
 import '../characters/characters.css'
 import './relationships.css'
@@ -120,7 +120,8 @@ function Relationships({
   const detail = useRef<HTMLElement>(null)
   useEffect(() => {
     if (!selectedRelationshipId) return
-    detail.current?.scrollIntoView({ block: 'nearest' })
+    // 넓은 화면에서는 오른쪽에 붙어 있어 옮길 필요가 없고, 좁은 화면에서만 아래 상세로 내려 준다
+    if (window.matchMedia('(max-width: 1100px)').matches) detail.current?.scrollIntoView({ block: 'nearest' })
     detail.current?.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true })
   }, [selectedRelationshipId, chapter])
   const [recording, setRecording] = useState(false)
@@ -183,6 +184,15 @@ function Relationships({
     (rels.loading && !rels.data) || (characters.loading && !characters.data) || (chapters.loading && !chapters.data)
   const loadError = rels.error ?? characters.error ?? chapters.error
 
+  const addBlocked = !canEdit || loading || loadError
+    ? null
+    : people.length < 2
+      ? '인물이 두 명 이상 있어야 관계를 추가할 수 있어요.'
+      : !chapters.data?.length
+        ? '원고에 장이 있어야 관계를 기록할 수 있어요.'
+        : null
+  const history = selected ? [...selected.history].sort((a, b) => a.chapter - b.chapter) : []
+
   return (
     <div className="relations insight-page">
       <header className="insight-header">
@@ -205,8 +215,7 @@ function Relationships({
           </label>
           {canEdit && (
             <Button
-              tone="outline"
-              disabled={people.length < 2 || loading || !!loadError || !chapters.data?.length}
+              disabled={Boolean(addBlocked) || loading || !!loadError}
               onClick={(event) => {
                 event.currentTarget.focus()
                 setAdding(true)
@@ -218,9 +227,9 @@ function Relationships({
         </div>
       </header>
       <InsightNav projectId={projectId} />
-      <NarrativeReview key={manuscriptId} {...{projectId, manuscriptId, canEdit}} kind="relationships" />
+      {addBlocked && people.length > 0 && <p className="insight-note">{addBlocked}</p>}
       {notice && (
-        <p className="insight-note" role="status">
+        <p className="notice notice--success" role="status">
           {notice}
         </p>
       )}
@@ -245,89 +254,106 @@ function Relationships({
         </p>
       ) : !loadError && people.length === 0 ? (
         <div className="insight-state">
-          <h2>먼저 인물을 만들어 보세요.</h2>
-          <Link className="text-link" to={projectPath(projectId, 'characters')}>
-            등장인물 열기
+          <h2>등장인물이 아직 없어요.</h2>
+          <p>인물을 두 명 이상 만들면 둘 사이의 관계를 장마다 기록할 수 있어요.</p>
+          <Link className="btn btn--primary" to={projectPath(projectId, 'characters')}>
+            등장인물 만들기
           </Link>
         </div>
       ) : (
         !loadError && (
-          <>
-            <div className="relations__controls">
-              <label className="insight-field">
-                <span>중심 인물</span>
-                <Select
-                  value={view.center?.character_id ?? ''}
-                  onChange={(event) => set({ character: event.target.value, rel: null, page: null })}
-                >
-                  {people.map((person) => (
-                    <option key={person.character_id} value={person.character_id}>
-                      {person.name}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <label className="relations__chapter">
-                <span>
-                  <strong>{chapter}장</strong> 시점
-                </span>
-                <input
-                  type="range"
-                  min={1}
-                  max={maxChapter}
-                  value={chapter}
-                  onChange={(event) => set({ chapter: event.target.value, page: null })}
-                  aria-label="관계를 살펴볼 장"
-                />
-              </label>
-            </div>
-            {view.neighbors.length ? (
-              <RelationshipGraph
-                view={view}
-                selectedId={selected?.relationship_id ?? null}
-                onPerson={(id) => set({ character: id, rel: null, page: null })}
-                onRelationship={(id) => set({ rel: selected?.relationship_id === id ? null : id })}
-              />
-            ) : (
-              <div className="insight-state">
-                <h2>{view.center?.name}의 직접 기록한 관계가 아직 없어요.</h2>
-                <p>{chapter}장까지 기록된 관계가 없어요. 다른 인물이나 장을 골라 보세요.</p>
+          <div className={`relations__layout${selected && snapshot ? ' has-detail' : ''}`}>
+            <div className="relations__main">
+              <div className="relations__controls">
+                <label className="insight-field">
+                  <span>가운데 인물</span>
+                  <Select
+                    value={view.center?.character_id ?? ''}
+                    onChange={(event) => set({ character: event.target.value, rel: null, page: null })}
+                  >
+                    {people.map((person) => (
+                      <option key={person.character_id} value={person.character_id}>
+                        {person.name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <div className="relations__chapter">
+                  <label htmlFor="relations-chapter">
+                    <strong>{chapter}장</strong> 시점 <span>/ 전체 {maxChapter}장</span>
+                  </label>
+                  <input
+                    id="relations-chapter"
+                    type="range"
+                    min={1}
+                    max={maxChapter}
+                    value={chapter}
+                    list="relations-chapter-ticks"
+                    onChange={(event) => set({ chapter: event.target.value, page: null })}
+                  />
+                  <datalist id="relations-chapter-ticks">
+                    {Array.from({ length: maxChapter }, (_, i) => (
+                      <option key={i} value={i + 1} />
+                    ))}
+                  </datalist>
+                  {chapter < maxChapter && (
+                    <button type="button" className="text-link" onClick={() => set({ chapter: null, page: null })}>
+                      마지막 장으로
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-            {view.count > 1 && (
-              <nav className="insight-pagination" aria-label="연결된 인물 페이지">
-                <Button
-                  tone="outline"
-                  disabled={view.page === 1}
-                  onClick={() => set({ page: String(view.page - 1), rel: null })}
-                >
-                  이전 인물
-                </Button>
-                <span>
-                  {view.page} / {view.count}
-                </span>
-                <Button
-                  tone="outline"
-                  disabled={view.page === view.count}
-                  onClick={() => set({ page: String(view.page + 1), rel: null })}
-                >
-                  다음 인물
-                </Button>
-              </nav>
-            )}
-            {view.neighbors.length > 0 && (
-              <p className="insight-caption">인물을 누르면 중심이 바뀌고, 관계를 누르면 기록이 열려요.</p>
-            )}
-            {selected && snapshot && (
-              <section
+              {view.neighbors.length ? (
+                <>
+                  <p className="insight-caption">
+                    선 위의 관계를 누르면 기록이 열리고, 인물을 누르면 그 인물이 가운데로 와요.
+                    {!IS_REAL && ' (시연용 기록)'}
+                  </p>
+                  <RelationshipGraph
+                    view={view}
+                    selectedId={selected?.relationship_id ?? null}
+                    onPerson={(id) => set({ character: id, rel: null, page: null })}
+                    onRelationship={(id) => set({ rel: selected?.relationship_id === id ? null : id })}
+                  />
+                </>
+              ) : (
+                <div className="insight-state">
+                  <h2>{chapter}장까지 {view.center?.name}의 관계 기록이 없어요.</h2>
+                  <p>다른 인물을 가운데에 두거나, 장을 옮겨 보세요.</p>
+                </div>
+              )}
+              {view.count > 1 && (
+                <nav className="insight-pagination" aria-label="연결된 인물 페이지">
+                  <Button
+                    tone="outline"
+                    disabled={view.page === 1}
+                    onClick={() => set({ page: String(view.page - 1), rel: null })}
+                  >
+                    이전 인물
+                  </Button>
+                  <span>
+                    {view.page} / {view.count}
+                  </span>
+                  <Button
+                    tone="outline"
+                    disabled={view.page === view.count}
+                    onClick={() => set({ page: String(view.page + 1), rel: null })}
+                  >
+                    다음 인물
+                  </Button>
+                </nav>
+              )}
+            </div>
+            {selected && snapshot ? (
+              <aside
                 key={`${selected.relationship_id}:${chapter}`}
                 className="relations__detail"
                 ref={detail}
                 aria-label="선택한 관계"
               >
-                <header className="insight-header">
+                <header className="relations__detail-head">
                   <h2 tabIndex={-1}>
-                    {nameOf(selected.source_character_id)}와 {nameOf(selected.target_character_id)}
+                    {nameOf(selected.source_character_id)} · {nameOf(selected.target_character_id)}
                   </h2>
                   <button type="button" className="text-link" onClick={() => set({ rel: null })}>
                     닫기
@@ -336,41 +362,16 @@ function Relationships({
                 <SourceReviewNotice review={snapshot.source_review} projectId={projectId} canEdit={canEdit}
                   endpoint={`/projects/${projectId}/relationships/${selected.relationship_id}/history/${snapshot.chapter_id}/source-confirmation`}
                   onSaved={refreshRecords} />
-                <p className="relations__state">
-                  <strong>{snapshot.state}</strong>
-                  <span>
-                    {snapshot.chapter}장 기록{snapshot.chapter !== chapter ? ` · ${chapter}장까지 이어짐` : ''}
-                  </span>
-                </p>
+                <div className="relations__state">
+                  <span className="relations__label">{chapter}장 시점</span>
+                  <strong data-tone={toneOf(snapshot.state)}>{snapshot.state}</strong>
+                  {snapshot.trust !== null && <span>신뢰도 {snapshot.trust}</span>}
+                  {snapshot.chapter !== chapter && <span>{snapshot.chapter}장에 기록한 상태예요</span>}
+                </div>
                 {snapshot.event_title && (
                   <p className="relations__event">
                     {snapshot.event_title}
-                    {snapshot.event_deleted ? ' (연결된 사건이 삭제됨)' : ''}
-                  </p>
-                )}
-                <details className="insight-disclosure">
-                  <summary>변화 기록 {selected.history.length}개</summary>
-                  <ol className="relations__history">
-                    {[...selected.history]
-                      .sort((a, b) => a.chapter - b.chapter)
-                      .map((entry) => (
-                        <li key={entry.chapter}>
-                          <button
-                            type="button"
-                            aria-current={entry.chapter === snapshot.chapter ? 'step' : undefined}
-                            onClick={() => set({ chapter: String(entry.chapter) })}
-                          >
-                            <span>{entry.chapter}장</span>
-                            <strong>{entry.state}</strong><SourceReviewBadge review={entry.source_review} />
-                            {entry.trust !== null && <span>신뢰도 {entry.trust}</span>}
-                          </button>
-                        </li>
-                      ))}
-                  </ol>
-                </details>
-                {error && (
-                  <p className="insight-note" role="alert">
-                    {error}
+                    {snapshot.event_deleted ? ' (연결된 사건은 지워졌어요)' : ''}
                   </p>
                 )}
                 {canEdit &&
@@ -384,28 +385,58 @@ function Relationships({
                       onSubmit={(entry) => saveRecord(selected.relationship_id, entry)}
                     />
                   ) : (
-                    <div className="insight-actions">
-                      <Button
-                        tone="outline"
-                        disabled={IS_REAL && !chapters.data?.some((item) => item.chapter_no === chapter)}
-                        onClick={() => setRecording(true)}
-                      >
-                        이 장의 관계 기록
-                      </Button>
-                      <details className="insight-disclosure">
-                        <summary>관리</summary>
-                        <button type="button" className="text-link" onClick={() => setConfirmDelete(true)}>
-                          관계 삭제
-                        </button>
-                      </details>
-                    </div>
+                    <Button
+                      block
+                      disabled={IS_REAL && !chapters.data?.some((item) => item.chapter_no === chapter)}
+                      onClick={() => setRecording(true)}
+                    >
+                      {snapshot.chapter === chapter ? `${chapter}장 기록 고치기` : `${chapter}장 관계 기록하기`}
+                    </Button>
                   ))}
-              </section>
+                {error && (
+                  <p className="notice notice--error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <section className="relations__timeline" aria-label="장별 변화">
+                  <h3>장별 변화 {history.length}개</h3>
+                  <ol>
+                    {history.map((entry) => (
+                      <li key={entry.chapter} className={entry.chapter > chapter ? 'is-later' : undefined}>
+                        <button
+                          type="button"
+                          aria-current={entry.chapter === snapshot.chapter ? 'step' : undefined}
+                          onClick={() => set({ chapter: String(entry.chapter) })}
+                        >
+                          <span className="relations__timeline-chapter">{entry.chapter}장</span>
+                          <span className="relations__timeline-body">
+                            <strong data-tone={toneOf(entry.state)}>{entry.state}</strong>
+                            {entry.trust !== null && <span>신뢰도 {entry.trust}</span>}
+                            <SourceReviewBadge review={entry.source_review} />
+                            {entry.event_title && <em>{entry.event_title}</em>}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+                {canEdit && (
+                  <button type="button" className="text-link text-link--quiet text-link--danger relations__delete" onClick={() => setConfirmDelete(true)}>
+                    이 관계 삭제
+                  </button>
+                )}
+              </aside>
+            ) : (
+              view.neighbors.length > 0 && (
+                <aside className="relations__detail relations__detail--empty">
+                  <p>선 위의 관계를 누르면 장별 변화와 기록이 여기에 열려요.</p>
+                </aside>
+              )
             )}
-          </>
+          </div>
         )
       )}
-      <p className="insight-caption">{IS_REAL ? '이 원고에 저장한 관계 기록' : '시연용 관계 기록'}</p>
+      <NarrativeReview key={manuscriptId} {...{projectId, manuscriptId, canEdit}} kind="relationships" />
       {pending && (
         <InsightDialog
           title={`${pending.entry.chapter}장 기록을 바꿀까요?`}
@@ -416,8 +447,8 @@ function Relationships({
             {pending.existing.state} → {pending.entry.state}
           </p>
           <p className="page-desc">이 장에 이미 기록이 있어요. 새 값으로 바꾸면 이전 값은 남지 않아요.</p>
-          {error && <p role="alert">{error}</p>}
-          <div className="insight-actions">
+          {error && <p className="notice notice--error" role="alert">{error}</p>}
+          <div className="dialog__actions">
             <Button tone="outline" onClick={() => setPending(null)} disabled={busy} autoFocus>
               취소
             </Button>
@@ -453,8 +484,8 @@ function Relationships({
             {nameOf(selected.source_character_id)}와 {nameOf(selected.target_character_id)}의 모든 원고에 걸친 관계
             기록이 사라져요.
           </p>
-          {error && <p role="alert">{error}</p>}
-          <div className="insight-actions">
+          {error && <p className="notice notice--error" role="alert">{error}</p>}
+          <div className="dialog__actions">
             <Button tone="outline" onClick={() => setConfirmDelete(false)} disabled={busy} autoFocus>
               취소
             </Button>
@@ -491,7 +522,7 @@ function RecordForm({
   return (
     <form className="record-form" onSubmit={submit}>
       <p className="field__label">{chapter}장 상태 기록</p>
-      <div className="two-col" style={{ gap: 8 }}>
+      <div className="two-col form-grid">
         <label className="field">
           <span className="field__label">관계 상태</span>
           <Select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
@@ -580,7 +611,7 @@ function AddRelationship({
   return (
     <InsightDialog title="관계 추가" onClose={onCancel} busy={busy}>
       <form className="insight-form" onSubmit={submit}>
-        <div className="two-col" style={{ gap: 8 }}>
+        <div className="two-col form-grid">
           {[
             ['인물 A', a, setA],
             ['인물 B', b, setB],
@@ -626,7 +657,7 @@ function AddRelationship({
             />
           </label>
         </div>
-        {error && <p className="notice notice--error">{error}</p>}
+        {error && <p className="notice notice--error" role="alert">{error}</p>}
         <div className="dialog__actions">
           <Button tone="outline" onClick={onCancel}>
             취소

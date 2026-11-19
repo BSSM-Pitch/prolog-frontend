@@ -8,14 +8,24 @@
 .relations__chapter {
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 13px;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8) var(--itda-space-16);
+  font-size: 14px;
+}
+.relations__chapter label {
+  white-space: nowrap;
 }
 .relations__chapter strong {
   font-size: 16px;
 }
+.relations__chapter label span {
+  color: var(--itda-muted);
+}
+.relations__chapter .text-link {
+  font-weight: 500;
+}
 .relations__chapter input {
-  width: 220px;
+  width: min(220px, 100%);
   min-height: 44px;
   accent-color: var(--itda-ink);
   cursor: pointer;
@@ -34,7 +44,7 @@
 }
 .relation-graph path {
   fill: none;
-  stroke: #b9bcb3;
+  stroke: var(--itda-accent);
   stroke-width: 1.5;
 }
 .relation-graph path.is-selected {
@@ -44,20 +54,21 @@
 .relation-graph__person {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 18%;
-  max-width: 175px;
-  min-height: 66px;
+  width: clamp(120px, 18%, 175px);
+  min-height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 8px;
+  padding: var(--itda-space-12) var(--itda-space-8);
   border: 1px solid var(--input-stroke);
-  border-radius: 2px;
+  border-radius: var(--prolog-radius-8);
   background: var(--itda-surface);
   color: var(--itda-ink);
-  font-size: 19px;
+  font-size: 18px;
   font-weight: 750;
   line-height: 1.4;
+  /* 한글 이름은 글자 단위로 끊지 않는다 — 아주 긴 이름만 넘칠 때 끊는다 */
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 .relation-graph__person:hover {
@@ -76,91 +87,245 @@
 .relation-graph__edge {
   position: absolute;
   transform: translate(-50%, -50%);
-  min-height: 44px;
-  min-width: 66px;
-  padding: 6px 12px;
-  border: 1px solid var(--stroke);
-  border-radius: 2px;
-  background: var(--itda-background);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--itda-space-8);
+  min-height: 36px;
+  min-width: 64px;
+  padding: var(--itda-space-4) var(--itda-space-12);
+  border: 1px solid var(--input-stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-surface);
   color: var(--itda-ink);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-state);
+}
+.relation-graph__edge:hover {
+  border-color: var(--itda-ink);
 }
 .relation-graph__edge[aria-pressed='true'] {
   border: 2px solid var(--itda-ink);
-  background: var(--prolog-highlight-setting);
+}
+/* 관계 상태 색: 가까움(신뢰·우호) / 보통(중립) / 멀어짐(긴장·갈등·적대) */
+.relations [data-tone='close'] {
+  background: var(--prolog-highlight-character);
+  color: var(--prolog-color-interaction);
+}
+.relations [data-tone='far'] {
+  background: var(--prolog-highlight-review);
+  color: var(--prolog-review-ink);
+}
+.relations [data-tone='neutral'] {
+  color: var(--itda-ink);
+  background: var(--itda-background);
 }
 .relation-graph--compact .relation-graph__person {
-  width: 42%;
-  font-size: 17px;
+  width: 40%;
+  font-size: 16px;
 }
 .relation-graph--compact .relation-graph__center {
   min-height: 62px;
 }
 .relation-graph--compact .relation-graph__edge {
-  min-width: 58px;
-  padding: 6px 8px;
+  min-width: 56px;
+  padding: var(--itda-space-4) var(--itda-space-8);
 }
-.relations__detail {
+/* 그래프 왼쪽, 선택한 관계 오른쪽 — 누른 곳 바로 옆에서 기록을 읽는다 */
+.relations__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  align-items: start;
+  gap: 32px;
+}
+.relations__main {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+}
+.relations__detail {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-16);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  /* 등장인물·설정 상세와 같은 상세 패널: 위쪽 굵은 선, 상자 테두리 없음 */
+  padding: var(--itda-space-24) 0 0;
   border-top: 2px solid var(--itda-ink);
-  padding: 28px 0;
+  background: var(--itda-surface);
+}
+.relations__detail--empty {
+  padding: var(--itda-space-20);
+  border-top: 1px solid var(--stroke);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-background);
+  color: var(--itda-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.relations__detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--itda-space-12);
+}
+.relations__detail-head h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+.relations__detail-head .text-link {
+  font-size: 14px;
+  flex: none;
 }
 .relations__state {
   display: flex;
-  align-items: baseline;
-  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8) var(--itda-space-12);
+}
+.relations__label {
+  width: 100%;
+  color: var(--itda-muted);
+  font-size: 12px;
 }
 .relations__state strong {
-  font-size: 24px;
-  font-weight: 700;
+  padding: var(--itda-space-4) var(--itda-space-12);
+  border-radius: var(--prolog-radius-8);
+  font-size: 20px;
+  font-weight: 750;
 }
-.relations__state span {
+.relations__state span:not(.relations__label) {
   color: var(--itda-muted);
-  font-size: 12px;
+  font-size: 14px;
 }
 .relations__event {
-  font-family: var(--font-sans);
-  font-size: 17px;
-  line-height: 1.9;
+  font-size: 16px;
+  line-height: 1.8;
 }
-.relations__history {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 0;
-  margin: 0;
-  list-style: none;
+.relations__timeline h3 {
+  margin: 0 0 var(--itda-space-8);
+  font-size: 14px;
+  font-weight: 700;
 }
-.relations__history button {
+.relations__timeline ol {
   display: flex;
   flex-direction: column;
-  align-items: start;
-  gap: 8px;
-  min-width: 114px;
-  min-height: 76px;
-  padding: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.relations__timeline li {
+  position: relative;
+}
+/* 세로 줄과 점으로 이어지는 장별 기록 */
+.relations__timeline li::before {
+  content: '';
+  position: absolute;
+  left: 23px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--stroke);
+}
+.relations__timeline li:first-child::before {
+  top: 24px;
+}
+.relations__timeline li:last-child::before {
+  bottom: calc(100% - 24px);
+}
+.relations__timeline button {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  gap: var(--itda-space-4);
+  width: 100%;
+  padding: var(--itda-space-12) var(--itda-space-8) var(--itda-space-12) 0;
+  border: 0;
+  background: none;
+  color: var(--itda-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.relations__timeline button:hover {
+  background: var(--itda-background);
+}
+.relations__timeline button::before {
+  content: '';
+  position: absolute;
+  left: 19px;
+  top: 19px;
+  width: 9px;
+  height: 9px;
+  border: 1px solid var(--itda-muted);
+  border-radius: 50%;
   background: var(--itda-surface);
-  border: 1px solid var(--stroke);
-  border-top: 2px solid var(--itda-muted);
-  border-radius: 2px;
 }
-.relations__history button[aria-current] {
+.relations__timeline button[aria-current] {
   background: var(--prolog-highlight-setting);
-  border-top-color: var(--itda-ink);
 }
-.relations__history span {
+.relations__timeline button[aria-current]::before {
+  border-color: var(--itda-ink);
+  background: var(--itda-ink);
+}
+.relations__timeline-chapter {
+  padding-left: 36px;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+}
+.relations__timeline-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--itda-space-4) var(--itda-space-8);
   font-size: 12px;
   color: var(--itda-muted);
 }
-.relations__history strong {
-  font-size: 16px;
+.relations__timeline-body strong {
+  padding: 0 var(--itda-space-8);
+  border-radius: var(--prolog-radius-8);
+  font-size: 14px;
+  line-height: 22px;
+}
+.relations__timeline-body em {
+  width: 100%;
+  color: var(--itda-ink);
+  font-style: normal;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.relations__timeline li.is-later {
+  opacity: 0.55;
+}
+.relations__delete {
+  align-self: flex-start;
+}
+/* 본문이 그래프를 그리기에 좁아지기 전에 상세를 아래로 내린다 (사이드바 포함 1280px) */
+@media (max-width: 1280px) {
+  .relations__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .relations__detail {
+    position: static;
+    max-height: none;
+  }
+  .relations__detail--empty {
+    display: none;
+  }
 }
 @media (max-width: 600px) {
   .relations__controls {
-    gap: 16px;
+    gap: var(--itda-space-16);
   }
   .relations__chapter {
     width: 100%;
@@ -170,6 +335,7 @@
   }
   .relations__chapter input {
     flex: 1;
+    width: auto;
     min-width: 0;
   }
 }

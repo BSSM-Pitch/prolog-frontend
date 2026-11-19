@@ -6,7 +6,7 @@ import { describeError } from '../../lib/errors'
 import { useJob } from '../../lib/useJob'
 import { NarrativeSummary } from '../world/NarrativeSummary'
 
-/** All three screens share one durable review of the same manuscript revision. */
+/** 관계·복선 탭에서 같은 원고 검토 결과를 이어서 보되, 탭에 맞는 후보만 보여 준다. */
 export function NarrativeReview({ projectId, manuscriptId, kind, canEdit }: {
   projectId: string
   manuscriptId: string
@@ -45,19 +45,20 @@ export function NarrativeReview({ projectId, manuscriptId, kind, canEdit }: {
       setBusy(false)
     }
   }
-  const title = kind === 'relationships' ? '관계 변화' : '복선과 회수'
-  return <section className="insight-review" aria-label={`AI ${title} 검토`}>
-    <div className="insight-actions">
-      <div>
-        <h2 className="panel__title">원고에서 {title} 살펴보기</h2>
-        <p className="page-desc">규칙을 따로 등록하지 않아도 원고 전체에서 설정·관계·복선을 추적해요. 원고 화면과 같은 검사 결과를 이어서 봅니다.</p>
-      </div>
-      {canEdit && <Button tone="outline" busy={busy} disabled={loading || check.running} onClick={review}>
-        {check.running ? '원고 전체 검사 중…' : check.job ? '현재 원고로 다시 검사' : '설정·관계·복선 자동 검사'}
-      </Button>}
-    </div>
-    {check.error && <p role="alert">{check.error}</p>}
-    {loading && <p role="status">검토 내용을 불러오고 있어요.</p>}
-    {check.job && <NarrativeSummary job={check.job} projectId={projectId} kind={kind === 'relationships' ? 'relationship' : 'foreshadowing'} />}
-  </section>
+  return (
+    <NarrativeSummary
+      job={check.job}
+      projectId={projectId}
+      scope={kind === 'relationships' ? 'relationship' : 'foreshadowing'}
+      loading={loading}
+      error={check.error}
+      action={
+        canEdit && (
+          <Button tone="outline" busy={busy} disabled={loading || check.running} onClick={review}>
+            {check.running ? '검사하는 중…' : check.job ? '다시 검사' : '원고 검사하기'}
+          </Button>
+        )
+      }
+    />
+  )
 }

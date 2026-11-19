@@ -112,3 +112,51 @@
     max-width: none;
   }
 }
+.members__layout > .panel:first-child {
+  min-width: 0;
+}
+.members__email {
+  overflow-wrap: anywhere;
+}
+.members__table td:nth-child(3) {
+  white-space: nowrap;
+}
+/* 좁은 화면: 표를 사람마다 한 장의 카드로 — 이름·이메일 위, 역할·참여일·작업 아래 */
+@media (max-width: 760px) {
+  .members__table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .members__table,
+  .members__table tbody {
+    display: block;
+  }
+  .members__table tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--itda-space-8) var(--itda-space-12);
+    padding: var(--itda-space-16) 0;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .members__table tr:last-child {
+    border-bottom: 0;
+  }
+  .members__table td {
+    padding: 0;
+    border-bottom: 0;
+  }
+  .members__table td:first-child {
+    flex: 1 1 100%;
+  }
+  .members__table td:nth-child(3) {
+    color: var(--itda-muted);
+    font-size: 13px;
+  }
+  .members__table td.members__action {
+    margin-left: auto;
+  }
+}

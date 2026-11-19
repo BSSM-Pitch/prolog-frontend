@@ -21,7 +21,7 @@ import { Select } from '../../components/Select'
 import { RuleReviewSummary } from './RuleReviewSummary'
 
 const SEVERITY = { high: '높음', medium: '보통', low: '낮음' } as const
-const STATUS = { pending: '검토 대기', accepted: '검토 완료 · 원고 유지', ignored: '무시함', modified: '직접 수정' } as const
+const STATUS = { pending: '확인 전', accepted: '이대로 둠', ignored: '무시함', modified: '문장 고침' } as const
 const pad = (n: number) => String(n).padStart(2, '0')
 
 type SkipInfo = { title: string; body: string; action: string; to: string }
@@ -105,10 +105,10 @@ function ConflictReview() {
           job.result_ids.length
             ? `새 충돌 후보 ${job.result_ids.length}건을 찾았어요.`
             : job.analysis_kind === 'narrative_review'
-              ? '원고 전체 검토를 마쳤어요. 설정·관계·복선과 앞뒤 근거를 확인해 주세요.'
+              ? '검사를 마쳤어요. 아래에서 찾은 후보를 확인해 주세요.'
               : job.analysis_kind === 'ai_rule_review'
-              ? 'AI 검토를 마쳤어요. 규칙별 지지·위반·판단 불가를 확인해 주세요.'
-              : '키워드 검색을 마쳤어요. AI 의미 검토가 없는 이전 검사 결과예요.',
+              ? '검사를 마쳤어요. 규칙마다 원고가 맞는지 확인해 주세요.'
+              : '키워드로만 찾은 이전 검사 결과예요.',
         )
     },
   )
@@ -201,43 +201,55 @@ function ConflictReview() {
 
   return (
     <div className="world insight-page">
-      <header className="world__header">
-        <div>
-          <h1 className="page-title">설정 검토</h1>
+      <header className="insight-header">
+        <h1 className="page-title">설정 검토</h1>
+        <div className="insight-actions">
+          {ready.length > 0 && (
+            <label className="insight-field">
+              <span>원고</span>
+              <Select
+                aria-label="검사할 원고"
+                value={latest?.manuscript_id ?? ''}
+                onChange={(event) => {
+                  const next = new URLSearchParams(params)
+                  next.set('manuscript', event.target.value)
+                  setParams(next, { replace: true })
+                  setNotice(null)
+                }}
+              >
+                {ready.map((m) => (
+                  <option key={m.manuscript_id} value={m.manuscript_id}>
+                    {m.title}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          )}
+          {canEdit && (
+            <Button onClick={() => startCheck()} busy={check.running} disabled={!latest}>
+              {check.running ? '검사하는 중…' : '다시 검사'}
+            </Button>
+          )}
         </div>
-        {canEdit && (
-          <Button tone="secondary" onClick={() => startCheck()} busy={check.running} disabled={!latest}>
-            {check.running ? '검사하는 중…' : '원고 다시 검사'}
-          </Button>
-        )}
       </header>
       <InsightNav projectId={projectId} />
-      {ready.length > 0 && <label className="insight-filter">검사할 원고
-        <Select value={latest?.manuscript_id ?? ''} onChange={(event) => {
-          const next = new URLSearchParams(params)
-          next.set('manuscript', event.target.value)
-          setParams(next, { replace: true })
-          setNotice(null)
-        }}>{ready.map((m) => <option key={m.manuscript_id} value={m.manuscript_id}>{m.title}</option>)}</Select>
-      </label>}
-
       {check.running && (
         <div className="state-block" role="status">
           <LogoLoader className="answer__loader" />
-          <p className="answer__title">설정 충돌을 검토하고 있어요</p><AnalysisProgress label="설정·복선 검토 중" />
+          <p className="answer__title">원고를 검사하고 있어요</p>
+          <AnalysisProgress label="설정·복선 검토 중" />
           <p className="answer__body">
             {job?.status === 'analyzing'
-              ? '원고 전체에서 설정·인물 관계·복선의 변화와 충돌을 대조하고 있어요.'
-              : '모든 장의 원문을 준비하고 있어요. 저장된 규칙이 없어도 검사할 수 있어요.'}
+              ? '앞 장의 설정과 뒤 장의 내용이 어긋나는 곳을 찾고 있어요.'
+              : '모든 장의 본문을 모으고 있어요. 다른 화면으로 옮겨도 검사는 이어져요.'}
           </p>
         </div>
       )}
-      <RuleReviewSummary job={job} projectId={projectId} />
       {job?.status === 'failed' && (
         <div className="state-block state-block--error" role="alert">
           <p className="answer__title">AI 검토를 마치지 못했어요</p>
           <p className="answer__body">
-            AI 검토나 근거 확인을 완료하지 못했어요. 확인되지 않은 결과는 표시하지 않으며 다시 검사할 수 있어요.
+            근거를 확인하지 못한 결과는 보여 드리지 않아요. 다시 시도해 주세요.
           </p>
           <Button onClick={retryCheck}>AI 검토 다시 시도</Button>
         </div>
@@ -269,7 +281,7 @@ function ConflictReview() {
         <section className="panel" aria-labelledby="conflicts-title">
           <div className="world__list-head">
             <h2 id="conflicts-title" className="panel__title">
-              {showResolved ? '처리한 후보' : '살펴볼 후보'} {list.length}건
+              {showResolved ? '처리한 곳' : '확인할 곳'} {list.length}개
             </h2>
             <label className="visually-hidden" htmlFor="conflict-filter">
               보기
@@ -280,18 +292,18 @@ function ConflictReview() {
               value={showResolved ? 'resolved' : 'pending'}
               onChange={(e) => setShowResolved(e.target.value === 'resolved')}
             >
-              <option value="pending">미검토만</option>
-              <option value="resolved">처리됨</option>
+              <option value="pending">확인 전</option>
+              <option value="resolved">처리함</option>
             </Select>
           </div>
           {conflicts.loading && !conflicts.data && <p className="panel__label">불러오고 있어요</p>}
           {conflicts.data && list.length === 0 && (
             <div className="state-block">
-              <p className="answer__title">{showResolved ? '처리한 충돌이 없어요' : '검토할 충돌이 없어요'}</p>
+              <p className="answer__title">{showResolved ? '처리한 곳이 없어요' : '확인할 곳이 없어요'}</p>
               <p className="answer__body">
                 {showResolved
-                  ? '미검토 목록에서 충돌을 처리하면 여기로 옮겨져요.'
-                  : '새 장면을 쓴 뒤 원고 다시 검사를 눌러 보세요.'}
+                  ? '확인 전 목록에서 처리하면 여기로 옮겨져요.'
+                  : '새 장면을 쓴 뒤 다시 검사를 눌러 보세요.'}
               </p>
             </div>
           )}
@@ -308,17 +320,18 @@ function ConflictReview() {
                     {pad(c.index)} {c.title}
                   </span>
                   <span className="char-item__meta">
-                    <span className={`severity severity--${c.severity}`}>{SEVERITY[c.severity]}</span> ·{' '}
-                    {c.evidence.map((e) => (e.chapter ? `${e.chapter}장` : '규칙')).join(' ↔ ')}
-                    {c.status !== 'pending' && ` · ${STATUS[c.status]}`}
+                    <span className={`conflict-severity conflict-severity--${c.severity}`}>{SEVERITY[c.severity]}</span>
+                    <span>{c.evidence.map((e) => (e.chapter ? `${e.chapter}장` : '규칙')).join(' ↔ ')}</span>
+                    {c.status !== 'pending' && <span>{STATUS[c.status]}</span>}
                   </span>
+                  {c.evidence[0]?.quote && <span className="char-item__quote">“{c.evidence[0].quote}”</span>}
                 </button>
               </li>
             ))}
           </ul>
           {!showResolved && resolved.length > 0 && (
             <button type="button" className="projects__more" onClick={() => setShowResolved(true)}>
-              처리됨 {resolved.length}건 보기
+              처리한 곳 {resolved.length}개 보기
             </button>
           )}
         </section>
@@ -354,7 +367,7 @@ function ConflictReview() {
               ))}
             </div>
             <details className="insight-disclosure">
-              <summary>AI 조언</summary>
+              <summary>고치는 방법 제안</summary>
               <RichText>{selected.advice}</RichText>
             </details>
             {selected.modified_content && <p className="check-note">고친 문장 · “{selected.modified_content}”</p>}
@@ -376,7 +389,8 @@ function ConflictReview() {
             )}
             {selected.status === 'pending' && (
               <p className="panel__label">
-                {selected.edit_unavailable_reason ?? '직접 수정은 원고를 바꾸고, 검토만 완료는 원고를 그대로 둡니다.'}
+                {selected.edit_unavailable_reason ??
+                  '문장 고치기는 원고를 바꿔요. 이대로 두기는 의도한 내용으로 표시만 하고, 무시는 이 문장에서 다시 찾지 않아요.'}
               </p>
             )}
             {error && (
@@ -393,13 +407,13 @@ function ConflictReview() {
                       disabled={busy || Boolean(selected.edit_unavailable_reason)}
                       onClick={() => setEditing(selected.evidence[selected.evidence.length - 1].quote)}
                     >
-                      직접 수정
+                      문장 고치기
+                    </Button>
+                    <Button onClick={() => resolve(selected, 'accepted')} busy={busy}>
+                      이대로 두기
                     </Button>
                     <Button tone="outline" onClick={() => resolve(selected, 'ignored')} disabled={busy}>
                       무시
-                    </Button>
-                    <Button onClick={() => resolve(selected, 'accepted')} busy={busy}>
-                      검토만 완료
                     </Button>
                   </>
                 ) : (
@@ -424,6 +438,7 @@ function ConflictReview() {
           </section>
         )}
       </div>
+      <RuleReviewSummary job={job} projectId={projectId} />
     </div>
   )
 }

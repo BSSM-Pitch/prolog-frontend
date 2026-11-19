@@ -74,8 +74,8 @@ a.btn {
   border: 1px solid var(--itda-ink);
 }
 .badge--waiting {
-  background: #fdf1e7;
-  color: #b54708;
+  background: var(--prolog-color-warning-soft);
+  color: var(--prolog-color-warning);
 }
 .badge--waiting::before {
   content: '';
@@ -93,7 +93,7 @@ a.btn {
   color: var(--prolog-color-error);
 }
 .badge--success {
-  background: #e3f3ea;
+  background: var(--prolog-color-success-soft);
   color: var(--prolog-color-success);
 }
 
@@ -153,6 +153,19 @@ a.btn {
   color: var(--prolog-color-interaction);
   font-weight: 550;
   font-size: 14px;
+}
+/* 자주 쓰지 않는 작은 관리 동작(되돌리기·삭제) — 글자 버튼, 위험한 동작은 오류색 */
+.app .text-link--quiet {
+  color: var(--itda-muted);
+  font-weight: 500;
+  cursor: pointer;
+}
+.app .text-link--quiet:hover {
+  color: var(--itda-ink);
+}
+.app .text-link--danger,
+.app .text-link--danger:hover {
+  color: var(--prolog-color-error);
 }
 .app .panel {
   min-width: 0;

@@ -326,3 +326,10 @@
     padding: 14px;
   }
 }
+
+@media (max-width: 600px) {
+  .assessment-rubrics,
+  .assessment-score-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

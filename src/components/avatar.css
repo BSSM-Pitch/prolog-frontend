@@ -1,0 +1,26 @@
+.character-avatar {
+  display: inline-flex;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface-soft, #e6e5dc);
+  color: var(--color-ink, #454b3b);
+  font-size: 15px;
+  font-weight: 600;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+.relation-graph__person {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.relation-graph__person .character-avatar {
+  width: 28px;
+  height: 28px;
+  margin-right: 6px;
+}

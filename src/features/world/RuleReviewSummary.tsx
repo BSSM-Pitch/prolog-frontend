@@ -4,7 +4,7 @@ import { NarrativeSummary } from './NarrativeSummary'
 
 /** Keep keyword matches visibly separate from actual model verdicts. */
 export function RuleReviewSummary({ job, projectId }: { job: ConflictCheck | null; projectId: string }) {
-  if (job?.analysis_kind === 'narrative_review') return <NarrativeSummary job={job} projectId={projectId} />
+  if (job?.analysis_kind === 'narrative_review') return <NarrativeSummary job={job} projectId={projectId} scope="setting" />
   if (!job || job.analysis_kind !== 'ai_rule_review') return null
   const assessments = job.assessments ?? []
   const supports = assessments.filter((a) => a.verdict === 'supports').length

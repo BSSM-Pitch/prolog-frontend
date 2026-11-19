@@ -1,58 +1,94 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import type { ConflictCheck, NarrativeEvidence } from '../../api/types'
+import type { ConflictCheck, NarrativeEvidence, NarrativeFinding, NarrativeTrack } from '../../api/types'
 import { request } from '../../api/client'
+import { Button } from '../../components/Button'
 import { RichText } from '../../components/RichText'
+import { Select } from '../../components/Select'
 import { useProject } from '../app/currentProject'
 import { useResource } from '../../lib/useResource'
 import { AdoptCandidate } from './AdoptCandidate'
 import { adoptionPath, type Adoption } from './adoptionModel'
 import { filterTracks, pageItems } from './narrativeBrowseModel'
 import './narrativeBrowse.css'
-const states = {
-  established: '설정 확인',
-  changed: '변화 추적',
-  paid_off: '회수 확인',
-  unresolved: '미해결',
-  reinterpreted: '오해·해석 정정',
+
+export type NarrativeScope = 'relationship' | 'foreshadowing' | 'setting'
+
+const states: Record<NarrativeTrack['status'], string> = {
+  established: '확인된 설정',
+  changed: '달라짐',
+  paid_off: '회수됨',
+  unresolved: '아직 안 풀림',
+  reinterpreted: '다시 해석됨',
 }
-const kinds = { setting: '설정', relationship: '관계', foreshadowing: '복선' }
+/** 같은 상태도 탭에 맞는 말로 부른다 (관계에서 '확인된 설정'은 어색하다) */
+const SCOPE_STATES: Partial<Record<NarrativeScope, Partial<Record<NarrativeTrack['status'], string>>>> = {
+  relationship: { established: '그대로 이어짐' },
+  foreshadowing: { established: '심어 둠' },
+}
+const stateLabel = (scope: NarrativeScope, status: NarrativeTrack['status']) =>
+  SCOPE_STATES[scope]?.[status] ?? states[status]
 const focuses = {
   general: '일반',
-  activation: '능력 조건',
+  activation: '능력이 쓰이는 조건',
   cost: '대가·약점',
-  matchup: '전투·상성',
-  knowledge: '인물 지식',
+  matchup: '싸움·상성',
+  knowledge: '인물이 아는 것',
 }
+const SCOPE = {
+  relationship: { noun: '관계 변화', adopt: '관계 기록으로 등록' },
+  foreshadowing: { noun: '복선', adopt: '복선으로 등록' },
+  setting: { noun: '설정 확인거리', adopt: '' },
+} as const
+/** 검색·장 필터는 항목이 이보다 많을 때만 보인다 */
+const FILTER_FROM = 8
+
+type Item =
+  | { type: 'finding'; finding: NarrativeFinding; key: string }
+  | { type: 'track'; track: NarrativeTrack; index: number; key: string }
+
+/**
+ * 원고 전체 검토 결과 중 지금 탭에 맞는 후보만 짧은 목록으로 보여 준다.
+ * 접힌 상태에서는 한 줄 요약과 버튼만 보이고, 펼치면 후보 카드가 열린다.
+ */
 export function NarrativeSummary({
   job,
   projectId,
-  kind = '',
+  scope,
+  action,
+  loading = false,
+  error = null,
   onAdopt,
 }: {
-  job: ConflictCheck
+  job: ConflictCheck | null
   projectId: string
-  kind?: string
+  scope: NarrativeScope
+  /** 다시 검사 같은 머리말 오른쪽 버튼 */
+  action?: ReactNode
+  loading?: boolean
+  error?: string | null
   onAdopt?: () => void
 }) {
   const project = useProject()
   const [params, setParams] = useSearchParams()
+  const [open, setOpen] = useState(() => [...params.keys()].some((k) => k.startsWith('review_')))
   const [candidate, setCandidate] = useState<number | null>(null)
+  const result = job?.narrative ?? null
   const saved = useResource(
-    job.status === 'completed' && job.narrative
+    job?.status === 'completed' && result
       ? (token) =>
           request<Adoption[]>('GET', `/projects/${projectId}/conflict-checks/${job.job_id}/adoptions`, {
             accessToken: token,
           })
       : null,
-    [projectId, job.job_id, job.status],
+    [projectId, job?.job_id, job?.status],
   )
-  const result = job.narrative
-  if (!result) return null
+  const { noun, adopt } = SCOPE[scope]
+
   const filters = {
     query: params.get('review_q') ?? '',
-    kind: params.get('review_kind') ?? kind,
-    focus: params.get('review_focus') ?? '',
+    kind: scope,
+    focus: scope === 'setting' ? (params.get('review_focus') ?? '') : '',
     status: params.get('review_status') ?? '',
     chapter: params.get('review_chapter') ?? '',
   }
@@ -60,248 +96,307 @@ export function NarrativeSummary({
     setParams(
       (previous) => {
         const next = new URLSearchParams(previous)
-        next.set(`review_${name}`, value)
-        if (name !== 'page' && name !== 'issues') {
-          next.delete('review_page')
-          next.delete('review_issues')
-        }
+        if (value) next.set(`review_${name}`, value)
+        else next.delete(`review_${name}`)
+        if (name !== 'page') next.delete('review_page')
         return next
       },
       { replace: true },
     )
-  const rows = filterTracks(result.tracks, filters)
-  const tracks = pageItems(rows, Number(params.get('review_page') ?? 1))
+  const reset = () =>
+    setParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        ;[...next.keys()].filter((k) => k.startsWith('review_')).forEach((k) => next.delete(k))
+        return next
+      },
+      { replace: true },
+    )
+
+  const scopedTracks = (result?.tracks ?? []).map((track, index) => ({ track, index })).filter(({ track }) => track.kind === scope)
+  const scopedFindings = scope === 'setting' ? (result?.findings ?? []) : []
+  const total = scopedTracks.length + scopedFindings.length
   const query = filters.query.trim().toLocaleLowerCase()
-  const findings = result.findings.filter(
-    (f) =>
-      (!query ||
-        [f.title, f.reason, ...f.evidence.map((e) => e.quote)]
-          .join(' ')
-          .toLocaleLowerCase()
-          .includes(query)) &&
-      (!filters.chapter || f.evidence.some((e) => String(e.chapter_no) === filters.chapter)),
-  )
-  const issues = pageItems(findings, Number(params.get('review_issues') ?? 1))
+  const matchesFinding = (f: NarrativeFinding) =>
+    (!filters.status || filters.status === f.category) &&
+    (!filters.focus) &&
+    (!query || [f.title, f.reason, ...f.evidence.map((e) => e.quote)].join(' ').toLocaleLowerCase().includes(query)) &&
+    (!filters.chapter || f.evidence.some((e) => String(e.chapter_no) === filters.chapter))
+  const trackStatus = filters.status === 'contradiction' || filters.status === 'explanation_gap' ? '__none__' : filters.status
+  const items: Item[] = [
+    ...scopedFindings.filter(matchesFinding).map((finding, i) => ({ type: 'finding' as const, finding, key: `f${i}` })),
+    ...filterTracks(result?.tracks ?? [], { ...filters, status: trackStatus }).map(({ track, index }) => ({
+      type: 'track' as const,
+      track,
+      index,
+      key: `t${index}`,
+    })),
+  ]
+  const page = pageItems(items, Number(params.get('review_page') ?? 1))
+
+  // 상태 칩: 이 탭에 실제로 있는 상태만, 개수와 함께
+  type Chip = [string, string, number]
+  const chips: Chip[] = [
+    ['', '전체', total] as Chip,
+    ...(scope === 'setting'
+      ? ([
+          ['contradiction', '어긋남', scopedFindings.filter((f) => f.category === 'contradiction').length],
+          ['explanation_gap', '설명이 필요함', scopedFindings.filter((f) => f.category === 'explanation_gap').length],
+        ] as Chip[])
+      : []),
+    ...(Object.keys(states) as NarrativeTrack['status'][]).map(
+      (s) => [s, stateLabel(scope, s), scopedTracks.filter(({ track }) => track.status === s).length] as Chip,
+    ),
+  ].filter(([value, , count]) => value === '' || count > 0)
+  const focusList = [...new Set(scopedTracks.map(({ track }) => track.focus ?? 'general'))]
   const chapters = [
     ...new Set(
-      [...result.tracks.flatMap((t) => t.evidence), ...result.findings.flatMap((f) => f.evidence)].map(
+      [...scopedTracks.flatMap(({ track }) => track.evidence), ...scopedFindings.flatMap((f) => f.evidence)].map(
         (e) => e.chapter_no,
       ),
     ),
   ].sort((a, b) => a - b)
+  const filtered = Boolean(filters.status || filters.focus || filters.chapter || filters.query)
+
+  const running = job && ['queued', 'analyzing'].includes(job.status)
+  let line: ReactNode
+  if (loading) line = '지난 검사 결과를 불러오고 있어요.'
+  else if (!job) line = `원고 전체를 읽고 ${noun} 후보를 찾아 드려요.`
+  else if (running) line = '원고 전체를 읽고 있어요. 다른 화면으로 옮겨도 검사는 이어져요.'
+  else if (job.status === 'failed') line = '검사를 마치지 못했어요. 다시 검사해 주세요.'
+  else if (job.status !== 'completed' || !result) line = '이 원고는 아직 검사하지 않았어요.'
+  else if (total === 0) line = `원고에서 찾은 ${noun} 후보가 없어요.`
+  else
+    line = (
+      <>
+        원고에서 찾은 {noun} 후보 <strong>{total}개</strong>
+      </>
+    )
+
+  function quote(e: NarrativeEvidence, key: string | number) {
+    return (
+      <figure className="ai-quote" key={key}>
+        <blockquote>{e.quote}</blockquote>
+        <figcaption>
+          <Link
+            className="ai-quote__link"
+            to={`/projects/${projectId}/manuscripts/${result!.manuscript_id}?chapter=${e.chapter_no}`}
+            state={{ highlight: e.quote }}
+          >
+            {e.chapter_no}장 원문
+          </Link>
+        </figcaption>
+      </figure>
+    )
+  }
   function evidence(items: NarrativeEvidence[]) {
+    if (!items.length) return null
+    const [first, ...rest] = items
     return (
-      <details className="narrative-sources">
-        <summary>원문 근거 {items.length}곳</summary>
-        <ul>
-          {items.map((e, i) => (
-            <li key={`${e.chapter_id}-${i}`}>
-              <Link
-                to={`/projects/${projectId}/manuscripts/${result!.manuscript_id}?chapter=${e.chapter_no}`}
-                state={{ highlight: e.quote }}
-              >
-                {e.chapter_no}장 원문 보기
-              </Link>
-              <blockquote>{e.quote}</blockquote>
-            </li>
-          ))}
-        </ul>
-      </details>
+      <>
+        {quote(first, 'first')}
+        {rest.length > 0 && (
+          <details className="ai-more">
+            <summary>근거 {rest.length}곳 더 보기</summary>
+            {rest.map((e, i) => quote(e, i))}
+          </details>
+        )}
+      </>
     )
   }
-  function pages(name: string, page: number, total: number) {
-    return (
-      total > 1 && (
-        <nav
-          className="writer-actions"
-          aria-label={name === 'page' ? '추적 항목 페이지' : '문제 후보 페이지'}
-        >
-          <button type="button" disabled={page <= 1} onClick={() => change(name, String(page - 1))}>
-            이전
-          </button>
-          <span aria-live="polite">
-            {page} / {total}
-          </span>
-          <button type="button" disabled={page >= total} onClick={() => change(name, String(page + 1))}>
-            다음
-          </button>
-        </nav>
-      )
-    )
-  }
+
+  const canShow = job?.status === 'completed' && result && total > 0
   return (
-    <section className="evidence-box narrative-browse" aria-label="원고 전체 설정·복선 검토">
-      <h2 className="panel__title">
-        {job.status === 'completed'
-          ? '원고 전체 검토 결과'
-          : job.status === 'failed'
-            ? '원고 전체 검토를 마치지 못했어요'
-            : '원고 전체를 대조하고 있어요'}
-      </h2>
-      <p>
-        {result.chapter_count}장 · {result.char_count.toLocaleString()}자 · 설정·관계·복선
-      </p>
-      {result.stale && (
-        <p role="status">현재 원고나 검사 기준과 맞지 않는 이전 결과예요. 현재 원고로 다시 검사해 주세요.</p>
-      )}
-      {['queued', 'analyzing'].includes(job.status) && (
-        <p role="status">
-          앞부분의 설정부터 마지막 장까지 비교하고 원문 근거를 다시 확인해요. 다른 화면으로 이동해도 검사는
-          계속됩니다.
+    <section className="ai-strip" aria-label={`AI가 찾은 ${noun} 후보`}>
+      <div className="ai-strip__head">
+        <p className="ai-strip__line" role={running ? 'status' : undefined}>
+          {running && <span className="answer__spinner" aria-hidden="true" />}
+          {result?.stale && <span className="badge badge--waiting">이전 원고 기준</span>}
+          <span>{line}</span>
+        </p>
+        <div className="ai-strip__actions">
+          {canShow && (
+            <Button tone="outline" aria-expanded={open} onClick={() => setOpen(!open)}>
+              {open ? '접기' : '후보 보기'}
+            </Button>
+          )}
+          {action}
+        </div>
+      </div>
+      {error && (
+        <p className="notice notice--error" role="alert">
+          {error}
         </p>
       )}
-      {job.status === 'completed' && (
-        <>
-          <RichText>{result.summary}</RichText>
-          <p>
-            충돌 후보 {result.findings.filter((f) => f.category === 'contradiction').length}건 · 설명 확인{' '}
-            {result.findings.filter((f) => f.category === 'explanation_gap').length}건 · 추적 항목{' '}
-            {result.tracks.length}건
-          </p>
-          {result.more_items && (
-            <p role="status">
-              주요 항목부터 표시했어요. 분석 결과의 표시 한도로 일부 항목이 포함되지 않았습니다.
-            </p>
-          )}
-          <div className="narrative-filters">
-            <label>
-              검토 내용 검색
-              <input
-                type="search"
-                placeholder="인물 이름, 설정, 근거 문장"
-                value={filters.query}
-                onChange={(e) => change('q', e.target.value)}
-              />
-            </label>
-            <label>
-              근거가 있는 장
-              <select aria-label="근거가 있는 장" value={filters.chapter} onChange={(e) => change('chapter', e.target.value)}>
-                <option value="">모든 장</option>
-                {chapters.map((n) => (
-                  <option key={n} value={n}>
-                    {n}장
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <details>
-            <summary>
-              확인할 문제와 앞뒤 근거 {findings.length} / {result.findings.length}건
-            </summary>
-            {issues.items.map((f, i) => (
-              <article className="evidence-box" key={`${issues.page}-${i}`}>
-                <h3>
-                  {f.category === 'contradiction' ? '충돌 후보' : '설명 확인'} · {f.title}
-                </h3>
-                <RichText>{f.reason}</RichText>
-                {evidence(f.evidence)}
-              </article>
+      {result?.stale && (
+        <p className="ai-strip__note">원고가 바뀐 뒤의 결과가 아니에요. 다시 검사하면 지금 원고 기준으로 바뀌어요.</p>
+      )}
+      {canShow && open && (
+        <div className="ai-strip__body">
+          <div className="ai-chips" role="group" aria-label="후보 상태">
+            {chips.map(([value, label, count]) => (
+              <button
+                key={value || 'all'}
+                type="button"
+                className="filter-chip"
+                aria-pressed={filters.status === value}
+                onClick={() => change('status', value)}
+              >
+                {label} <span className="filter-chip__count">{count}</span>
+              </button>
             ))}
-            {!findings.length && <p>검색 조건에 맞는 문제 후보가 없어요.</p>}
-            {pages('issues', issues.page, issues.pages)}
-          </details>
-          <details open>
-            <summary>
-              자동으로 추적한 설정·관계·복선 {rows.length} / {result.tracks.length}건
-            </summary>
+          </div>
+          {(total > FILTER_FROM || (scope === 'setting' && focusList.length > 1)) && (
             <div className="narrative-filters">
-              {(
-                [
-                  ['kind', '종류', kinds],
-                  ['focus', '검토 관점', focuses],
-                  ['status', '추적 상태', states],
-                ] as const
-              ).map(([key, label, options]) => (
-                <label key={key}>
-                  {label}
-                  <select aria-label={label} value={filters[key]} onChange={(e) => change(key, e.target.value)}>
-                    <option value="">전체</option>
-                    {Object.entries(options).map(([value, text]) => (
-                      <option key={value} value={value}>
-                        {text}
+              {total > FILTER_FROM && (
+                <>
+                  <label>
+                    찾기
+                    <input
+                      type="search"
+                      placeholder="인물 이름이나 문장"
+                      value={filters.query}
+                      onChange={(e) => change('q', e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    나온 장
+                    <Select aria-label="나온 장" value={filters.chapter} onChange={(e) => change('chapter', e.target.value)}>
+                      <option value="">모든 장</option>
+                      {chapters.map((n) => (
+                        <option key={n} value={n}>
+                          {n}장
+                        </option>
+                      ))}
+                    </Select>
+                  </label>
+                </>
+              )}
+              {scope === 'setting' && focusList.length > 1 && (
+                <label>
+                  살펴볼 점
+                  <Select aria-label="살펴볼 점" value={filters.focus} onChange={(e) => change('focus', e.target.value)}>
+                    <option value="">모두</option>
+                    {focusList.map((f) => (
+                      <option key={f} value={f}>
+                        {focuses[f]}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
-              ))}
+              )}
             </div>
-            <button
-              className="text-link"
-              type="button"
-              onClick={() =>
-                setParams(
-                  (previous) => {
-                    const next = new URLSearchParams(previous)
-                    ;[...next.keys()].filter((k) => k.startsWith('review_')).forEach((k) => next.delete(k))
-                    return next
-                  },
-                  { replace: true },
+          )}
+          {filtered && (
+            <button className="text-link narrative-reset" type="button" onClick={reset}>
+              조건 지우기
+            </button>
+          )}
+          {page.items.length === 0 && <p className="ai-strip__note">조건에 맞는 후보가 없어요.</p>}
+          <ul className="ai-cards">
+            {page.items.map((item) => {
+              if (item.type === 'finding') {
+                const f = item.finding
+                return (
+                  <li key={item.key}>
+                    <article className="ai-card">
+                      <header className="ai-card__head">
+                        <span className={f.category === 'contradiction' ? 'badge badge--error' : 'badge badge--waiting'}>
+                          {f.category === 'contradiction' ? '어긋남' : '설명이 필요함'}
+                        </span>
+                        <h3>{f.title}</h3>
+                      </header>
+                      <RichText>{f.reason}</RichText>
+                      {/* 어긋난 두 곳은 나란히 비교해야 하므로 접지 않는다 */}
+                      <div className="ai-pair">{f.evidence.map((e, i) => quote(e, i))}</div>
+                    </article>
+                  </li>
                 )
               }
-            >
-              검색·필터 초기화
-            </button>
-            {tracks.items.map(({ track: t, index }) => {
-              const adopted = !saved.loading && saved.data?.find((a) => a.index === index)
+              const t = item.track
+              const adopted = !saved.loading && saved.data?.find((a) => a.index === item.index)
               return (
-                <article className="evidence-box" key={index}>
-                  <h3>
-                    {t.focus && t.focus !== 'general' ? focuses[t.focus] : kinds[t.kind]} · {t.title} ·{' '}
-                    {states[t.status]}
-                  </h3>
-                  <RichText>{t.explanation}</RichText>
-                  {evidence(t.evidence)}
-                  {adopted ? (
-                    <Link className="text-link" to={adoptionPath(projectId, result.manuscript_id, adopted)}>
-                      등록됨 · 관리 목록 보기
-                    </Link>
-                  ) : (
-                    project?.my_role !== 'viewer' &&
-                    project &&
-                    t.kind !== 'setting' && (
-                      <button
-                        className="text-link"
-                        type="button"
-                        disabled={result.stale || saved.loading || !!saved.error}
-                        onClick={() => setCandidate(index)}
-                      >
-                        {t.kind === 'relationship' ? '관계 기록으로 등록' : '복선으로 등록'}
-                      </button>
-                    )
-                  )}
-                </article>
+                <li key={item.key}>
+                  <article className="ai-card">
+                    <header className="ai-card__head">
+                      <span className="badge badge--filled">{stateLabel(scope, t.status)}</span>
+                      <h3>{t.title}</h3>
+                      {scope === 'setting' && t.focus && t.focus !== 'general' && (
+                        <span className="ai-card__meta">{focuses[t.focus]}</span>
+                      )}
+                    </header>
+                    <RichText>{t.explanation}</RichText>
+                    {evidence(t.evidence)}
+                    {adopted ? (
+                      <Link className="ai-card__done" to={adoptionPath(projectId, result.manuscript_id, adopted)}>
+                        등록함 · 기록 보기
+                      </Link>
+                    ) : (
+                      adopt &&
+                      project &&
+                      project.my_role !== 'viewer' && (
+                        <div className="ai-card__actions">
+                          <Button
+                            tone="outline"
+                            disabled={result.stale || saved.loading || !!saved.error}
+                            onClick={() => setCandidate(item.index)}
+                          >
+                            {adopt}
+                          </Button>
+                        </div>
+                      )
+                    )}
+                  </article>
+                </li>
               )
             })}
-            {!rows.length && <p>검색 조건에 맞는 추적 항목이 없어요. 필터를 바꿔 보세요.</p>}
-            {pages('page', tracks.page, tracks.pages)}
-          </details>
-          {saved.error && (
-            <p role="alert">
-              등록 상태를 불러오지 못했어요. <button onClick={saved.reload}>다시 시도</button>
+          </ul>
+          {page.pages > 1 && (
+            <nav className="insight-pagination" aria-label="후보 페이지">
+              <Button tone="outline" disabled={page.page <= 1} onClick={() => change('page', String(page.page - 1))}>
+                이전
+              </Button>
+              <span aria-live="polite">
+                {page.page} / {page.pages}
+              </span>
+              <Button
+                tone="outline"
+                disabled={page.page >= page.pages}
+                onClick={() => change('page', String(page.page + 1))}
+              >
+                다음
+              </Button>
+            </nav>
+          )}
+          {adopt && saved.error && (
+            <p className="notice notice--error" role="alert">
+              등록한 후보를 불러오지 못했어요.{' '}
+              <button type="button" className="text-link" onClick={saved.reload}>
+                다시 시도
+              </button>
             </p>
           )}
-          <p className="panel__label">
-            원고에서 추론한 검토 결과예요. 미해결 복선은 오류와 구분하며, 발견된 충돌이 없다고 모든 설정이
-            검증된 것은 아니에요.
+          <p className="ai-strip__note">
+            AI가 원고를 읽고 짐작한 결과예요. 맞는 것만 골라 기록해 주세요. 후보가 없다고 모든 설정이 맞는 것은
+            아니에요.
           </p>
-          {candidate !== null && (
-            <AdoptCandidate
-              projectId={projectId}
-              manuscriptId={result.manuscript_id}
-              jobId={job.job_id}
-              track={result.tracks[candidate]}
-              index={candidate}
-              onClose={() => setCandidate(null)}
-              onSaved={(value) => {
-                saved.setData((previous) => [...(previous ?? []), value])
-                setCandidate(null)
-                onAdopt?.()
-                window.dispatchEvent(new CustomEvent('narrative-adopted', { detail: projectId }))
-              }}
-            />
-          )}
-        </>
+        </div>
+      )}
+      {candidate !== null && result && (
+        <AdoptCandidate
+          projectId={projectId}
+          manuscriptId={result.manuscript_id}
+          jobId={job!.job_id}
+          track={result.tracks[candidate]}
+          index={candidate}
+          onClose={() => setCandidate(null)}
+          onSaved={(value) => {
+            saved.setData((previous) => [...(previous ?? []), value])
+            setCandidate(null)
+            onAdopt?.()
+            window.dispatchEvent(new CustomEvent('narrative-adopted', { detail: projectId }))
+          }}
+        />
       )}
     </section>
   )

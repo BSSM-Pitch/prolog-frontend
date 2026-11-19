@@ -388,7 +388,7 @@ function ItemEditor({ editing, item, disabled, onCancel, onSubmit, historyOpen, 
         {historyOpen ? '편집 이력 접기' : '편집 이력 펼치기'}
       </Button>
       {history && (
-        <ul className="history">
+        <ul className="char-history">
           {history.length === 0 && <li>아직 편집한 내용이 없어요.</li>}
           {history.map((h, i) => (
             <li key={i}>

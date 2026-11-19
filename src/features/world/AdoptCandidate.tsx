@@ -10,6 +10,7 @@ import { useResource } from '../../lib/useResource'
 import { describeError } from '../../lib/errors'
 import { InsightDialog } from '../insights/InsightDialog'
 import { RichText } from '../../components/RichText'
+import { Select } from '../../components/Select'
 import '../insights/insights.css'
 export function AdoptCandidate({
   projectId,
@@ -70,9 +71,11 @@ export function AdoptCandidate({
     description,
   ])
   const confirmed = accepted === comparison
+  // 선택 상자는 버튼이라 required로 막을 수 없어 직접 확인한다
+  const missing = !chapterId || (relation && (!source || !target))
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (lock.current || (duplicate && !confirmed)) return
+    if (lock.current || (duplicate && !confirmed) || missing) return
     lock.current = true
     setBusy(true)
     setError(null)
@@ -124,16 +127,15 @@ export function AdoptCandidate({
     <InsightDialog title={relation ? '관계 기록으로 등록' : '복선으로 등록'} onClose={onClose} busy={busy}>
       <p>AI가 추론한 후보예요. 원문과 대조하고, 작품에서 확정할 내용만 등록해 주세요.</p>
       <RichText>{track.explanation}</RichText>
-      {options.loading && <p role="status">장과 인물 목록을 불러오고 있어요.</p>}
-      {(options.error || error) && <p role="alert">{error ?? options.error}</p>}
+      {options.loading && <p className="panel__label" role="status">장과 인물 목록을 불러오고 있어요.</p>}
+      {(options.error || error) && <p className="notice notice--error" role="alert">{error ?? options.error}</p>}
       <form className="writer-form" onSubmit={submit}>
         {relation ? (
           <>
             <label>
               첫 번째 인물
-              <select
+              <Select
                 aria-label="첫 번째 인물"
-                required
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               >
@@ -143,13 +145,12 @@ export function AdoptCandidate({
                     {c.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label>
               두 번째 인물
-              <select
+              <Select
                 aria-label="두 번째 인물"
-                required
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
               >
@@ -161,7 +162,7 @@ export function AdoptCandidate({
                       {c.name}
                     </option>
                   ))}
-              </select>
+              </Select>
             </label>
             <label>
               관계 상태
@@ -212,9 +213,8 @@ export function AdoptCandidate({
         )}
         <label>
           {relation ? '변화가 일어난 장' : '복선을 심은 장'}
-          <select
+          <Select
             aria-label={relation ? '변화가 일어난 장' : '복선을 심은 장'}
-            required
             value={chapterId}
             onChange={(e) => setChapterId(e.target.value)}
           >
@@ -224,12 +224,12 @@ export function AdoptCandidate({
                 {c.chapter_no}장 {c.title}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         {!relation && (
           <label>
             회수한 장 (선택)
-            <select aria-label="회수한 장 (선택)" value={payoff} onChange={(e) => setPayoff(e.target.value)}>
+            <Select aria-label="회수한 장 (선택)" value={payoff} onChange={(e) => setPayoff(e.target.value)}>
               <option value="">아직 회수하지 않음</option>
               {chapters
                 .filter(
@@ -241,7 +241,7 @@ export function AdoptCandidate({
                     {c.chapter_no}장 {c.title}
                   </option>
                 ))}
-            </select>
+            </Select>
           </label>
         )}
         <label>
@@ -253,7 +253,7 @@ export function AdoptCandidate({
             onChange={(e) => setDescription(e.target.value)}
           />
         </label>
-        <div className="writer-actions">
+        <div className="dialog__actions">
           <button type="button" className="btn btn--outline" disabled={busy} onClick={onClose}>
             취소
           </button>
@@ -264,6 +264,7 @@ export function AdoptCandidate({
               options.loading ||
               !!options.error ||
               (!!duplicate && !confirmed) ||
+              missing ||
               (relation && source === target)
             }
           >

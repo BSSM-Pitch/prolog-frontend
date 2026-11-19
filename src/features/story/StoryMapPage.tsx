@@ -41,14 +41,16 @@ function StoryManuscripts({ projectId, canEdit }: { projectId: string; canEdit: 
 
   return (
     <div className="story">
-      <header className="story__header">
+      <header className="insight-header">
         <h1 className="page-title">이야기 흐름</h1>
-        {current &&
-          (ready.length > 1 ? (
-            <label className="story__pick">
-              <span className="visually-hidden">분석할 원고</span>
+        {current && (
+          <div className="insight-actions">
+            <label className="insight-field">
+              <span>원고</span>
               <Select
+                aria-label="분석할 원고"
                 value={current.manuscript_id}
+                disabled={ready.length < 2}
                 onChange={(e) => setParams({ manuscript: e.target.value }, { replace: true })}
               >
                 {ready.map((m) => (
@@ -58,9 +60,8 @@ function StoryManuscripts({ projectId, canEdit }: { projectId: string; canEdit: 
                 ))}
               </Select>
             </label>
-          ) : (
-            <p className="story__manuscript">{current.title}</p>
-          ))}
+          </div>
+        )}
       </header>
       <InsightNav projectId={projectId} />
       {manuscripts.loading && !current && (

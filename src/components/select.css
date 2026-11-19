@@ -10,6 +10,8 @@
   border-radius: var(--prolog-radius-8);
   background: var(--itda-surface);
   color: var(--itda-ink);
+  max-width: 100%;
+  min-width: 0;
   font: inherit;
   font-size: 14px;
   text-align: left;
@@ -19,7 +21,7 @@
     box-shadow var(--transition-state);
 }
 .select__trigger:hover:not(:disabled) {
-  border-color: #a9a9a2;
+  border-color: var(--itda-disabled);
 }
 .select__trigger:focus-visible,
 .select__trigger.is-open {
@@ -52,16 +54,17 @@
   z-index: 80;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--itda-space-4);
+  max-width: calc(100vw - 16px);
   max-height: 320px;
   margin: 0;
-  padding: 4px;
+  padding: var(--itda-space-4);
   overflow-y: auto;
   list-style: none;
   border: 1px solid var(--input-stroke);
   border-radius: var(--prolog-radius-8);
   background: var(--itda-surface);
-  box-shadow: 0 12px 32px rgb(23 23 23 / 0.1);
+  box-shadow: var(--prolog-shadow-menu);
   font-family: var(--font-sans);
   transform-origin: top left;
   animation: select-in 160ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -77,15 +80,16 @@
   justify-content: space-between;
   gap: var(--itda-space-12);
   min-height: 40px;
-  padding: 0 var(--itda-space-12);
+  padding: var(--itda-space-8) var(--itda-space-12);
   border-radius: var(--itda-radius-6);
-  color: #4d4d48;
+  color: var(--itda-ink-soft);
   font-size: 14px;
   cursor: pointer;
 }
 .select__option-label {
   min-width: 0;
-  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .select__option[data-active='true'] {
   background: var(--itda-background);
@@ -96,7 +100,7 @@
   font-weight: 700;
 }
 .select__option[aria-disabled] {
-  color: #a9a9a2;
+  color: var(--itda-disabled);
   cursor: not-allowed;
 }
 

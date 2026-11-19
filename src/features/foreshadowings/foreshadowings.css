@@ -1,14 +1,85 @@
 .fs__controls {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 12px 24px;
   flex-wrap: wrap;
 }
-.fs__axis {
+.fs__unassigned {
+  font-size: 14px;
+  font-weight: 500;
+}
+.fs__board {
   display: flex;
-  justify-content: space-between;
-  padding: 0 8px;
+  flex-direction: column;
+  gap: var(--itda-space-20);
+}
+.fs__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8) var(--itda-space-20);
   color: var(--itda-muted);
-  font-size: 11px;
+  font-size: 12px;
+}
+.fs__legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--itda-space-8);
+}
+.fs__key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--itda-ink);
+  border-radius: 50%;
+  background: var(--itda-ink);
+}
+.fs__key--linked {
+  background: var(--itda-surface);
+}
+.fs__key--payoff {
+  border-radius: 2px;
+}
+.fs__key--open {
+  width: 20px;
+  height: 0;
+  border: 0;
+  border-top: 2px dashed var(--itda-muted);
+  border-radius: 0;
+  background: none;
+}
+/* 장 눈금: 모든 장에 짧은 눈금, 일정 간격마다 장 번호 */
+.fs__axis {
+  position: relative;
+  height: 32px;
+  margin: var(--itda-space-4) var(--itda-space-8) 0;
+  border-bottom: 1px solid var(--stroke);
+}
+.fs__axis > span {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--input-stroke);
+}
+.fs__axis > span.has-label {
+  height: 9px;
+  background: var(--itda-muted);
+}
+.fs__axis em {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  transform: translateX(-50%);
+  color: var(--itda-muted);
+  font-size: 12px;
+  font-style: normal;
+  white-space: nowrap;
+}
+.fs__axis > span:first-child em {
+  transform: none;
+}
+.fs__axis > span:last-child em {
+  transform: translateX(-100%);
 }
 .fs__tracks {
   list-style: none;
@@ -24,9 +95,9 @@
 .fs__track-toggle {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--itda-space-16);
   width: 100%;
-  padding: 24px 8px;
+  padding: var(--itda-space-24) var(--itda-space-8);
   background: transparent;
   border: 0;
   text-align: left;
@@ -37,22 +108,43 @@
 }
 .fs__track-heading {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8) var(--itda-space-12);
 }
 .fs__track-heading strong {
-  font-size: 21px;
+  font-size: 20px;
   line-height: 1.5;
   font-weight: 750;
   letter-spacing: -0.035em;
   overflow-wrap: anywhere;
 }
-.fs__track-heading > span {
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
+.fs__status {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  margin-left: auto;
+  padding: 0 var(--itda-space-12);
+  border-radius: var(--prolog-radius-8);
+  background: var(--itda-background);
   color: var(--itda-muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fs__status--resolved {
+  background: var(--prolog-color-success-soft);
+  color: var(--prolog-color-success);
+}
+.fs__status--orphaned {
+  background: var(--prolog-highlight-review);
+  color: var(--prolog-review-ink);
+}
+.fs__tracks > li.is-open {
+  background: var(--itda-background);
+}
+.fs__tracks > li.is-open .fs__track-toggle:hover {
+  background: transparent;
 }
 .fs__lane {
   display: block;
@@ -75,7 +167,7 @@
   border-top: 3px solid var(--itda-ink);
 }
 .fs__range.is-open {
-  border-top: 2px dashed #8b8f83;
+  border-top: 2px dashed var(--itda-muted);
 }
 .fs__dot {
   position: absolute;
@@ -104,19 +196,25 @@
 .fs__detail {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding: 8px 8px 28px;
+  gap: var(--itda-space-20);
+  padding: var(--itda-space-4) var(--itda-space-16) var(--itda-space-32);
 }
 .fs__description {
   max-width: 66ch;
   font-family: var(--font-sans);
-  font-size: 17px;
-  line-height: 2;
+  font-size: 16px;
+  line-height: 1.85;
+}
+.fs__stages {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--itda-space-12);
 }
 .fs__stages ol {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px 28px;
+  gap: var(--itda-space-12) var(--itda-space-32);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -125,10 +223,11 @@
   display: flex;
   flex-direction: column;
   align-items: start;
-  gap: 8px;
-  padding: 12px 0 12px 14px;
+  gap: var(--itda-space-8);
+  padding: var(--itda-space-12) 0 var(--itda-space-12) var(--itda-space-16);
   border-left: 2px solid var(--stroke);
-  min-width: 125px;
+  flex: 0 1 auto;
+  min-width: 120px;
 }
 .fs__stages li > span {
   font-size: 12px;
@@ -141,7 +240,43 @@
   display: flex;
   align-items: center;
 }
+.fs__advice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--itda-space-4);
+  max-width: 66ch;
+  padding: var(--itda-space-12) var(--itda-space-16);
+  border-left: 3px solid var(--prolog-color-warning);
+  background: var(--prolog-color-warning-soft);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.fs__advice strong {
+  color: var(--prolog-color-warning);
+}
+.fs__people-line {
+  font-size: 14px;
+}
+.fs__people-line span {
+  margin-right: var(--itda-space-8);
+  color: var(--itda-muted);
+  font-size: 12px;
+}
+.fs__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--itda-space-8);
+}
+/* 되돌리기·연결 빼기·삭제: 자주 쓰지 않아 작게, 누르면 한 번 더 묻는다 */
 .fs__manage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--itda-space-8) var(--itda-space-20);
+  padding-top: var(--itda-space-16);
+  border-top: 1px solid var(--stroke);
+}
+.fs__dialog-list {
   display: flex;
   align-items: start;
   flex-direction: column;
@@ -157,7 +292,7 @@
 .fs__person {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--itda-space-8);
 }
 @media (max-width: 600px) {
   .fs__track-heading {
@@ -169,7 +304,7 @@
     font-size: 20px;
   }
   .fs__track-toggle {
-    padding: 22px 8px;
+    padding: var(--itda-space-20) var(--itda-space-8);
   }
   .fs__stages ol {
     gap: 8px;
@@ -177,4 +312,11 @@
   .fs__description {
     font-size: 16px;
   }
+}
+.fs__person input {
+  margin: 0;
+  accent-color: var(--itda-ink);
+}
+.fs__person:has(input:checked) input {
+  accent-color: var(--itda-surface);
 }

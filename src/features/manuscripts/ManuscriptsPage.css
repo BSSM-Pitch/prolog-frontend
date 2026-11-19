@@ -47,7 +47,7 @@
 }
 .upload-drop__actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: var(--itda-space-12);
   width: 100%;
   margin-top: var(--itda-space-16);
@@ -124,6 +124,7 @@
 }
 .upload-item__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--itda-space-12);
   margin-top: 8px;
 }
@@ -133,8 +134,10 @@
 }
 .manuscripts__side-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: var(--itda-space-12);
 }
 
 .ms-card {
@@ -181,7 +184,7 @@
 }
 .ms-card__actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: var(--itda-space-12);
 }
 
