@@ -12,7 +12,7 @@ export const VOICE = {
     body: '원고와 인물, 세계관 설정을 한곳에 모아 두고 한 편을 끝까지 써요.',
   },
   problems: {
-    title: 'Prolog 없이 쓰던 날들',
+    title: 'Prolog 없이 쓰고 있다면',
     lead: '장이 쌓일수록 써 둔 내용을 다시 찾는 데 드는 시간도 길어져요.',
     items: [
       {
