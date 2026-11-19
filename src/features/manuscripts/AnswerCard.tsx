@@ -2,6 +2,7 @@ import type { Citation, QAMessage } from '../../api/types'
 import { Button } from '../../components/Button'
 import { LogoLoader } from '../../components/LogoLoader'
 import { RichText } from '../../components/RichText'
+import { LogoLoading } from '../../components/LogoLoader'
 
 interface AnswerCardProps {
   message: QAMessage | null

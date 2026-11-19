@@ -1,0 +1,17 @@
+.logo-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 40px 16px;
+  border-radius: 2px;
+  background: var(--itda-background);
+  text-align: center;
+}
+.logo-loading__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--itda-muted);
+}

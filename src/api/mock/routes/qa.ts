@@ -5,6 +5,9 @@ import type { MockDb, MockQAMessage, MockQAThread } from '../db'
 import { fail, isResponse, nextId, noContent, ok, stamp, str, type Body, type MockRequest, type Route } from '../http'
 
 const ANSWER_MS = 2500
+/** 디자인 확인용: VITE_MOCK_AI_HOLD=true 이면 답변이 끝나지 않고 대기(로딩) 상태로 머문다 */
+const HOLD = import.meta.env?.VITE_MOCK_AI_HOLD === 'true'
+const readyAt = () => (HOLD ? Number.MAX_SAFE_INTEGER : Date.now() + ANSWER_MS)
 
 /** 목업: 답변 생성 시간이 지난 메시지를 완료(또는 실패)로 바꾼다 */
 function settle(db: MockDb) {
@@ -67,7 +70,7 @@ function addExchange(db: MockDb, thread: MockQAThread, question: string) {
     content: null,
     status: 'pending',
     citations: [],
-    ready_at: Date.now() + ANSWER_MS,
+    ready_at: readyAt(),
     // 목업: 질문에 "[실패]"를 넣으면 답변 실패(Figma 36)를 흉내 낸다
     will_fail: question.includes('[실패]'),
     created_at: t,
@@ -197,7 +200,7 @@ export const qaRoutes: Route[] = [
       if (!m) return fail(404, 'QA_MESSAGE_NOT_FOUND', '메시지를 찾을 수 없어요.')
       if (m.status !== 'failed') return fail(409, 'INVALID_STATUS_TRANSITION', '실패한 답변만 다시 만들 수 있어요.')
       m.status = 'pending'
-      m.ready_at = Date.now() + ANSWER_MS
+      m.ready_at = readyAt()
       return ok(202, toMessage(m))
     },
   ],
