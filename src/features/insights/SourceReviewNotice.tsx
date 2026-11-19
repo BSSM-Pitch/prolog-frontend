@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Button } from '../../components/Button'
 import { Link } from 'react-router-dom'
 import type { SourceReview } from '../../api/types'
 import { request } from '../../api/client'
@@ -6,13 +7,17 @@ import { useSession } from '../../auth/session'
 import { describeError } from '../../lib/errors'
 import { projectPath } from '../app/currentProject'
 
-export function SourceReviewBadge({ review }: { review?: SourceReview | null }) {
+export function SourceReviewBadge({ review, compact = false }: { review?: SourceReview | null; compact?: boolean }) {
   if (!review || review.status === 'current') return null
-  return (
-    <span className="source-review__badge">
-      {review.status === 'changed' ? '원고 변경 · 재확인 필요' : '원문 확인 필요'}
-    </span>
-  )
+  const text = review.status === 'changed' ? '원고가 바뀜 · 확인 필요' : '원문 확인 필요'
+  // 좁은 자리(관계 그래프의 선 라벨)에서는 점만 보이고, 글은 화면 읽기 프로그램과 툴팁으로 전한다
+  if (compact)
+    return (
+      <span className="source-review__dot" title={text}>
+        <span className="visually-hidden">{text}</span>
+      </span>
+    )
+  return <span className="source-review__badge">{text}</span>
 }
 
 export function SourceReviewNotice({
@@ -57,16 +62,15 @@ export function SourceReviewNotice({
       <SourceReviewBadge review={review} />
       <p>
         {review.status === 'changed'
-          ? `확인 기준 원고에서 ${
+          ? `기록한 뒤 원고의 ${
               review.changed_chapters
                 .slice(0, 8)
                 .map((n) => `${n}장`)
                 .join(', ') +
               (review.changed_chapters.length > 8 ? ` 외 ${review.changed_chapters.length - 8}개 장` : '')
-            }이 바뀌었어요. 이 기록에 영향을 주는지 확인해 주세요.`
-          : '이전 기록에는 확인 기준 원고가 없어요. 현재 원문과 대조해 주세요.'}
+            }이 바뀌었어요. 이 기록이 아직 맞는지 확인해 주세요.`
+          : '어느 원고를 보고 남긴 기록인지 알 수 없어요. 지금 원고와 맞는지 확인해 주세요.'}
       </p>
-      <p>저장된 관계·회수 상태는 작가의 기록이며, 변경된 내용을 자동으로 재검증한 결과가 아니에요.</p>
       {review.manuscript_id && (
         <Link
           target="_blank"
@@ -78,11 +82,11 @@ export function SourceReviewNotice({
         </Link>
       )}
       {canEdit && review.revision_token && (
-        <button type="button" className="btn btn--outline" disabled={busy} onClick={() => void confirm()}>
-          {busy ? '확인 저장 중…' : '원문 확인 완료 · 기록 유지'}
-        </button>
+        <Button tone="outline" busy={busy} onClick={() => void confirm()}>
+          확인했어요, 기록은 그대로
+        </Button>
       )}
-      {error && <p role="alert">{error}</p>}
+      {error && <p className="notice notice--error" role="alert">{error}</p>}
     </aside>
   )
 }

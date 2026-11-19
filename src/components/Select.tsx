@@ -91,7 +91,9 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
     const r = trigger.current.getBoundingClientRect()
     const need = Math.min(options.length * 40 + 12, 320)
     const up = window.innerHeight - r.bottom < need + 16 && r.top > window.innerHeight - r.bottom
-    setBox({ left: r.left, top: up ? r.top - 6 : r.bottom + 6, width: r.width, up })
+    // 화면 오른쪽 밖으로 나가지 않게 왼쪽 위치를 당긴다 (긴 옵션이 있는 좁은 화면)
+    const left = Math.max(8, Math.min(r.left, window.innerWidth - Math.max(r.width, 160) - 8))
+    setBox({ left, top: up ? r.top - 6 : r.bottom + 6, width: r.width, up })
   }, [open, options.length])
 
   useEffect(() => {
@@ -115,9 +117,15 @@ export function Select({ value, onChange, children, className, disabled, onKeyDo
     }
   }, [open])
 
+  // scrollIntoView는 바깥 스크롤 영역(대화상자 등)까지 움직여 목록이 바로 닫히므로, 목록 안에서만 스크롤한다
   useEffect(() => {
-    if (open) list.current?.querySelector('[data-active="true"]')?.scrollIntoView({ block: 'nearest' })
-  }, [open, active])
+    const ul = list.current
+    const item = ul?.querySelector<HTMLElement>('[data-active="true"]')
+    if (!open || !ul || !item) return
+    if (item.offsetTop < ul.scrollTop) ul.scrollTop = item.offsetTop
+    else if (item.offsetTop + item.offsetHeight > ul.scrollTop + ul.clientHeight)
+      ul.scrollTop = item.offsetTop + item.offsetHeight - ul.clientHeight
+  }, [open, active, box])
 
   function onKey(e: KeyboardEvent<HTMLButtonElement>) {
     onKeyDown?.(e)

@@ -1,9 +1,7 @@
 import { SourceReviewBadge } from '../insights/SourceReviewNotice'
-import { useProjectImages } from '../../components/useProjectImages'
-import { Avatar } from '../../components/ProjectImages'
-import { useProject } from '../app/currentProject'
-import { useEffect, useRef, useState } from 'react'
-import type { relationshipView } from '../insights/insightModel'
+import { Avatar } from '../../components/Avatar'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { toneOf, type relationshipView } from '../insights/insightModel'
 
 type View = ReturnType<typeof relationshipView>
 
@@ -18,14 +16,12 @@ export function RelationshipGraph({
   onPerson: (id: string) => void
   onRelationship: (id: string) => void
 }) {
-  const project = useProject()
-  const images = useProjectImages(project?.project_id ?? '')
-  const portrait = (id?: string) =>
-    images.data?.find((image) => image.kind === 'portrait' && image.target_id === id)?.url
   const container = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(false)
-  useEffect(() => {
-    const observer = new ResizeObserver(([entry]) => setCompact(entry.contentRect.width < 560))
+  // 첫 화면부터 맞는 모양으로 그리도록 칠하기 전에 한 번 재고, 이후 크기 변화를 따라간다
+  useLayoutEffect(() => {
+    if (container.current) setCompact(container.current.clientWidth < 720)
+    const observer = new ResizeObserver(([entry]) => setCompact(entry.contentRect.width < 720))
     if (container.current) observer.observe(container.current)
     return () => observer.disconnect()
   }, [])
@@ -67,7 +63,7 @@ export function RelationshipGraph({
         className="relation-graph__person relation-graph__center"
         style={{ left: `${center.x}%`, top: center.y }}
       >
-        <Avatar name={view.center?.name ?? ''} src={portrait(view.center?.character_id)} />
+        <Avatar name={view.center?.name ?? ''} />
         <strong>{view.center?.name}</strong>
       </div>
       {view.rows.map((item, index) => {
@@ -79,21 +75,23 @@ export function RelationshipGraph({
               className="relation-graph__person"
               style={{ left: `${point.x}%`, top: point.y }}
               onClick={() => onPerson(item.person.character_id)}
-              aria-label={`${item.person.name} 중심으로 보기`}
+              aria-label={`${item.person.name} 가운데로 옮기기`}
+              title="가운데로 옮기기"
             >
-              <Avatar name={item.person.name} src={portrait(item.person.character_id)} />
+              <Avatar name={item.person.name} />
               <strong>{item.person.name}</strong>
             </button>
             <button
               type="button"
               className="relation-graph__edge"
+              data-tone={toneOf(item.snapshot.state)}
               style={{ left: `${point.labelX}%`, top: point.labelY }}
               aria-pressed={selectedId === item.relationship.relationship_id}
               aria-label={`${view.center?.name}, ${item.person.name}: ${item.snapshot.state} 관계 보기`}
               onClick={() => onRelationship(item.relationship.relationship_id)}
             >
               {item.snapshot.state}
-              <SourceReviewBadge review={item.snapshot.source_review} />
+              <SourceReviewBadge review={item.snapshot.source_review} compact />
             </button>
           </div>
         )

@@ -20,14 +20,16 @@ import { chapterPosition, foreshadowStages, pageOf, VIEW_LIMIT } from '../insigh
 import '../characters/characters.css'
 import './foreshadowings.css'
 import { Select } from '../../components/Select'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 
 type Panel = 'payoff' | 'link' | 'edit' | null
 const statusLabel = (item: Foreshadowing) =>
   item.status === 'orphaned'
-    ? '심은 장면 없음'
+    ? '심은 장 없음'
     : item.status === 'resolved'
-      ? `${item.payoff_chapter}장 회수`
-      : '미회수'
+      ? `${item.payoff_chapter}장에서 회수`
+      : '회수 전'
+type Confirm = { title: string; body: string; label: string; run: (token: string) => Promise<unknown>; after?: () => void }
 
 export function ForeshadowingsPage() {
   const project = useProject()
@@ -101,6 +103,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
   const [creating, setCreating] = useState(false)
   const [similar, setSimilar] = useState<SimilarCandidate[]>([])
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirm, setConfirm] = useState<Confirm | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   function set(patch: Record<string, string | null>) {
@@ -138,63 +141,101 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       return `${projectPath(projectId, `manuscripts/${latest.manuscript_id}`)}?chapter=${stage.chapter}`
     return null
   }
+  const statusChips: [string, string, number][] = [
+    ['unresolved', '회수 전', all.filter((item) => item.status === 'unresolved').length],
+    ['resolved', '회수함', all.filter((item) => item.status === 'resolved').length],
+    ['all', '전체', all.length],
+    ['orphaned', '심은 장 없음', all.filter((item) => item.status === 'orphaned').length],
+  ]
+  const people = [...new Set(all.flatMap((item) => item.linked_characters))]
+  const step = maxChapter <= 12 ? 1 : maxChapter <= 30 ? 5 : 10
+  const ticks = Array.from({ length: maxChapter }, (_, i) => i + 1)
+  // 마지막 장 번호와 겹치지 않게, 너무 가까운 중간 번호는 생략한다
+  const labeled = (n: number) =>
+    n === 1 || n === maxChapter || (n % step === 0 && (step === 1 || maxChapter - n > step / 2))
   return (
     <div className="fs insight-page">
       <header className="insight-header">
         <h1 className="page-title">복선</h1>
-        <label className="insight-field">
-          <span>원고</span>
-          <Select aria-label="복선을 기록할 원고" value={latest?.manuscript_id ?? ''}
-            disabled={!ready.length}
-            onChange={(event) => set({ manuscript: event.target.value, selected: null, page: null, status: null, unassigned: null, foreshadowings_review: null })}>
-            {ready.map((item) => <option key={item.manuscript_id} value={item.manuscript_id}>{item.title}</option>)}
-          </Select>
-        </label>
-        {canEdit && (
-          <Button
-            tone="outline"
-            disabled={!chapterNumbers.length || demoChapters.loading}
-            onClick={(event) => {
-              event.currentTarget.focus()
-              setCreating(true)
-            }}
-          >
-            복선 추가
-          </Button>
-        )}
-      </header>
-      <InsightNav projectId={projectId} />
-      {latest && <NarrativeReview key={latest.manuscript_id} projectId={projectId} manuscriptId={latest.manuscript_id} canEdit={canEdit} kind="foreshadowings" />}
-      {(manuscripts.error || demoChapters.error) && <p role="alert">{manuscripts.error || demoChapters.error}</p>}
-      {!manuscripts.loading && !latest && <Link to={projectPath(projectId, 'manuscripts')}>먼저 원고를 만들어 주세요.</Link>}
-      {IS_REAL && unassigned.length > 0 && <button className="text-link" onClick={() => set({ unassigned: params.get('unassigned') === 'true' ? null : 'true', selected: null, status: 'all' })}>
-        {params.get('unassigned') === 'true' ? '선택한 원고의 복선 보기' : `연결된 원고가 없는 복선 ${unassigned.length}개 보기`}
-      </button>}
-      <div className="fs__controls">
-        <label className="insight-field">
-          <span className="visually-hidden">복선 상태</span>
-          <Select value={status} onChange={(event) => set({ status: event.target.value, selected: null, page: null })}>
-            <option value="unresolved">미회수</option>
-            <option value="resolved">회수 완료</option>
-            <option value="all">전체 복선</option>
-            {all.some((item) => item.status === 'orphaned') && <option value="orphaned">심은 장면 없음</option>}
-          </Select>
-        </label>
-        {all.some((item) => item.linked_characters.length) && (
+        <div className="insight-actions">
           <label className="insight-field">
-            <span className="visually-hidden">복선에 연결된 인물</span>
-            <Select
-              value={character}
-              onChange={(event) => set({ character: event.target.value || null, selected: null, page: null })}
-            >
-              <option value="">모든 인물</option>
-              {[...new Set(all.flatMap((item) => item.linked_characters))].map((name) => (
-                <option key={name}>{name}</option>
-              ))}
+            <span>원고</span>
+            <Select aria-label="복선을 기록할 원고" value={latest?.manuscript_id ?? ''}
+              disabled={!ready.length}
+              onChange={(event) => set({ manuscript: event.target.value, selected: null, page: null, status: null, unassigned: null, foreshadowings_review: null })}>
+              {ready.map((item) => <option key={item.manuscript_id} value={item.manuscript_id}>{item.title}</option>)}
             </Select>
           </label>
-        )}
-      </div>
+          {canEdit && (
+            <Button
+              disabled={!chapterNumbers.length || demoChapters.loading}
+              onClick={(event) => {
+                event.currentTarget.focus()
+                setCreating(true)
+              }}
+            >
+              복선 추가
+            </Button>
+          )}
+        </div>
+      </header>
+      <InsightNav projectId={projectId} />
+      {(manuscripts.error || demoChapters.error) && (
+        <p className="notice notice--error" role="alert">
+          {manuscripts.error || demoChapters.error}
+        </p>
+      )}
+      {!manuscripts.loading && !latest && (
+        <div className="insight-state">
+          <h2>원고가 아직 없어요.</h2>
+          <p>원고를 올리면 장마다 복선을 심고 회수한 곳을 기록할 수 있어요.</p>
+          <Link className="btn btn--primary" to={projectPath(projectId, 'manuscripts')}>
+            원고 만들기
+          </Link>
+        </div>
+      )}
+      {all.length > 0 && (
+        <div className="fs__controls">
+          <div className="ai-chips" role="group" aria-label="복선 상태">
+            {statusChips
+              .filter(([value, , count]) => value !== 'orphaned' || count > 0)
+              .map(([value, label, count]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className="filter-chip"
+                  aria-pressed={status === value}
+                  onClick={() => set({ status: value, selected: null, page: null })}
+                >
+                  {label} <span className="filter-chip__count">{count}</span>
+                </button>
+              ))}
+          </div>
+          {people.length > 0 && (
+            <label className="insight-field">
+              <span>인물</span>
+              <Select
+                value={character}
+                onChange={(event) => set({ character: event.target.value || null, selected: null, page: null })}
+              >
+                <option value="">모든 인물</option>
+                {people.map((name) => (
+                  <option key={name}>{name}</option>
+                ))}
+              </Select>
+            </label>
+          )}
+          {IS_REAL && unassigned.length > 0 && (
+            <button
+              type="button"
+              className="text-link fs__unassigned"
+              onClick={() => set({ unassigned: params.get('unassigned') === 'true' ? null : 'true', selected: null, status: 'all' })}
+            >
+              {params.get('unassigned') === 'true' ? '이 원고의 복선으로 돌아가기' : `원고가 정해지지 않은 복선 ${unassigned.length}개`}
+            </button>
+          )}
+        </div>
+      )}
       {list.loading && !list.data && (
         <p className="insight-state" role="status">
           복선을 불러오고 있어요.
@@ -208,34 +249,47 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
           </Button>
         </div>
       )}
-      {!list.loading && !list.error && !rows.length && (
+      {latest && !list.loading && !list.error && !rows.length && (
         <div className="insight-state">
-          <h2>{all.length ? '조건에 맞는 복선이 없어요.' : '직접 기록한 복선은 아직 없어요.'}</h2>
+          <h2>{all.length ? '이 조건에 맞는 복선이 없어요.' : '기록한 복선이 아직 없어요.'}</h2>
           {all.length ? (
-            <button
-              type="button"
-              className="text-link"
-              onClick={() => set({ status: 'all', character: null, selected: null })}
-            >
+            <Button tone="outline" onClick={() => set({ status: 'all', character: null, selected: null })}>
               전체 복선 보기
-            </button>
+            </Button>
           ) : (
-            <p>자동으로 찾은 후보는 위 검토에서 볼 수 있어요. 따로 관리할 복선을 여기에 기록해 두세요.</p>
+            <>
+              <p>복선을 심은 장을 적어 두면, 회수하기 전까지 얼마나 이어지는지 한눈에 볼 수 있어요.</p>
+              {canEdit && chapterNumbers.length > 0 && (
+                <Button onClick={() => setCreating(true)}>복선 추가</Button>
+              )}
+            </>
           )}
         </div>
       )}
       {rows.length > 0 && (
-        <>
-          <div className="fs__axis" aria-hidden="true">
-            <span>1장</span>
-            {maxChapter > 2 && <span>{Math.ceil(maxChapter / 2)}장</span>}
-            {maxChapter > 1 && <span>{maxChapter}장</span>}
+        <section className="fs__board" aria-label="복선 타임라인">
+          <div className="fs__legend" aria-hidden="true">
+            <span><i className="fs__key fs__key--setup" />심은 장</span>
+            <span><i className="fs__key fs__key--linked" />다시 나온 장</span>
+            <span><i className="fs__key fs__key--payoff" />회수한 장</span>
+            <span><i className="fs__key fs__key--open" />아직 회수 전</span>
           </div>
-          <ol className="fs__tracks" aria-label="복선 타임라인">
+          <div className="fs__axis" aria-hidden="true">
+            {ticks.map((n) => (
+              <span
+                key={n}
+                className={labeled(n) ? 'has-label' : undefined}
+                style={{ left: `${chapterPosition(n, maxChapter)}%` }}
+              >
+                {labeled(n) && <em>{n}장</em>}
+              </span>
+            ))}
+          </div>
+          <ol className="fs__tracks">
             {page.rows.map((item) => {
               const open = selected?.foreshadowing_id === item.foreshadowing_id
               return (
-                <li key={item.foreshadowing_id}>
+                <li key={item.foreshadowing_id} className={open ? 'is-open' : undefined}>
                   <h2>
                     <button
                       type="button"
@@ -246,11 +300,12 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                     >
                       <span className="fs__track-heading">
                         <strong>{item.title}</strong>
-                        <span>{statusLabel(item)}</span><SourceReviewBadge review={item.source_review} />
+                        <span className={`fs__status fs__status--${item.status}`}>{statusLabel(item)}</span>
+                        <SourceReviewBadge review={item.source_review} />
                       </span>
-                      <TrackLane item={item} max={maxChapter} current={current} expanded={open} />
+                      <TrackLane item={item} max={maxChapter} current={current} />
                       <span className="visually-hidden">
-                        {item.setup_chapter > 0 ? `${item.setup_chapter}장에 심은 복선` : '심은 장면이 없는 복선'}
+                        {item.setup_chapter > 0 ? `${item.setup_chapter}장에 심은 복선` : '심은 장이 없는 복선'}
                       </span>
                     </button>
                   </h2>
@@ -260,6 +315,16 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                         <SourceReviewNotice review={item.source_review} projectId={projectId} canEdit={canEdit}
                           endpoint={`/projects/${projectId}/foreshadowings/${item.foreshadowing_id}/source-confirmation`}
                           onSaved={refreshRecords} />
+                        {advice && (
+                          <div className="fs__advice" role="note">
+                            <strong>
+                              {current - (advice.latest_linked_chapter ?? advice.setup_chapter) > 0
+                                ? `${(advice.latest_linked_chapter ?? advice.setup_chapter)}장 뒤로 ${current - (advice.latest_linked_chapter ?? advice.setup_chapter)}개 장 동안 다시 나오지 않았어요.`
+                                : '아직 회수하지 않았어요.'}
+                            </strong>
+                            <RichText>{advice.message}</RichText>
+                          </div>
+                        )}
                         {item.description && <p className="fs__description">{item.description}</p>}
                         <StageList
                           key={item.foreshadowing_id}
@@ -267,16 +332,12 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                           sourceLink={(stage) => sourceLink(item, stage)}
                         />
                         {item.linked_characters.length > 0 && (
-                          <p className="insight-caption">{item.linked_characters.join(', ')}</p>
-                        )}
-                        {advice && (
-                          <details className="insight-disclosure">
-                            <summary>미회수 안내</summary>
-                            <RichText className="page-desc">{advice.message}</RichText>
-                          </details>
+                          <p className="fs__people-line">
+                            <span>함께 엮인 인물</span> {item.linked_characters.join(', ')}
+                          </p>
                         )}
                         {error && (
-                          <p className="insight-note" role="alert">
+                          <p className="notice notice--error" role="alert">
                             {error}
                           </p>
                         )}
@@ -284,7 +345,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                           <ChapterForm
                             key={`${item.foreshadowing_id}:payoff`}
                             label="회수한 장"
-                            hint="같은 원고에서 복선을 심은 장 또는 그 뒤의 장을 골라 주세요."
+                            hint="복선을 심은 장이나 그 뒤의 장 중에서 골라 주세요."
                             chapters={eligibleChapters(chapterNumbers, item.setup_chapter)}
                             initial={current}
                             busy={busy}
@@ -301,7 +362,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                         {panel === 'link' && (
                           <ChapterForm
                             key={`${item.foreshadowing_id}:link`}
-                            label="이어진 장"
+                            label="다시 나온 장"
                             hint="이 복선이 다시 등장한 장을 골라 주세요."
                             chapters={eligibleChapters(chapterNumbers, item.setup_chapter, Infinity, [item.setup_chapter, ...item.linked_chapters, ...(item.payoff_chapter === null ? [] : [item.payoff_chapter])])}
                             initial={current}
@@ -310,7 +371,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                             onSubmit={(chapter) =>
                               act((token) => api.addLinkedChapter(token, projectId, item.foreshadowing_id, chapter))
                             }
-                            submitLabel="장 연결"
+                            submitLabel="장 추가"
                           />
                         )}
                         {panel === 'edit' && (
@@ -327,57 +388,61 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
                           />
                         )}
                         {canEdit && panel === null && (
-                          <div className="insight-actions">
-                            {item.status === 'unresolved' && (
-                              <Button tone="outline" onClick={() => setPanel('payoff')}>
-                                회수한 장 지정
+                          <>
+                            <div className="fs__actions">
+                              {item.status === 'unresolved' && (
+                                <Button onClick={() => setPanel('payoff')}>회수한 장 지정</Button>
+                              )}
+                              <Button tone="outline" onClick={() => setPanel('link')}>
+                                다시 나온 장 추가
                               </Button>
-                            )}
-                            <button type="button" className="text-link" onClick={() => setPanel('link')}>
-                              장 연결
-                            </button>
-                            <button type="button" className="text-link" onClick={() => setPanel('edit')}>
-                              수정
-                            </button>
-                            <details className="insight-disclosure">
-                              <summary>관리</summary>
-                              <div className="fs__manage">
-                                {item.status === 'resolved' && (
-                                  <button
-                                    type="button"
-                                    className="text-link"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      act(
-                                        (token) => api.cancelPayoff(token, projectId, item.foreshadowing_id),
-                                        () => set({ status: 'unresolved' }),
-                                      )
-                                    }
-                                  >
-                                    회수 취소
-                                  </button>
-                                )}
-                                {[...new Set(item.linked_chapters)].map((chapter) => (
-                                  <button
-                                    key={chapter}
-                                    type="button"
-                                    className="text-link"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      act((token) =>
-                                        api.removeLinkedChapter(token, projectId, item.foreshadowing_id, chapter),
-                                      )
-                                    }
-                                  >
-                                    {chapter}장 연결 해제
-                                  </button>
-                                ))}
-                                <button type="button" className="text-link" onClick={() => setConfirmDelete(true)}>
-                                  복선 삭제
+                              <Button tone="outline" onClick={() => setPanel('edit')}>
+                                고치기
+                              </Button>
+                            </div>
+                            <div className="fs__manage">
+                              {item.status === 'resolved' && (
+                                <button
+                                  type="button"
+                                  className="text-link text-link--quiet"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setConfirm({
+                                      title: '회수 표시를 취소할까요?',
+                                      body: `${item.payoff_chapter}장 회수 기록이 지워지고 '회수 전'으로 돌아가요.`,
+                                      label: '회수 취소',
+                                      run: (token) => api.cancelPayoff(token, projectId, item.foreshadowing_id),
+                                      after: () => set({ status: 'unresolved' }),
+                                    })
+                                  }
+                                >
+                                  회수 취소
                                 </button>
-                              </div>
-                            </details>
-                          </div>
+                              )}
+                              {[...new Set(item.linked_chapters)].map((chapter) => (
+                                <button
+                                  key={chapter}
+                                  type="button"
+                                  className="text-link text-link--quiet"
+                                  disabled={busy}
+                                  onClick={() =>
+                                    setConfirm({
+                                      title: `${chapter}장 연결을 뺄까요?`,
+                                      body: `'${item.title}'이(가) ${chapter}장에 다시 나온다는 기록이 지워져요. 원고 본문은 그대로예요.`,
+                                      label: '연결 빼기',
+                                      run: (token) =>
+                                        api.removeLinkedChapter(token, projectId, item.foreshadowing_id, chapter),
+                                    })
+                                  }
+                                >
+                                  {chapter}장 연결 빼기
+                                </button>
+                              ))}
+                              <button type="button" className="text-link text-link--quiet text-link--danger" onClick={() => setConfirmDelete(true)}>
+                                복선 삭제
+                              </button>
+                            </div>
+                          </>
                         )}
                       </div>
                     )}
@@ -407,9 +472,22 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
               </Button>
             </nav>
           )}
-        </>
+        </section>
       )}
-      <p className="insight-caption">저장한 복선 기준 · 점선은 아직 회수하지 않은 구간이에요.</p>
+      {latest && <NarrativeReview key={latest.manuscript_id} projectId={projectId} manuscriptId={latest.manuscript_id} canEdit={canEdit} kind="foreshadowings" />}
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          body={confirm.body}
+          confirmLabel={confirm.label}
+          busy={busy}
+          onCancel={() => setConfirm(null)}
+          onConfirm={() => {
+            setConfirm(null)
+            act(confirm.run, confirm.after)
+          }}
+        />
+      )}
       {creating && (
         <CreateDialog
           chapters={chapterNumbers}
@@ -428,7 +506,7 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
       {similar.length > 0 && (
         <InsightDialog title="비슷한 복선이 있어요" onClose={() => setSimilar([])}>
           <p className="page-desc">새 복선은 저장했어요. 기존 복선도 살펴보세요.</p>
-          <div className="fs__manage">
+          <div className="fs__dialog-list">
             {similar.map((item) => (
               <button
                 type="button"
@@ -443,16 +521,18 @@ function Foreshadowings({ projectId, canEdit }: { projectId: string; canEdit: bo
               </button>
             ))}
           </div>
-          <Button tone="outline" onClick={() => setSimilar([])}>
-            닫기
-          </Button>
+          <div className="dialog__actions">
+            <Button tone="outline" onClick={() => setSimilar([])}>
+              닫기
+            </Button>
+          </div>
         </InsightDialog>
       )}
       {confirmDelete && selected && (
         <InsightDialog title="복선을 삭제할까요?" busy={busy} onClose={() => setConfirmDelete(false)}>
           <p>‘{selected.title}’의 기록이 사라져요. 원고 본문은 남아요.</p>
-          {error && <p role="alert">{error}</p>}
-          <div className="insight-actions">
+          {error && <p className="notice notice--error" role="alert">{error}</p>}
+          <div className="dialog__actions">
             <Button tone="outline" disabled={busy} autoFocus onClick={() => setConfirmDelete(false)}>
               취소
             </Button>
@@ -482,15 +562,13 @@ function TrackLane({
   item,
   max,
   current,
-  expanded,
 }: {
   item: Foreshadowing
   max: number
   current: number
-  expanded: boolean
 }) {
   if (item.status === 'orphaned' || item.setup_chapter < 1)
-    return <span className="fs__missing">심은 장면을 다시 지정해 주세요.</span>
+    return <span className="fs__missing">심은 장이 지워졌어요. 고치기에서 다시 골라 주세요.</span>
   const start = chapterPosition(item.setup_chapter, max)
   const end = chapterPosition(
     item.payoff_chapter ?? Math.max(item.setup_chapter, current, ...item.linked_chapters),
@@ -503,8 +581,7 @@ function TrackLane({
         style={{ left: `${start}%`, width: `${Math.max(0, end - start)}%` }}
       />
       <span className="fs__dot" style={{ left: `${start}%` }} />
-      {expanded &&
-        [...new Set(item.linked_chapters)]
+      {[...new Set(item.linked_chapters)]
           .filter((chapter) => chapter > 0)
           .map((chapter) => (
             <span
@@ -588,7 +665,7 @@ function ChapterForm({
           {chapters.map((no) => <option key={no} value={no}>{no}장</option>)}
         </Select>
         <span className="panel__label">{hint}</span>
-        {!chapters.length && <span role="status">연결할 수 있는 장이 없어요.</span>}
+        {!chapters.length && <span className="panel__label" role="status">연결할 수 있는 장이 없어요.</span>}
       </label>
       <div className="actions-row">
         <Button tone="outline" onClick={onCancel}>
@@ -785,7 +862,7 @@ function FsFields({
         <fieldset className="fs__people">
           <legend className="field__label">관련 인물</legend>
           {characters.map((c) => (
-            <label key={c} className="chip fs__person">
+            <label key={c} className="filter-chip fs__person">
               <input
                 type="checkbox"
                 checked={people.includes(c)}

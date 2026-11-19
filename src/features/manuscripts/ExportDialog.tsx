@@ -4,6 +4,7 @@ import { fileRequest, downloadFile } from '../../api/files'
 import { useSession } from '../../auth/session'
 import { describeError } from '../../lib/errors'
 import { InsightDialog } from '../insights/InsightDialog'
+import { Select } from '../../components/Select'
 import '../insights/insights.css'
 import '../world/narrativeBrowse.css'
 export function ExportDialog({
@@ -67,19 +68,19 @@ export function ExportDialog({
       <form className="writer-form" onSubmit={submit}>
         <label>
           파일 형식
-          <select aria-label="파일 형식" value={format} onChange={(e) => setFormat(e.target.value)}>
+          <Select aria-label="파일 형식" value={format} onChange={(e) => setFormat(e.target.value)}>
             <option value="pdf">PDF · 읽기와 공유</option>
             <option value="docx">DOCX · 문서 편집</option>
             <option value="txt">TXT · 텍스트 원문</option>
-          </select>
+          </Select>
         </label>
         <label>
           내보낼 범위
-          <select aria-label="내보낼 범위" value={scope} onChange={(e) => setScope(e.target.value)}>
+          <Select aria-label="내보낼 범위" value={scope} onChange={(e) => setScope(e.target.value)}>
             <option value="all">전체 원고</option>
             {current && <option value="current">현재 {current}장</option>}
             {ordered.length > 1 && <option value="range">장 범위 선택</option>}
-          </select>
+          </Select>
         </label>
         {scope === 'range' && (
           <>
@@ -91,21 +92,21 @@ export function ExportDialog({
             ).map(([label, value, setter]) => (
               <label key={label}>
                 {label}
-                <select aria-label={label} value={value} onChange={(e) => setter(Number(e.target.value))}>
+                <Select aria-label={label} value={value} onChange={(e) => setter(Number(e.target.value))}>
                   {ordered.map((c) => (
                     <option key={c.chapter_id} value={c.chapter_no}>
                       {c.chapter_no}장 {c.title}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             ))}
-            {start > end && <p role="alert">마지막 장은 시작 장보다 앞설 수 없어요.</p>}
+            {start > end && <p className="notice notice--error" role="alert">마지막 장은 시작 장보다 앞설 수 없어요.</p>}
           </>
         )}
-        {error && <p role="alert">{error}</p>}
-        {busy && <p role="status">파일을 만들고 있어요. 긴 원고는 잠시 시간이 걸릴 수 있어요.</p>}
-        <div className="writer-actions">
+        {error && <p className="notice notice--error" role="alert">{error}</p>}
+        {busy && <p className="panel__label" role="status">파일을 만들고 있어요. 긴 원고는 잠시 시간이 걸릴 수 있어요.</p>}
+        <div className="dialog__actions">
           <button className="btn btn--outline" type="button" disabled={busy} onClick={onClose}>
             취소
           </button>
