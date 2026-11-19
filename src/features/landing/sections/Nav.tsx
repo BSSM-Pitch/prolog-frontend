@@ -1,4 +1,4 @@
-import { Fragment, useState } from 'react'
+import { useState } from 'react'
 import { useMotionValueEvent, useScroll } from 'motion/react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../../auth/session'
@@ -22,18 +22,6 @@ export function Nav() {
         <Logo />
         <span>prolog</span>
       </a>
-      <nav className="nav__links" aria-label="주요 메뉴">
-        {VOICE.navigation.map((l) => (
-          <Fragment key={l.href}>
-            {l.href === '#start' && (
-              <a href={VOICE.feedback.href} target="_blank" rel="noopener noreferrer">
-                {VOICE.feedback.label}
-              </a>
-            )}
-            <a href={l.href}>{l.label}</a>
-          </Fragment>
-        ))}
-      </nav>
       <div className="nav__auth">
         {signedIn ? (
           <Link to="/projects" className="lbtn lbtn--ink lbtn--sm">

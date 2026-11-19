@@ -2,11 +2,6 @@
 export const VOICE = {
   title: 'Prolog — 당신의 다음 문장을 위해',
   description: '장편을 쓰는 작가를 위한 집필 공간. 원고와 인물, 세계관 설정을 한곳에 두고 앞뒤가 어긋난 대목을 원문과 함께 짚어 줘요.',
-  navigation: [
-    { href: '#problem', label: '쓰던 날들' },
-    { href: '#features', label: '도구' },
-    { href: '#start', label: '시작하기' },
-  ],
   feedback: {
     href: 'https://docs.google.com/forms/d/e/1FAIpQLSfU0aukDyGDuRgnSkgvZ7CVXtOc9Hoe_-JTEWbL9j4IbRc-1Q/viewform?usp=publish-editor',
     label: '의견 보내기',
