@@ -93,9 +93,9 @@ export async function listTeamInvitations(accessToken: string, teamId: string): 
   return rows.map((i): TeamInvitation => ({ ...i, token: i.token ?? tokens.get(i.invitation_id) }))
 }
 
-/** 4.9 초대 수락 — 초대 링크의 token이 필요하다 */
+/** 4.9 초대 수락 — 링크로 받은 초대는 token을, 알림·받은 초대 목록에서는 token 없이 보낸다 */
 export function acceptTeamInvitation(accessToken: string, teamId: string, invitationId: string, token = '') {
-  return request<TeamMember>('POST', `${base(teamId)}/invitations/${invitationId}/accept`, { body: { token }, accessToken })
+  return request<TeamMember>('POST', `${base(teamId)}/invitations/${invitationId}/accept`, { body: token ? { token } : {}, accessToken })
 }
 
 /** 4.10 초대 취소 */
