@@ -10,6 +10,12 @@
   --prolog-color-interaction: #343a32;
   --prolog-color-error: #b42318;
   --prolog-color-success: #26734d;
+  --prolog-color-warning: #b54708;
+  --prolog-color-warning-soft: #fdf1e7;
+  --prolog-color-success-soft: #e3f3ea;
+  --itda-ink-soft: #4d4d48;
+  --itda-disabled: #a9a9a2;
+  --prolog-shadow-menu: 0 12px 32px rgb(23 23 23 / 0.1);
 
   --itda-space-4: 4px;
   --itda-space-8: 8px;

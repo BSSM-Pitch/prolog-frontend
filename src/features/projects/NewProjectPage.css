@@ -101,6 +101,7 @@
 }
 .dropzone__actions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--itda-space-12);
 }
 

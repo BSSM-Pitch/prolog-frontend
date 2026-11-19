@@ -48,6 +48,7 @@
 }
 .noti__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--itda-space-12);
 }
@@ -96,6 +97,7 @@
 
 .noti__channel {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--itda-space-16);
@@ -146,5 +148,15 @@
 @media (max-width: 1100px) {
   .noti__side {
     max-width: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .noti__table th,
+  .noti__table td {
+    padding-inline: var(--itda-space-8);
+  }
+  .noti__table tbody th {
+    overflow-wrap: anywhere;
   }
 }

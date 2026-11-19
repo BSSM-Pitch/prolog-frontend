@@ -327,3 +327,10 @@
     padding-top: 16px;
   }
 }
+
+@media (max-width: 760px) {
+  /* 모바일 메뉴에서는 아래 계정 줄과 겹치지 않게 음수 여백을 없앤다 */
+  .sidebar__item--feedback {
+    margin-bottom: 0;
+  }
+}
