@@ -1,4 +1,4 @@
-import { LogoLoading } from '../../../components/LogoLoader'
+import { LogoLoader } from '../../../components/LogoLoader'
 import { Stepper } from '../../characters/shared'
 import { AppScreen, Caret } from './AppWindow'
 import { typed, typingTime } from './clock'
@@ -75,14 +75,13 @@ export function CharacterDemo({ t }: { t: number }) {
           <section className="panel">
             <h2 className="panel__title">{t >= RESULT ? '추출 미리보기 / 4개 카테고리' : '추출 미리보기'}</h2>
             {t < RESULT ? (
-              extracting ? (
-                <LogoLoading />
-              ) : (
-                <div className="state-block">
-                  <p className="answer__title">문장을 입력하고 추출 미리보기를 눌러 보세요</p>
-                  <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 원문 근거와 함께 나눠 드려요.</p>
-                </div>
-              )
+              <div className="state-block">
+                {extracting && <LogoLoader className="answer__loader" />}
+                <p className="answer__title">
+                  {extracting ? '문장에서 인물 속성을 나누고 있어요' : '문장을 입력하고 추출 미리보기를 눌러 보세요'}
+                </p>
+                <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 원문 근거와 함께 나눠 드려요.</p>
+              </div>
             ) : (
               <>
                 {EXTRACTED.map((item, i) =>

@@ -6,7 +6,7 @@ import type { Conflict } from '../../api/types'
 import * as api from '../../api/world'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
-import { LogoLoading } from '../../components/LogoLoader'
+import { LogoLoader } from '../../components/LogoLoader'
 import { describeError } from '../../lib/errors'
 import { useJob } from '../../lib/useJob'
 import { useResource } from '../../lib/useResource'
@@ -220,7 +220,17 @@ function ConflictReview() {
         }}>{ready.map((m) => <option key={m.manuscript_id} value={m.manuscript_id}>{m.title}</option>)}</Select>
       </label>}
 
-      {check.running && <LogoLoading />}
+      {check.running && (
+        <div className="state-block" role="status">
+          <LogoLoader className="answer__loader" />
+          <p className="answer__title">설정 충돌을 검토하고 있어요</p>
+          <p className="answer__body">
+            {job?.status === 'analyzing'
+              ? '원고 전체에서 설정·인물 관계·복선의 변화와 충돌을 대조하고 있어요.'
+              : '모든 장의 원문을 준비하고 있어요. 저장된 규칙이 없어도 검사할 수 있어요.'}
+          </p>
+        </div>
+      )}
       <RuleReviewSummary job={job} projectId={projectId} />
       {job?.status === 'failed' && (
         <div className="state-block state-block--error" role="alert">
