@@ -1,3 +1,4 @@
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -223,7 +224,7 @@ function ConflictReview() {
       {check.running && (
         <div className="state-block" role="status">
           <LogoLoader className="answer__loader" />
-          <p className="answer__title">설정 충돌을 검토하고 있어요</p>
+          <p className="answer__title">설정 충돌을 검토하고 있어요</p><AnalysisProgress label="설정·복선 검토 중" />
           <p className="answer__body">
             {job?.status === 'analyzing'
               ? '원고 전체에서 설정·인물 관계·복선의 변화와 충돌을 대조하고 있어요.'

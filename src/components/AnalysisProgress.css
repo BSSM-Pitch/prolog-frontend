@@ -1,0 +1,10 @@
+.analysis-progress { display: grid; gap: 7px; width: 100%; min-width: 160px; margin: 12px 0; }
+.analysis-progress progress { display: block; width: 100%; height: 7px; border: 0; border-radius: 12px; overflow: hidden; accent-color: var(--color-primary, #7758a6); }
+.analysis-progress progress::-webkit-progress-bar { background: #e9e4ef; border-radius: 12px; }
+.analysis-progress progress::-webkit-progress-value { background: #7758a6; border-radius: 12px; transition: width .3s; }
+.analysis-progress progress:indeterminate { background: linear-gradient(90deg, #e9e4ef, #a58bbd, #e9e4ef); background-size: 200% 100%; animation: analysis-wait 1.8s ease-in-out infinite; }
+.analysis-progress progress:indeterminate::-webkit-progress-bar { background: transparent; }
+.analysis-progress span { font-size: 12px; color: var(--color-text-secondary, #706877); }
+.answer__pending-text { min-width: 0; flex: 1; }
+@keyframes analysis-wait { 0%, 100% { background-position: 100% 0; } 50% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .analysis-progress progress { animation: none; transition: none; } }

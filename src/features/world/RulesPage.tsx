@@ -1,3 +1,4 @@
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
 import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -158,7 +159,7 @@ export function RulesPage() {
           {running && (
             <div className="state-block" role="status">
               <LogoLoader className="answer__loader" />
-              <p className="answer__title">설정 규칙을 찾고 있어요</p>
+              <p className="answer__title">설정 규칙을 찾고 있어요</p><AnalysisProgress label="세계관 규칙 분석 중" />
               <p className="answer__body">세계관 규칙으로 볼 만한 문장을 원고에서 모으는 중이에요.</p>
             </div>
           )}

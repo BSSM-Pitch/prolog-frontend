@@ -2,7 +2,7 @@ import type { Citation, QAMessage } from '../../api/types'
 import { Button } from '../../components/Button'
 import { LogoLoader } from '../../components/LogoLoader'
 import { RichText } from '../../components/RichText'
-import { LogoLoading } from '../../components/LogoLoader'
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 
 interface AnswerCardProps {
   message: QAMessage | null
@@ -21,7 +21,9 @@ export function AnswerCard({ message, error, onRetry, onOpenCitation, onEditQues
       <div className="answer answer--pending" role="status">
         <LogoLoader className="answer__loader" height={48} />
         <div className="answer__pending-text">
-          <p className="answer__title">ai 답변 생성중입니다.</p>
+          <p className="answer__title">{message.progress_stage === 'drafting' ? '원고와 설정에서 근거를 찾고 있어요' : message.progress_stage === 'reviewing' ? '답변의 근거를 다시 검토하고 있어요' : message.progress_stage === 'writing' ? '검토한 답변을 작성하고 있어요' : '답변을 준비하고 있어요'}</p>
+          <AnalysisProgress label="답변 생성 진행 중" />
+          {message.preview_content && <><RichText className="answer__text">{message.preview_content}</RichText><small>작성 중인 답변입니다. 완료되면 최종 답변과 근거가 표시됩니다.</small></>}
           <p className="answer__body">다른 화면으로 이동해도 유지됩니다.</p>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
 import {
   Fragment,
@@ -320,6 +321,7 @@ export function ReviewedManuscript(props: Props) {
           </button>
         )}
       </div>
+      {checking && <AnalysisProgress label="전체 원고의 설정·복선 검토 중" />}
       {(error || message) && (
         <p className="manuscript-review__notice" role="status">
           {error ?? message}

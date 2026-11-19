@@ -1,3 +1,4 @@
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -200,9 +201,10 @@ function StoryFlow({
       </div>
 
       {analysis.running && !analysis.pollError && (
-        <p className="story__status" role="status">
+        <div className="story__status" role="status">
           이야기의 흐름을 읽고 있어요. 원고를 쓰며 기다려도 좋아요.
-        </p>
+          <AnalysisProgress label="이야기 흐름 분석 중" />
+        </div>
       )}
       {analysis.pollError && (
         <div className="story__status" role="alert">

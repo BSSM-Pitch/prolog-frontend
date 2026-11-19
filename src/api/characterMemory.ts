@@ -4,6 +4,8 @@ export interface MemoryJob {
   analysis_id: string
   status: 'queued' | 'running' | 'completed' | 'failed'
   progress: {
+    base_completed?: number
+    base_total?: number
     processed_scenes: number
     total_scenes: number
     observations: number
