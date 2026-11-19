@@ -4,9 +4,9 @@ export const CODE_RULE = /^\d{6}$/
 
 export function validateUsername(v: string): string | null {
   const s = v.trim()
-  if (!s) return '아이디를 입력해 주세요.'
-  if (s.length < 2 || s.length > 30) return '아이디는 2~30자로 정해 주세요.'
-  if (/\s/.test(s)) return '아이디에는 공백을 넣을 수 없어요.'
+  if (!s) return '닉네임을 입력해 주세요.'
+  if (s.length < 2 || s.length > 30) return '닉네임은 2~30자로 정해 주세요.'
+  if (/\s/.test(s)) return '닉네임에는 공백을 넣을 수 없어요.'
   return null
 }
 

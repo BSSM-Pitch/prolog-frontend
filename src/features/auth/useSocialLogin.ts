@@ -40,7 +40,7 @@ export function useSocialLogin() {
       return
     }
     update({ provider, signupTicket: res.signup_ticket, email: res.email ?? '', username: '', password: '' })
-    navigate('/auth/signup', { replace: true, state: { notice: `${PROVIDER_NAMES[provider]} 계정을 확인했어요. 사용할 아이디를 정하면 가입이 끝나요.` } })
+    navigate('/auth/signup', { replace: true, state: { notice: `${PROVIDER_NAMES[provider]} 계정을 확인했어요. 사용할 닉네임을 정하면 가입이 끝나요.` } })
   }
 
   /** real 모드는 인가 화면으로 떠난다. 실패하면 ApiError를 던진다 */
