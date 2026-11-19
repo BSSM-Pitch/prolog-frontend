@@ -1,6 +1,6 @@
 import type { OAuthProvider } from '../api/types'
 import googleLogo from '../assets/social/google.png'
-import naverLogo from '../assets/social/naver.png'
+import kakaoLogo from '../assets/social/kakao.png'
 import './ui.css'
 
 interface SocialButtonsProps {
@@ -11,7 +11,7 @@ interface SocialButtonsProps {
 
 const PROVIDERS: Array<{ id: OAuthProvider; logo: string; name: string }> = [
   { id: 'google', logo: googleLogo, name: 'Google' },
-  { id: 'naver', logo: naverLogo, name: '네이버' },
+  { id: 'kakao', logo: kakaoLogo, name: '카카오' },
 ]
 
 export function SocialButtons({ mode, onSelect, disabled }: SocialButtonsProps) {
