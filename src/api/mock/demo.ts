@@ -188,28 +188,3 @@ export interface DemoRule {
 }
 
 export const DEMO_RULES: DemoRule[] = []
-
-/**
- * 시연용 AI 원고 검토 결과(인물 관계·복선·설정 검토 탭의 "원고 검사").
- * 목업은 실제 AI를 부르지 않으므로, 시연 원고를 검사하면 이 결과를 돌려준다.
- * 인용문은 DEMO_CHAPTERS 본문에 실제로 있는 문장이다.
- */
-export const DEMO_NARRATIVE = {
-  assessments: [
-    { rule_id: 'R11', rule_title: '붉은 문은 비가 멎은 뒤에만 열린다', rule_description: '비가 오는 동안에는 문이 열리지 않는다.', verdict: 'supports', reason: '27장에서 비가 그친 뒤에 문 앞에 서는 장면으로 규칙과 맞아요.', evidence: '비가 그친 뒤에도 골목에는 붉은 빛이 남아 있었다.', severity: null },
-    { rule_id: 'R07', rule_title: '열쇠는 기록위원회가 보관한다', rule_description: '보관소 열쇠는 위원회 밖으로 나가지 않는다.', verdict: 'violates', reason: '12장에서 윤서가 열쇠를 재현에게 넘겨요. 위원회 밖으로 나간 이유가 설명되지 않아요.', evidence: '윤서는 보관소의 비밀 열쇠를 재현에게 건넸다.', severity: 'high' },
-  ],
-  findings: [
-    { title: '열쇠 보관 규칙과 12장 전달 장면이 어긋나요', category: 'contradiction', severity: 'high', reason: '9장에서 열쇠는 기록위원회가 보관한다고 했지만, 12장에서 윤서가 재현에게 넘겨요.', evidence: [[9, '열쇠는 기록위원회가 보관한다는 문장 위에 누군가 덧칠한 흔적이 있었다.'], [12, '윤서는 보관소의 비밀 열쇠를 재현에게 건넸다.']] },
-    { title: '위원회가 왜 5년 만에 소집됐는지 설명이 없어요', category: 'explanation_gap', severity: 'medium', reason: '15장에서 갑자기 소집되지만 앞 장에 계기가 보이지 않아요.', evidence: [[15, '기록위원회가 5년 만에 소집되었다.']] },
-  ],
-  tracks: [
-    { title: '윤서와 재현: 경계에서 신뢰로', kind: 'relationship', status: 'changed', explanation: '9장에서 서류를 건네받으며 거리를 두던 윤서가 12장에서 비밀 열쇠를 맡겨요.', evidence: [[9, '재현이 건넨 서류철에서 윤서는 민아의 이름을 찾았다.'], [12, '"이건 당신에게 맡길게요."']] },
-    { title: '도하와 기록위원회: 침묵하는 공모', kind: 'relationship', status: 'established', explanation: '위원회가 무너진 뒤에도 도하만 남아 문서를 지켜요.', evidence: [[23, '도하만이 남아 문서를 태우지 않고 상자에 담았다.']] },
-    { title: '재현과 위원회: 지워진 이름', kind: 'relationship', status: 'unresolved', explanation: '재현의 기록이 학교에서 사라진 이유가 위원회의 위조와 이어질 수 있어요.', evidence: [[18, '졸업 사진에도, 출석부에도 그의 이름은 없었다.']] },
-    { title: '날짜가 지워진 열차표', kind: 'foreshadowing', status: 'unresolved', explanation: '5장에 남은 열차표가 이후 다시 나오지 않아요. 민아 실종의 단서로 회수할 수 있어요.', evidence: [[5, '책상 위에는 날짜가 지워진 열차표 한 장만 남아 있었다.']] },
-    { title: '비가 멎으면 빛나는 문', kind: 'foreshadowing', status: 'paid_off', explanation: '3장에서 심은 문의 빛이 27장 개방 장면에서 회수돼요.', evidence: [[3, '비가 멎자 문의 윤곽이 붉게 떠올랐다.'], [27, '비가 그친 뒤에도 골목에는 붉은 빛이 남아 있었다.']] },
-    { title: '덧칠된 위원회 문서', kind: 'foreshadowing', status: 'reinterpreted', explanation: '9장의 덧칠 흔적이 23장 위조 공개로 다른 의미를 얻어요.', evidence: [[9, '누군가 덧칠한 흔적이 있었다.'], [23, '위조 기록이 공개되자 위원회는 하룻밤 사이에 흩어졌다.']] },
-    { title: '붉은 문은 비가 멎은 뒤에만 열린다', kind: 'setting', status: 'established', explanation: '3장과 27장 모두 비가 그친 뒤 문이 반응해요.', evidence: [[3, '비가 멎자 문의 윤곽이 붉게 떠올랐다.']] },
-  ],
-} as const

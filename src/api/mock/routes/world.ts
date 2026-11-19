@@ -2,7 +2,7 @@ import type { Conflict, ConflictCheck, RuleExtraction, WorldRule } from '../../t
 import { requireProject, touchProject } from '../access'
 import { findRuleCandidates, matchesKeyword, splitSentences } from '../ai'
 import { emptyWorld, type MockDb, type MockJob } from '../db'
-import { DEMO_NARRATIVE, DEMO_PROJECT_ID, type DemoConflict, type DemoRule } from '../demo'
+import type { DemoConflict, DemoRule } from '../demo'
 import { fail, isResponse, nextId, noContent, ok, stamp, str, type Body, type MockRequest, type Route } from '../http'
 
 const JOB_MS = 2500
@@ -36,39 +36,7 @@ function toConflict(w: ReturnType<typeof world>, c: DemoConflict): Conflict {
 }
 
 function toJob(j: MockJob): ConflictCheck & RuleExtraction {
-  return {
-    job_id: j.job_id,
-    status: j.status,
-    result_ids: j.result_ids,
-    skipped_reason: j.skipped_reason,
-    manuscript_id: j.manuscript_id,
-    ...(j.analysis_kind ? { analysis_kind: j.analysis_kind, narrative: j.narrative as ConflictCheck['narrative'], assessments: j.assessments as ConflictCheck['assessments'] } : {}),
-  }
-}
-
-/** 시연 원고의 AI 검토 결과를 이 원고의 장 ID로 만든다. 원고에 없는 장을 가리키는 근거는 뺀다 */
-function demoReview(db: MockDb, j: MockJob) {
-  const chapters = db.chapters.filter((c) => c.manuscript_id === j.manuscript_id)
-  const evidence = (rows: ReadonlyArray<readonly [number, string]>) =>
-    rows.flatMap(([no, quote]) => {
-      const c = chapters.find((x) => x.chapter_no === no)
-      return c ? [{ chapter_id: c.chapter_id, chapter_no: no, quote }] : []
-    })
-  const tracks = DEMO_NARRATIVE.tracks.map((t) => ({ ...t, evidence: evidence(t.evidence) })).filter((t) => t.evidence.length)
-  const findings = DEMO_NARRATIVE.findings.map((f) => ({ ...f, evidence: evidence(f.evidence) })).filter((f) => f.evidence.length)
-  j.analysis_kind = 'narrative_review'
-  j.assessments = DEMO_NARRATIVE.assessments.map((a) => ({ ...a }))
-  j.narrative = {
-    manuscript_id: j.manuscript_id,
-    source_hash: `demo-${chapters.length}`,
-    chapter_count: chapters.length,
-    char_count: chapters.reduce((n, c) => n + c.content.length, 0),
-    stale: false,
-    summary: '시연 원고 검토 결과',
-    tracks,
-    findings,
-    more_items: false,
-  }
+  return { job_id: j.job_id, status: j.status, result_ids: j.result_ids, skipped_reason: j.skipped_reason, manuscript_id: j.manuscript_id }
 }
 
 /** 목업: 끝날 시간이 된 작업의 결과를 만든다 */
@@ -137,8 +105,6 @@ function settleJobs(db: MockDb) {
         }
       }
     }
-    // 목업은 AI를 부르지 않는다: 시연 이야기를 담은 작품이면 미리 써 둔 검토 결과를 붙인다
-    if (w.demo || j.project_id === DEMO_PROJECT_ID) demoReview(db, j)
     j.status = 'completed'
   }
 }
@@ -157,26 +123,6 @@ const keywordsFrom = (v: unknown) => (Array.isArray(v) ? v.map(str).filter(Boole
 
 const rules = '/projects/:projectId/world-rules'
 const conflicts = '/projects/:projectId/conflicts'
-
-/** 개발용: 작품의 모든 원고에 대해 "원고 검사"를 이미 마친 상태로 만든다 (시연 검토 결과 포함) */
-export function completeDemoReview(db: MockDb, projectId: string) {
-  for (const m of db.manuscripts.filter((x) => x.project_id === projectId && x.status === 'ready')) {
-    const job: MockJob = {
-      job_id: nextId(db, 'chk'),
-      project_id: projectId,
-      kind: 'conflict_check',
-      status: 'completed',
-      manuscript_id: m.manuscript_id,
-      ready_at: null,
-      will_fail: false,
-      result_ids: [],
-      skipped_reason: null,
-      created_at: stamp(),
-    }
-    demoReview(db, job)
-    db.jobs.push(job)
-  }
-}
 
 export const worldRoutes: Route[] = [
   // ───────── REX · 설정 규칙 ─────────
@@ -397,21 +343,6 @@ export const worldRoutes: Route[] = [
       }
       db.jobs.push(job)
       return ok(202, toJob(job))
-    },
-  ],
-  [
-    // 원고마다 마지막으로 끝난 AI 검토 (실제 API의 latestNarrativeReview와 같은 역할)
-    'GET',
-    '/projects/:projectId/narrative-reviews/latest',
-    (req, db, { projectId }) => {
-      const access = requireProject(req, db, projectId)
-      if (isResponse(access)) return access
-      settleJobs(db)
-      const manuscriptId = str(req.query.manuscript_id)
-      const job = [...db.jobs]
-        .reverse()
-        .find((j) => j.project_id === projectId && j.kind === 'conflict_check' && j.manuscript_id === manuscriptId && j.status === 'completed' && j.analysis_kind)
-      return ok(200, job ? toJob(job) : null)
     },
   ],
   [

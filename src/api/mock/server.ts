@@ -1,6 +1,5 @@
 import type { RawResponse } from '../client'
-import { fillProjectWithDemo, loadDb, saveDb } from './db'
-import { completeDemoReview } from './routes/world'
+import { loadDb, saveDb } from './db'
 import { fail, type MockRequest, type Route } from './http'
 import { authRoutes } from './routes/auth'
 import { characterRoutes } from './routes/characters'
@@ -48,43 +47,4 @@ export async function handleMockRequest(req: MockRequest): Promise<RawResponse> 
   const res = await hit.handler(req, db, hit.params!)
   saveDb(db)
   return res
-}
-
-/** 작품 제목 또는 ID로 시연 이야기를 채우고, 원고 검사까지 마친 상태로 만든다 */
-function fillDemo(titleOrId: string): { ok: true; projectId: string; message: string } | { ok: false; message: string } {
-  const db = loadDb()
-  const matches = db.projects.filter((p) => p.project_id === titleOrId || p.title === titleOrId)
-  if (matches.length !== 1)
-    return {
-      ok: false,
-      message: matches.length
-        ? `같은 제목의 작품이 ${matches.length}개예요. ID로 지정해 주세요: ${matches.map((p) => p.project_id).join(', ')}`
-        : `작품을 찾지 못했어요: ${titleOrId}`,
-    }
-  const project = matches[0]
-  fillProjectWithDemo(db, project.project_id)
-  completeDemoReview(db, project.project_id)
-  saveDb(db)
-  return { ok: true, projectId: project.project_id, message: `‘${project.title}’에 시연 원고·인물·관계·복선을 채우고 원고 검사를 마쳤어요.` }
-}
-
-/**
- * 개발 도우미 (목업 모드 · 개발 서버에서만).
- *   주소에 ?mock-demo=작품제목 을 붙여 열면 그 작품을 채우고 인물 관계 화면으로 옮긴다.
- *   콘솔: prologMock.fillDemo('작품 제목 또는 ID'), prologMock.projects()
- */
-if (import.meta.env?.DEV && typeof window !== 'undefined') {
-  ;(window as unknown as { prologMock: unknown }).prologMock = {
-    projects: () => loadDb().projects.map((p) => ({ id: p.project_id, title: p.title })),
-    fillDemo: (titleOrId: string) => fillDemo(titleOrId).message,
-  }
-  const target = new URLSearchParams(window.location.search).get('mock-demo')
-  if (target) {
-    const result = fillDemo(target)
-    if (result.ok) window.location.replace(`/projects/${result.projectId}/relationships`)
-    else {
-      window.alert(result.message)
-      window.history.replaceState(null, '', window.location.pathname)
-    }
-  }
 }
