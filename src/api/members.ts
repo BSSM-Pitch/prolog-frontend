@@ -39,9 +39,9 @@ export async function invite(accessToken: string, projectId: string, input: { in
   return res
 }
 
-/** 4.8 초대 수락 — 초대 링크의 token이 필요하다 */
+/** 4.8 초대 수락 — 링크로 받은 초대는 token을, 알림·받은 초대 목록에서는 token 없이 보낸다 */
 export function acceptInvitation(accessToken: string, projectId: string, invitationId: string, token = '') {
-  return request<ProjectMember>('POST', `${base(projectId)}/invitations/${invitationId}/accept`, { body: { token }, accessToken })
+  return request<ProjectMember>('POST', `${base(projectId)}/invitations/${invitationId}/accept`, { body: token ? { token } : {}, accessToken })
 }
 
 /** 4.9 초대 취소 */
