@@ -241,20 +241,6 @@
   font-weight: 800;
   letter-spacing: -0.06em;
 }
-.lp .nav__links {
-  display: flex;
-  gap: 36px;
-  font-size: 14px;
-  font-weight: 600;
-}
-.lp .nav__links a {
-  position: relative;
-  color: var(--itda-muted);
-  transition: color var(--transition-state);
-}
-.lp .nav__links a:hover {
-  color: var(--itda-ink);
-}
 .lp .nav__auth {
   display: flex;
   align-items: center;
@@ -836,9 +822,6 @@
 
 /* ── 반응형 ──────────────────────────────── */
 @media (max-width: 900px) {
-  .lp .nav__links {
-    display: none;
-  }
   .lp .statement {
     grid-template-columns: minmax(0, 1fr);
     min-height: auto;

@@ -1,4 +1,3 @@
-import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { useSession } from '../../../auth/session'
 import { VOICE } from '../../../content/voice'
@@ -47,16 +46,9 @@ export function Footer() {
           <span>{tagline}</span>
         </div>
         <nav className="footer__links" aria-label="랜딩 목차">
-          {VOICE.navigation.map((link) => (
-            <Fragment key={link.href}>
-              {link.href === '#start' && (
-                <a href={VOICE.feedback.href} target="_blank" rel="noopener noreferrer">
-                  {VOICE.feedback.label}
-                </a>
-              )}
-              <a href={link.href}>{link.label}</a>
-            </Fragment>
-          ))}
+          <a href={VOICE.feedback.href} target="_blank" rel="noopener noreferrer">
+            {VOICE.feedback.label}
+          </a>
         </nav>
         <small>© 2026 Prolog.</small>
       </div>
