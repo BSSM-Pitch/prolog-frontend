@@ -28,14 +28,27 @@ export function useAnswer(target: Target | null, source: QAMessage | null) {
   useEffect(() => {
     if (!target || !pending) return
     let cancelled = false
-    const id = window.setInterval(() => {
-      withAuth((t) => api.getMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId))
-        .then((m) => !cancelled && setLatest(m))
-        .catch((e) => !cancelled && setError(describeError(e)))
-    }, 1000)
+    const controller = new AbortController()
+    let timer: number | undefined
+    const receive = (m: QAMessage) => {
+      if (!cancelled) { setLatest(m); setError(null) }
+    }
+    async function poll() {
+      if (cancelled || !target) return
+      try {
+        const m = await withAuth((t) => api.getMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId))
+        receive(m)
+        if (m.status !== 'pending') return
+      } catch (e) { if (!cancelled) setError(describeError(e)) }
+      if (!cancelled) timer = window.setTimeout(poll, 1500)
+    }
+    void withAuth((t) => api.streamMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId, controller.signal, receive))
+      .then(() => { if (!cancelled) void poll() })
+      .catch(() => { if (!cancelled) void poll() })
     return () => {
       cancelled = true
-      window.clearInterval(id)
+      controller.abort()
+      window.clearTimeout(timer)
     }
     // target 객체는 매 렌더 새로 만들어지므로 key로만 반응한다
     // eslint-disable-next-line react-hooks/exhaustive-deps

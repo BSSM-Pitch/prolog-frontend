@@ -1,7 +1,8 @@
 import { splitChapters } from '../lib/chapters'
 import { chapterHeading, joinChapters, toChapter, toManuscript, toMessage, toThread, toThreadDetail, toVersion, type BackendChapter, type BackendManuscript, type BackendMessage, type BackendThread, type BackendThreadDetail, type BackendVersion } from './backendShapes'
 import { ApiError, request, requestAll, requestWithMeta } from './client'
-import { IS_REAL } from './config'
+import { API_BASE_URL, IS_REAL } from './config'
+import { readEvents } from '../lib/eventStream'
 import type { Chapter, Manuscript, ManuscriptSource, ManuscriptVersion, ManuscriptVersionDetail, QAMessage, QAThread } from './types'
 
 // MSU 명세
@@ -322,4 +323,12 @@ export async function restoreVersionCopy(token: string, projectId: string, manus
 export async function exportManuscriptText(token: string, projectId: string, manuscriptId: string) {
   const chapters = await listChapters(token, projectId, manuscriptId)
   return joinChapters(chapters)
+}
+
+export async function streamMessage(token: string, projectId: string, manuscriptId: string, threadId: string, messageId: string, signal: AbortSignal, receive: (message: QAMessage) => void) {
+  if (!IS_REAL) throw new Error('Polling mock answers')
+  const path = `${qa(projectId, manuscriptId)}/${threadId}/messages/${messageId}/events`
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers: { Authorization: `Bearer ${token}`, Accept: 'text/event-stream' }, signal })
+  if (!response.ok || !response.body) throw new ApiError(response.status, { code: 'STREAM_UNAVAILABLE', message: '답변 연결을 다시 확인하고 있어요.', details: {} })
+  await readEvents(response.body, (value) => receive(toMessage(value as BackendMessage)))
 }

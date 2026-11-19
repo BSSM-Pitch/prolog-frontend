@@ -272,6 +272,8 @@ export function joinChapters(chapters: Array<{ chapter_no: number; title: string
 
 export interface BackendMessage {
   citations?: QAMessage['citations']
+  progress_stage?: string | null
+  preview_content?: string | null
   message_id: string
   thread_id: string
   role: 'user' | 'assistant'

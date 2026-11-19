@@ -246,6 +246,8 @@ export interface Citation {
 }
 
 export interface QAMessage {
+  progress_stage?: string | null
+  preview_content?: string | null
   message_id: string
   thread_id: string
   role: 'user' | 'assistant'

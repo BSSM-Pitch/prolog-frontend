@@ -1,3 +1,4 @@
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -212,6 +213,9 @@ function MemoryWorkspace({
               {Boolean(memory.job?.progress.completed_requests) && ` · 검토 단계 ${memory.job?.progress.completed_requests}개 완료`}
             </p>
             {memory.job_stale && <p>요청할 때의 원고로 분석 중이에요. 이후 수정한 내용은 다음 분석에 반영됩니다.</p>}
+            <AnalysisProgress label={memory.job?.progress.base_total && memory.job.progress.base_completed === memory.job.progress.base_total ? '원문 검증 완료 · 종합 검토 진행 중' : '원문 추출·검증'}
+              completed={memory.job?.progress.base_completed === memory.job?.progress.base_total ? undefined : memory.job?.progress.base_completed}
+              total={memory.job?.progress.base_completed === memory.job?.progress.base_total ? undefined : memory.job?.progress.base_total} />
             <small>다른 작업을 하거나 화면을 닫아도 분석은 계속됩니다.</small>
           </div>
         </div>

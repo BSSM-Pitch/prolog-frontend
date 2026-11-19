@@ -1,3 +1,4 @@
+import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
 import { useState } from 'react'
 import { IconArrowUpRight, IconChevronDown } from '@tabler/icons-react'
@@ -99,6 +100,7 @@ export function CharacterAssessment({
             <strong>
               {job?.status === 'queued' ? '인물 평가를 기다리고 있어요' : '평가 기준과 원문을 대조하고 있어요'}
             </strong>
+            <AnalysisProgress label="인물 평가 진행 중" />
             <p>초안을 작성한 뒤 반례와 판단 근거를 다시 검토합니다. 몇 분 걸릴 수 있어요.</p>
           </div>
         </div>
