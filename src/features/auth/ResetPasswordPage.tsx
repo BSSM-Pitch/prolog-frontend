@@ -29,7 +29,7 @@ export function ResetPasswordPage() {
 
   async function onSend() {
     if (!loginId.trim()) {
-      setLoginIdError('아이디 또는 이메일을 입력해 주세요.')
+      setLoginIdError('이메일을 입력해 주세요.')
       return
     }
     setSending(true)
@@ -73,7 +73,7 @@ export function ResetPasswordPage() {
       <h1 className="auth-card__title">비밀번호 재설정</h1>
       <p className="auth-card__desc">새 비밀번호를 설정하세요.</p>
       <TextField
-        label="아이디 또는 이메일"
+        label="이메일"
         value={loginId}
         onChange={(v) => {
           setLoginId(v)

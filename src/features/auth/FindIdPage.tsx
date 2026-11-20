@@ -6,7 +6,7 @@ import { TextField } from '../../components/TextField'
 import { describeError, errorCode } from '../../lib/errors'
 import { validateEmail } from '../../lib/validation'
 
-// Figma 840:433 아이디 찾기 / 1214:2224 아이디 찾기 결과
+// Figma 840:433 가입 정보 확인 / 1214:2224 가입 정보 확인 결과
 export function FindIdPage() {
   const navigate = useNavigate()
   const [name, setName] = useState('')
@@ -44,7 +44,7 @@ export function FindIdPage() {
   return (
     // Figma 840:435 · 1214:2226 — 제목 / [설명 · 입력(36)] / [버튼 · 결과(28)] / 다음 행동, 묶음 사이 48
     <form className="auth-card auth-card--find" onSubmit={onSubmit} noValidate>
-      <h1 className="auth-card__title">아이디 찾기</h1>
+      <h1 className="auth-card__title">가입 정보 확인</h1>
       <div className="auth-card__group find__body">
         <p className="auth-card__desc">가입할 때 사용한 이름과 이메일을 입력하세요.</p>
         <div className="auth-card__group find__fields">
@@ -77,11 +77,11 @@ export function FindIdPage() {
 
       <div className="auth-card__group find__result">
         <Button type="submit" block busy={busy}>
-          {busy ? '찾는 중…' : '아이디 찾기'}
+          {busy ? '찾는 중…' : '가입 정보 확인'}
         </Button>
         {found ? (
           <p className="result-box" role="status">
-            가입된 아이디 : {found}
+            가입된 닉네임 : {found}
           </p>
         ) : (
           error && (
@@ -94,8 +94,8 @@ export function FindIdPage() {
 
       {found ? (
         <div className="auth-card__row">
-          <Button onClick={() => navigate('/auth/login', { state: { loginId: found } })}>로그인으로 돌아가기</Button>
-          <Button tone="outline" onClick={() => navigate('/auth/reset-password', { state: { loginId: found } })}>
+          <Button onClick={() => navigate('/auth/login', { state: { loginId: email.trim() } })}>로그인으로 돌아가기</Button>
+          <Button tone="outline" onClick={() => navigate('/auth/reset-password', { state: { loginId: email.trim() } })}>
             비밀번호 재설정
           </Button>
         </div>

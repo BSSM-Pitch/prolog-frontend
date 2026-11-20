@@ -36,13 +36,13 @@ function newCode() {
   return String(Math.floor(Math.random() * 1_000_000)).padStart(6, '0')
 }
 
-function findByLoginId(db: MockDb, loginId: string) {
-  const id = lower(loginId)
-  return db.users.find((u) => lower(u.username) === id || (u.email !== null && lower(u.email) === id))
+function findByEmail(db: MockDb, email: string) {
+  const id = lower(email)
+  return db.users.find((u) => u.email !== null && lower(u.email) === id)
 }
 
 // AUTH 명세
-/** AUTH v0.2 가입 완료 — 소셜 인증 때 받은 가입 티켓 + 아이디 + 유형 */
+/** AUTH v0.2 가입 완료 — 소셜 인증 때 받은 가입 티켓 + 닉네임 + 유형 */
 function ticketSignup(db: MockDb, b: Body) {
   let claims: { provider: OAuthProvider; sub: string; email: string; exp: number } | null = null
   try {
@@ -52,10 +52,12 @@ function ticketSignup(db: MockDb, b: Body) {
   }
   if (!claims || claims.exp < Date.now()) return fail(401, 'SIGNUP_TICKET_INVALID', '가입 시간이 지났어요. 다시 소셜 로그인해 주세요.')
   const username = str(b.username)
-  if (!username) return fail(400, 'USERNAME_REQUIRED', '아이디를 입력해 주세요.')
-  if (db.users.some((u) => lower(u.username) === lower(username))) return fail(409, 'USERNAME_TAKEN', '이미 사용 중인 아이디예요.', { field: 'username' })
+  if (!username) return fail(400, 'USERNAME_REQUIRED', '닉네임을 입력해 주세요.')
   if (db.users.some((u) => u.auth_provider === claims.provider && u.provider_user_id === claims.sub)) {
     return fail(401, 'SIGNUP_TICKET_INVALID', '이미 가입이 완료된 티켓이에요.')
+  }
+  if (claims.email && db.users.some((u) => u.email !== null && lower(u.email) === lower(claims.email))) {
+    return fail(409, 'EMAIL_TAKEN', '이미 가입된 이메일이에요.', { field: 'email' })
   }
   const t = stamp()
   const user: MockUser = {
@@ -78,10 +80,10 @@ export const authRoutes: Route[] = [
   [
     'GET',
     '/users/check-username',
-    (req, db) => {
+    (req) => {
       const username = str(req.query.username)
-      if (!username) return fail(400, 'INVALID_INPUT', '아이디를 입력해 주세요.')
-      const available = !db.users.some((u) => lower(u.username) === lower(username))
+      if (!username) return fail(400, 'INVALID_INPUT', '닉네임을 입력해 주세요.')
+      const available = Boolean(username.trim())
       return ok(200, { username, available })
     },
   ],
@@ -112,12 +114,9 @@ export const authRoutes: Route[] = [
       const role = b.role as UserRole
       const code = str(b.verification_code)
 
-      if (!username) return fail(400, 'USERNAME_REQUIRED', '아이디를 입력해 주세요.')
+      if (!username) return fail(400, 'USERNAME_REQUIRED', '닉네임을 입력해 주세요.')
       if (!EMAIL_RULE.test(email) || !PASSWORD_RULE.test(password) || !ROLES.includes(role)) {
         return fail(400, 'INVALID_INPUT', '입력한 내용을 다시 확인해 주세요.')
-      }
-      if (db.users.some((u) => lower(u.username) === lower(username))) {
-        return fail(409, 'USERNAME_TAKEN', '이미 사용 중인 아이디예요.', { field: 'username' })
       }
       if (db.users.some((u) => u.email !== null && lower(u.email) === lower(email))) {
         return fail(409, 'EMAIL_TAKEN', '이미 가입된 이메일이에요.', { field: 'email' })
@@ -150,9 +149,9 @@ export const authRoutes: Route[] = [
     '/auth/login',
     (req, db) => {
       const b = (req.body ?? {}) as Body
-      const user = findByLoginId(db, str(b.login_id))
-      if (!user || user.password === null || user.password !== b.password) {
-        return fail(401, 'INVALID_CREDENTIALS', '아이디 또는 비밀번호가 올바르지 않습니다.')
+      const user = findByEmail(db, str(b.email ?? b.login_id))
+      if (!user || user.auth_provider !== 'local' || user.password === null || user.password !== b.password) {
+        return fail(401, 'INVALID_CREDENTIALS', '이메일 또는 비밀번호가 올바르지 않습니다.')
       }
       return ok(200, { user: toUser(user), tokens: issueTokens(db, user.user_id) })
     },
@@ -226,8 +225,8 @@ export const authRoutes: Route[] = [
     '/auth/password/reset-request',
     (req, db) => {
       const loginId = str((req.body as Body)?.login_id)
-      if (!loginId) return fail(400, 'INVALID_INPUT', '아이디 또는 이메일을 입력해 주세요.')
-      const user = findByLoginId(db, loginId)
+      if (!loginId) return fail(400, 'INVALID_INPUT', '이메일을 입력해 주세요.')
+      const user = findByEmail(db, loginId)
       if (user && user.auth_provider !== 'local') {
         return fail(400, 'SOCIAL_ONLY_ACCOUNT', '소셜 계정은 비밀번호를 재설정할 수 없어요.', { provider: user.auth_provider })
       }
@@ -245,7 +244,7 @@ export const authRoutes: Route[] = [
     '/auth/password/reset',
     (req, db) => {
       const b = (req.body ?? {}) as Body
-      const user = findByLoginId(db, str(b.login_id))
+      const user = findByEmail(db, str(b.email ?? b.login_id))
       const pending = user ? db.resetCodes[user.user_id] : undefined
       if (!user || !pending || pending.code !== str(b.code)) {
         return fail(400, 'VERIFICATION_CODE_INVALID', '인증 코드가 일치하지 않아요.', { field: 'code' })

@@ -29,8 +29,8 @@ export function RolePage() {
     setBusy(true)
     setError(null)
     try {
-      // 소셜 가입(AUTH v0.2): 공급자가 계정을 확인했으니 가입 티켓 + 아이디 + 유형으로 가입한다.
-      // 일반 가입: 아이디 + 이메일 + 비밀번호 + 유형으로 가입한다.
+      // 소셜 가입(AUTH v0.2): 공급자가 계정을 확인했으니 가입 티켓 + 닉네임 + 유형으로 가입한다.
+      // 일반 가입: 닉네임 + 이메일 + 비밀번호 + 유형으로 가입한다.
       const result = draft.signupTicket
         ? await authApi.completeSocialSignup(draft.signupTicket, draft.username, draft.role)
         : await authApi.signup({ username: draft.username, email: draft.email, password: draft.password, role: draft.role })
@@ -40,15 +40,13 @@ export function RolePage() {
     } catch (err) {
       const code = errorCode(err)
       setError(
-        code === 'USERNAME_TAKEN'
-          ? '그사이 다른 사람이 이 닉네임을 가져갔어요. 이전으로 돌아가 닉네임을 바꿔 주세요.'
-          : code === 'EMAIL_TAKEN'
-            ? draft.signupTicket
-              ? '이 이메일로 이미 가입된 계정이 있어요. 그 계정으로 로그인해 주세요.'
-              : '이미 가입된 이메일이에요. 로그인하거나 이전으로 돌아가 다른 이메일을 입력해 주세요.'
-            : code === 'SIGNUP_TICKET_INVALID'
-              ? '가입 시간이 지났어요(10분). 로그인 화면에서 다시 소셜 로그인해 주세요.'
-              : describeError(err),
+        code === 'EMAIL_TAKEN'
+          ? draft.signupTicket
+            ? '이 이메일로 이미 가입된 계정이 있어요. 그 계정으로 로그인해 주세요.'
+            : '이미 가입된 이메일이에요. 로그인하거나 이전으로 돌아가 다른 이메일을 입력해 주세요.'
+          : code === 'SIGNUP_TICKET_INVALID'
+            ? '가입 시간이 지났어요(10분). 로그인 화면에서 다시 소셜 로그인해 주세요.'
+            : describeError(err),
       )
     } finally {
       setBusy(false)

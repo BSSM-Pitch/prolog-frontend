@@ -32,7 +32,7 @@ export function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     if (!loginId.trim() || !password) {
-      setError('아이디(또는 이메일)와 비밀번호를 모두 입력해 주세요.')
+      setError('이메일와 비밀번호를 모두 입력해 주세요.')
       return
     }
     setBusy(true)
@@ -40,7 +40,7 @@ export function LoginPage() {
       signIn(await authApi.login(loginId.trim(), password))
       navigate(takeReturnTo(), { replace: true })
     } catch (err) {
-      setError(errorCode(err) === 'INVALID_CREDENTIALS' ? '아이디 또는 비밀번호가 맞지 않아요. 다시 확인해 주세요.' : describeError(err))
+      setError(errorCode(err) === 'INVALID_CREDENTIALS' ? '이메일 또는 비밀번호가 맞지 않아요. 다시 확인해 주세요.' : describeError(err))
     } finally {
       setBusy(false)
     }
@@ -74,7 +74,8 @@ export function LoginPage() {
         )}
         <TextField
           size="lg"
-          label="아이디 또는 이메일"
+          type="email"
+          label="이메일"
           value={loginId}
           onChange={(v) => {
             setLoginId(v)
