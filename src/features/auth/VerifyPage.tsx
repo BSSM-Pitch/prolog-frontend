@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import * as authApi from '../../api/auth'
 import { useSession } from '../../auth/session'
 import { useSignupDraft } from '../../auth/signupDraft'
@@ -21,7 +21,6 @@ export function VerifyPage() {
   const [code, setCode] = useState('')
   const [emailError, setEmailError] = useState<string | null>(null)
   const [codeError, setCodeError] = useState<string | null>(null)
-  const [usernameTaken, setUsernameTaken] = useState(false)
   const [sending, setSending] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
@@ -67,10 +66,7 @@ export function VerifyPage() {
     } catch (err) {
       const c = errorCode(err)
       if (c === 'VERIFICATION_CODE_INVALID' || c === 'VERIFICATION_CODE_EXPIRED') setCodeError(CODE_MISMATCH)
-      else if (c === 'USERNAME_TAKEN') {
-        setUsernameTaken(true)
-        setCodeError('그사이 다른 사람이 이 닉네임을 가져갔어요. 회원가입으로 돌아가 닉네임을 바꿔 주세요.')
-      } else setCodeError(describeError(err))
+      else setCodeError(describeError(err))
     } finally {
       setSubmitting(false)
     }
@@ -131,11 +127,6 @@ export function VerifyPage() {
       <Button type="submit" block disabled={!canSubmit} busy={submitting}>
         {submitting ? '가입 중…' : '인증하고 가입 완료'}
       </Button>
-      {usernameTaken && (
-        <Link className="text-link auth-form__link" to="/auth/signup">
-          회원가입으로 돌아가기
-        </Link>
-      )}
     </form>
   )
 }

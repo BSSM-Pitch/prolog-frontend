@@ -3,7 +3,7 @@ import { IS_REAL } from './config'
 import type { AuthResult, AuthTokens, OAuthProvider, User, UserRole } from './types'
 
 // AUTH 명세 3장 엔드포인트. "(명세 미정의)" 표시는 Figma 화면 때문에 추가한 것으로, 백엔드와 합의가 필요하다.
-// prolog-backend는 Google·네이버 소셜 로그인과 아이디(또는 이메일)·비밀번호 가입·로그인을 지원한다.
+// prolog-backend는 Google·네이버 소셜 로그인과 이메일·비밀번호 가입·로그인을 지원한다.
 // 가입 전 이메일 인증, 아이디 찾기, 비밀번호 재설정은 아직 없어서 real 모드에서는 누르면 안내한다.
 
 export function checkUsername(username: string) {
@@ -27,18 +27,18 @@ export interface SignupInput {
   verification_code?: string
 }
 
-/** 일반 가입 — 아이디 + 이메일 + 비밀번호(영문·숫자 포함 8자 이상) + 사용자 유형. 성공하면 바로 로그인된다 */
+/** 일반 가입 — 닉네임 + 이메일 + 비밀번호(영문·숫자 포함 8자 이상) + 사용자 유형. 성공하면 바로 로그인된다 */
 export function signup(input: SignupInput) {
   const { verification_code, ...body } = input
   return request<AuthResult>('POST', '/auth/signup', { body: IS_REAL ? body : { ...body, verification_code } })
 }
 
-/** login_id는 아이디 또는 이메일. 소셜로 가입한 계정은 이 경로로 로그인할 수 없다(INVALID_CREDENTIALS) */
-export function login(loginId: string, password: string) {
-  return request<AuthResult>('POST', '/auth/login', { body: { login_id: loginId, password } })
+/** 이메일·비밀번호 로그인. 소셜 계정은 해당 공급자로 로그인한다. */
+export function login(email: string, password: string) {
+  return request<AuthResult>('POST', '/auth/login', { body: { email, password } })
 }
 
-/** AUTH v0.2 — 가입된 계정이면 로그인, 처음이면 가입 티켓(10분)을 받아 아이디·유형을 정한 뒤 가입을 마친다 */
+/** AUTH v0.2 — 가입된 계정이면 로그인, 처음이면 가입 티켓(10분)을 받아 닉네임·유형을 정한 뒤 가입을 마친다 */
 export type OAuthResult = { kind: 'session'; result: AuthResult } | { kind: 'signup'; signup_ticket: string; email: string | null }
 
 /** 네이버는 인가 요청 때 보낸 state를 토큰 교환에 그대로 넘긴다 */
@@ -50,7 +50,7 @@ export async function oauthLogin(provider: OAuthProvider, oauthCode: string, sta
   return { kind: 'session', result: { user: res.data.user, tokens: res.data.tokens } }
 }
 
-/** 가입 완료 — 가입 티켓 + 아이디 + 사용자 유형 */
+/** 가입 완료 — 가입 티켓 + 닉네임 + 사용자 유형 */
 export function completeSocialSignup(signupTicket: string, username: string, role: UserRole) {
   return request<AuthResult>('POST', '/auth/signup', { body: { signup_ticket: signupTicket, username, role } })
 }

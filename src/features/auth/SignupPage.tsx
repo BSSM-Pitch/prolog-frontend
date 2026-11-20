@@ -1,7 +1,6 @@
 import { VOICE } from '../../content/voice'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import * as authApi from '../../api/auth'
 import type { OAuthProvider } from '../../api/types'
 import { useSignupDraft } from '../../auth/signupDraft'
 import { Button } from '../../components/Button'
@@ -21,7 +20,7 @@ export function SignupPage() {
   const notice = (location.state as { notice?: string } | null)?.notice
   const { draft, update, clear } = useSignupDraft()
   const social = useSocialLogin()
-  // 소셜 인증을 마치고 가입 티켓을 받았으면 아이디만 정하면 된다 (AUTH v0.2)
+  // 소셜 인증을 마치고 가입 티켓을 받았으면 닉네임만 정하면 된다 (AUTH v0.2)
   const ticketMode = Boolean(draft.signupTicket)
 
   const [username, setUsername] = useState(draft.username)
@@ -39,13 +38,6 @@ export function SignupPage() {
     }
   }
 
-  /** 아이디 중복 확인. 사용 가능하면 true */
-  async function ensureUsernameAvailable(): Promise<boolean> {
-    const { available } = await authApi.checkUsername(username.trim())
-    if (!available) setErrors((e) => ({ ...e, username: '이미 사용 중인 닉네임이에요. 다른 닉네임을 입력해 주세요.' }))
-    return available
-  }
-
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setFormError(null)
@@ -61,7 +53,6 @@ export function SignupPage() {
 
     setBusy(true)
     try {
-      if (!(await ensureUsernameAvailable())) return
       update({ username: username.trim(), email: email.trim(), password, provider: null })
       navigate('/auth/signup/role')
     } catch (err) {
@@ -71,14 +62,13 @@ export function SignupPage() {
     }
   }
 
-  /** 가입 티켓이 있을 때: 아이디만 확인하고 사용자 유형으로 */
+  /** 가입 티켓이 있을 때: 닉네임만 확인하고 사용자 유형으로 */
   async function onTicketSubmit() {
     const usernameError = validateUsername(username)
     setErrors(usernameError ? { username: usernameError } : {})
     if (usernameError) return
     setBusy(true)
     try {
-      if (!(await ensureUsernameAvailable())) return
       update({ username: username.trim() })
       navigate('/auth/signup/role')
     } catch (err) {
@@ -88,7 +78,7 @@ export function SignupPage() {
     }
   }
 
-  // 소셜 가입(AUTH v0.2): 먼저 공급자 인증을 받고, 처음 연결한 계정이면 돌아와서 아이디를 정한다.
+  // 소셜 가입(AUTH v0.2): 먼저 공급자 인증을 받고, 처음 연결한 계정이면 돌아와서 닉네임을 정한다.
   async function onSocial(provider: OAuthProvider) {
     setFormError(null)
     setBusy(true)
@@ -117,7 +107,7 @@ export function SignupPage() {
           value={username}
           onChange={set('username', setUsername)}
           error={errors.username}
-          autoComplete="username"
+          autoComplete="nickname"
           placeholder="작가님의 이름"
           autoFocus
         />
