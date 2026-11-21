@@ -12,7 +12,8 @@ const r = (source: string) => new RegExp(source.replaceAll('{P}', P).replaceAll(
  * 여기에 없는 요청은 real 모드에서도 목업이 받는다.
  */
 const BACKEND_ROUTES: Array<[string, RegExp]> = [
-  ['POST', /^\/auth\/(oauth\/(google|naver)|signup|login|token\/refresh|logout)$/],
+  // 카카오는 POST /auth/oauth/kakao가 없다 — 백엔드가 GET /auth/kakao/login·/callback으로 직접 처리한다 (useSocialLogin.ts)
+  ['POST', /^\/auth\/(oauth\/google|signup|login|token\/refresh|logout)$/],
   ['GET|PATCH', /^\/users\/me$/],
   ['GET', /^\/users\/check-username$/],
   ['GET', /^\/projects\/[^/]+\/media$/],

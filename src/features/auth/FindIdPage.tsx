@@ -101,7 +101,7 @@ export function FindIdPage() {
         </div>
       ) : (
         <div className="auth-card__group find__help">
-          <p className="auth-card__caption">Google·Naver로 가입했다면 소셜 로그인을 이용해주세요.</p>
+          <p className="auth-card__caption">Google·카카오로 가입했다면 소셜 로그인을 이용해주세요.</p>
           <Link className="text-link auth-form__link" to="/auth/login">
             로그인으로 돌아가기
           </Link>

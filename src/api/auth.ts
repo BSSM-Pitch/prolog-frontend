@@ -1,9 +1,9 @@
 import { notSupported, request, requestWithMeta } from './client'
-import { IS_REAL } from './config'
+import { API_BASE_URL, IS_REAL } from './config'
 import type { AuthResult, AuthTokens, OAuthProvider, User, UserRole } from './types'
 
 // AUTH 명세 3장 엔드포인트. "(명세 미정의)" 표시는 Figma 화면 때문에 추가한 것으로, 백엔드와 합의가 필요하다.
-// prolog-backend는 Google·네이버 소셜 로그인과 아이디(또는 이메일)·비밀번호 가입·로그인을 지원한다.
+// prolog-backend는 Google·카카오 소셜 로그인과 아이디(또는 이메일)·비밀번호 가입·로그인을 지원한다.
 // 가입 전 이메일 인증, 아이디 찾기, 비밀번호 재설정은 아직 없어서 real 모드에서는 누르면 안내한다.
 
 export function checkUsername(username: string) {
@@ -41,10 +41,9 @@ export function login(loginId: string, password: string) {
 /** AUTH v0.2 — 가입된 계정이면 로그인, 처음이면 가입 티켓(10분)을 받아 아이디·유형을 정한 뒤 가입을 마친다 */
 export type OAuthResult = { kind: 'session'; result: AuthResult } | { kind: 'signup'; signup_ticket: string; email: string | null }
 
-/** 네이버는 인가 요청 때 보낸 state를 토큰 교환에 그대로 넘긴다 */
-export async function oauthLogin(provider: OAuthProvider, oauthCode: string, state?: string | null): Promise<OAuthResult> {
+export async function oauthLogin(provider: OAuthProvider, oauthCode: string): Promise<OAuthResult> {
   const res = await requestWithMeta<AuthResult & { signup_ticket?: string; email?: string | null }, { is_new_user?: boolean }>('POST', `/auth/oauth/${provider}`, {
-    body: provider === 'naver' ? { oauth_code: oauthCode, state: state ?? null } : { oauth_code: oauthCode },
+    body: { oauth_code: oauthCode },
   })
   if (res.meta.is_new_user && res.data.signup_ticket) return { kind: 'signup', signup_ticket: res.data.signup_ticket, email: res.data.email ?? null }
   return { kind: 'session', result: { user: res.data.user, tokens: res.data.tokens } }
@@ -85,17 +84,9 @@ export function googleAuthorizeUrl(): string | null {
   return `https://accounts.google.com/o/oauth2/v2/auth?${params}`
 }
 
-/** real 모드: 네이버 인가 화면 주소. 돌아오면 /auth/callback/naver가 code·state를 받는다. 클라이언트 ID가 없으면 null */
-export function naverAuthorizeUrl(): string | null {
-  const clientId = import.meta.env.VITE_NAVER_CLIENT_ID
-  if (!clientId) return null
-  const params = new URLSearchParams({
-    response_type: 'code',
-    client_id: clientId,
-    redirect_uri: import.meta.env.VITE_NAVER_REDIRECT_URI ?? `${window.location.origin}/auth/callback/naver`,
-    state: newState('naver'),
-  })
-  return `https://nid.naver.com/oauth2.0/authorize?${params}`
+/** real 모드: 카카오 로그인 시작 주소. 프론트가 아니라 백엔드가 인가·토큰 교환을 전부 하고 /auth/callback/kakao로 돌려보낸다 */
+export function kakaoLoginUrl(): string {
+  return `${API_BASE_URL}/auth/kakao/login`
 }
 
 /** 콜백의 state가 우리가 보낸 값인지 (CSRF 방지). 다음 로그인 때 새 값으로 덮인다 */

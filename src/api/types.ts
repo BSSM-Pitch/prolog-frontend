@@ -1,7 +1,7 @@
 // AUTH API 명세 2장 데이터 모델
 
 export type UserRole = 'writer' | 'aspiring_writer' | 'reader'
-export type AuthProvider = 'local' | 'google' | 'naver'
+export type AuthProvider = 'local' | 'google' | 'kakao'
 export type OAuthProvider = Exclude<AuthProvider, 'local'>
 
 export interface User {

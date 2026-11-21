@@ -162,7 +162,7 @@ export const authRoutes: Route[] = [
     '/auth/oauth/:provider',
     (req, db, params) => {
       const provider = params.provider as OAuthProvider
-      if (provider !== 'google' && provider !== 'naver') return fail(400, 'INVALID_INPUT', '지원하지 않는 로그인 방식이에요.')
+      if (provider !== 'google' && provider !== 'kakao') return fail(400, 'INVALID_INPUT', '지원하지 않는 로그인 방식이에요.')
       const b = (req.body ?? {}) as Body
       if (!str(b.oauth_code)) return fail(502, 'OAUTH_PROVIDER_ERROR', '소셜 로그인 공급자 응답을 받지 못했어요.')
 
@@ -172,7 +172,7 @@ export const authRoutes: Route[] = [
       if (existing) return ok(200, { user: toUser(existing), tokens: issueTokens(db, existing.user_id) }, { is_new_user: false })
 
       // AUTH v0.2: 처음 연결한 계정은 만들지 않고 가입 티켓(10분)만 준다 — /auth/signup에서 아이디·유형과 함께 가입
-      const email = `demo.${provider}@${provider === 'google' ? 'gmail.com' : 'naver.com'}`
+      const email = `demo.${provider}@${provider === 'google' ? 'gmail.com' : 'kakao.com'}`
       const signup_ticket = btoa(JSON.stringify({ provider, sub: providerUserId, email, exp: Date.now() + 10 * 60_000 }))
       return ok(200, { signup_ticket, email }, { is_new_user: true })
     },

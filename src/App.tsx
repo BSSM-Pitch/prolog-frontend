@@ -70,7 +70,7 @@ export default function App() {
             <Route index element={null} />
             <Route path="login" element={<LoginPage />} />
             <Route path="callback" element={<AuthCallbackPage provider="google" />} />
-            <Route path="callback/naver" element={<AuthCallbackPage provider="naver" />} />
+            <Route path="callback/kakao" element={<AuthCallbackPage provider="kakao" />} />
             <Route path="signup" element={<SignupPage />} />
             <Route path="signup/role" element={<RolePage />} />
             <Route path="signup/verify" element={<VerifyPage />} />
