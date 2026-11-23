@@ -18,7 +18,7 @@ function AnimatedVector({
   playing: boolean
 }) {
   const { d, width, height } = PATHS[vector.path]
-  const loop = { duration: LOOP_DURATION, repeat: Infinity }
+  const playback = { duration: LOOP_DURATION, repeat: 0 }
   const slide = playing ? vector.slide : undefined
   const reveal = revealTrack(vector.draw)
 
@@ -39,7 +39,7 @@ function AnimatedVector({
       }}
       initial={slide ? { x: slide.x[0] } : false}
       animate={slide ? { x: slide.x } : undefined}
-      transition={slide ? { ...loop, times: slide.times, ease: slide.ease } : undefined}
+      transition={slide ? { ...playback, times: slide.times, ease: slide.ease } : undefined}
     >
       <motion.path
         d={d}
@@ -52,10 +52,10 @@ function AnimatedVector({
           playing ? { strokeDasharray: vector.draw.strokeDasharray, opacity: reveal.opacity } : undefined
         }
         transition={{
-          ...loop,
+          ...playback,
           times: vector.draw.times,
           ease: vector.draw.ease,
-          opacity: { ...loop, times: reveal.times, ease: 'linear' },
+          opacity: { ...playback, times: reveal.times, ease: 'linear' },
         }}
       />
     </motion.svg>
@@ -64,7 +64,7 @@ function AnimatedVector({
 
 export interface MotionIconProps {
   name: IconName
-  /** true인 동안 Figma 모션(2초 루프)을 재생, false면 완성된 정지 아이콘 */
+  /** true로 바뀌면 Figma 모션을 한 번 재생하고 완성 상태 유지. false면 정지 아이콘 */
   playing?: boolean
   /** 아이콘을 담는 정사각형 박스 크기(px). 아이콘은 가운데 정렬 */
   size?: number
