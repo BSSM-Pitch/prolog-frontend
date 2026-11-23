@@ -158,6 +158,22 @@ function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProj
             <span className="badge badge--filled">확정 {confirmed.length}</span>
             <span className="badge badge--waiting">검토 대기 {pending.length}</span>
           </div>
+          {canEdit && (
+            <div className="actions-row">
+              <Button
+                tone="outline"
+                onClick={() => (setAdding({ title: '', description: '', keywords: '' }), setEditing(null))}
+              >
+                + 규칙 직접 추가
+              </Button>
+              <Button tone="secondary" onClick={startExtraction} busy={running} disabled={!latest || extraction.loading || Boolean(extraction.error)}>
+                {running ? '추출하는 중…' : extraction.loading ? '이전 작업 확인 중…' : '원고에서 다시 추출'}
+              </Button>
+            </div>
+          )}
+          {(extractionError || extraction.error) && <p className="notice notice--error" role="alert">{extractionError || `작업 상태를 다시 확인하고 있어요. ${extraction.error}`}</p>}
+          {rules.error && <p className="notice notice--error" role="alert">{rules.error}</p>}
+          {!latest && manuscripts.data && <p className="panel__label">규칙을 추출하려면 먼저 원고를 올려 주세요.</p>}
 
           {running && (
             <div className="state-block" role="status">
@@ -203,22 +219,6 @@ function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProj
               </li>
             ))}
           </ul>
-          {canEdit && (
-            <div className="actions-row">
-              <Button
-                tone="outline"
-                onClick={() => (setAdding({ title: '', description: '', keywords: '' }), setEditing(null))}
-              >
-                + 규칙 직접 추가
-              </Button>
-              <Button tone="secondary" onClick={startExtraction} busy={running} disabled={!latest || extraction.loading || Boolean(extraction.error)}>
-                {running ? '추출하는 중…' : extraction.loading ? '이전 작업 확인 중…' : '원고에서 다시 추출'}
-              </Button>
-            </div>
-          )}
-          {(extractionError || extraction.error) && <p className="notice notice--error" role="alert">{extractionError || `작업 상태를 다시 확인하고 있어요. ${extraction.error}`}</p>}
-          {rules.error && <p className="notice notice--error" role="alert">{rules.error}</p>}
-          {!latest && manuscripts.data && <p className="panel__label">규칙을 추출하려면 먼저 원고를 올려 주세요.</p>}
         </section>
 
         {adding ? (
