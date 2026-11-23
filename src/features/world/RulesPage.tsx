@@ -1,6 +1,6 @@
 import { AnalysisProgress } from '../../components/AnalysisProgress'
 import { RichText } from '../../components/RichText'
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as manuscriptsApi from '../../api/manuscripts'
 import type { WorldRule } from '../../api/types'
@@ -9,7 +9,7 @@ import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { LogoLoader } from '../../components/LogoLoader'
 import { describeError } from '../../lib/errors'
-import { useJob } from '../../lib/useJob'
+import { isRunning, useRuleExtractions } from './useRuleExtractions'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import '../characters/characters.css'
@@ -28,6 +28,11 @@ const toKeywords = (s: string) =>
 // Figma 843:1659 · 21 설정 규칙
 export function RulesPage() {
   const project = useProject()
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
+  return <RulesView key={project.project_id} project={project} />
+}
+
+function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProject>> }) {
   const [params, setParams] = useSearchParams()
   const { withAuth } = useSession()
   const projectId = project?.project_id ?? ''
@@ -42,21 +47,13 @@ export function RulesPage() {
   const [notice, setNotice] = useState<string | null>(null)
   const latest = (manuscripts.data ?? []).filter((m) => m.status === 'ready')[0] ?? null
 
-  const extraction = useJob(
-    latest ? (t, id) => api.getRuleExtraction(t, projectId, latest.manuscript_id, id) : null,
-    (job) => {
-      rules.reload()
-      setNotice(
-        job.status === 'completed'
-          ? job.result_ids.length
-            ? `규칙 후보 ${job.result_ids.length}개를 새로 찾았어요.`
-            : '원고에서 새로 찾은 규칙 후보가 없어요.'
-          : null,
-      )
-    },
-  )
+  const extraction = useRuleExtractions(projectId, rules.reload)
+  const [submitting, setSubmitting] = useState(false)
+  const [extractionError, setExtractionError] = useState<string | null>(null)
+  const submitLock = useRef(false)
+  const activeExtractions = (extraction.jobs ?? []).filter(isRunning)
+  const latestExtraction = extraction.jobs?.[0]
 
-  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const canEdit = project.my_role !== 'viewer'
   const visible = (rules.data ?? []).filter((r) => r.status !== 'ignored')
   const pending = visible.filter((r) => r.status === 'pending')
@@ -86,13 +83,19 @@ export function RulesPage() {
   }
 
   async function startExtraction() {
-    if (!latest) return
+    if (!latest || submitLock.current || extraction.loading || activeExtractions.length) return
+    submitLock.current = true
+    setSubmitting(true)
     setNotice(null)
-    extraction.setError(null)
+    setExtractionError(null)
     try {
-      extraction.setJob(await withAuth((t) => api.extractRules(t, projectId, latest.manuscript_id)))
+      await withAuth((t) => api.extractRules(t, projectId, latest.manuscript_id))
+      extraction.refresh()
     } catch (e) {
-      extraction.setError(describeError(e))
+      setExtractionError(describeError(e))
+    } finally {
+      submitLock.current = false
+      setSubmitting(false)
     }
   }
 
@@ -129,7 +132,7 @@ export function RulesPage() {
     )
   }
 
-  const running = extraction.running
+  const running = submitting || activeExtractions.length > 0
 
   return (
     <div className="world">
@@ -160,16 +163,16 @@ export function RulesPage() {
             <div className="state-block" role="status">
               <LogoLoader className="answer__loader" />
               <p className="answer__title">설정 규칙을 찾고 있어요</p><AnalysisProgress label="세계관 규칙 분석 중" />
-              <p className="answer__body">세계관 규칙으로 볼 만한 문장을 원고에서 모으는 중이에요.</p>
+              <p className="answer__body">다른 화면으로 이동해도 추출은 계속돼요. 돌아오면 진행 상태와 결과를 이어서 볼 수 있어요.</p>
             </div>
           )}
-          {extraction.job?.status === 'failed' && (
+          {!running && latestExtraction?.status === 'failed' && (
             <div className="state-block state-block--error" role="alert">
               <p className="answer__title">규칙을 추출하지 못했어요</p>
               <p className="answer__body">이미 확정한 규칙은 그대로 남아 있어요.</p>
             </div>
           )}
-          {rules.data && visible.length === 0 && !running && (
+          {rules.data && visible.length === 0 && !running && !extraction.loading && !extraction.error && (
             <div className="state-block">
               <p className="answer__title">찾은 규칙이 없어요</p>
               <p className="answer__body">원고에서 규칙을 추출하거나 필요한 규칙을 직접 추가해 보세요.</p>
@@ -208,12 +211,13 @@ export function RulesPage() {
               >
                 + 규칙 직접 추가
               </Button>
-              <Button tone="secondary" onClick={startExtraction} busy={running} disabled={!latest}>
-                {running ? '추출하는 중…' : '원고에서 다시 추출'}
+              <Button tone="secondary" onClick={startExtraction} busy={running} disabled={!latest || extraction.loading || Boolean(extraction.error)}>
+                {running ? '추출하는 중…' : extraction.loading ? '이전 작업 확인 중…' : '원고에서 다시 추출'}
               </Button>
             </div>
           )}
-          {extraction.error && <p className="notice notice--error">{extraction.error}</p>}
+          {(extractionError || extraction.error) && <p className="notice notice--error" role="alert">{extractionError || `작업 상태를 다시 확인하고 있어요. ${extraction.error}`}</p>}
+          {rules.error && <p className="notice notice--error" role="alert">{rules.error}</p>}
           {!latest && manuscripts.data && <p className="panel__label">규칙을 추출하려면 먼저 원고를 올려 주세요.</p>}
         </section>
 
@@ -334,7 +338,7 @@ export function RulesPage() {
                 )}
                 {(selected.evidence_sources?.length ?? 0) > 0 && (
                   <div className="evidence-box">
-                    <p className="panel__title">합쳐진 원문 근거 {selected.evidence_sources!.length}건</p>
+                    <p className="panel__title">원문 근거 {selected.evidence_sources!.length}건</p>
                     {selected.evidence_sources!.map((source) => (
                       <p key={`${source.extraction_id}/${source.candidate_index}`}>
                         “{source.quote}”{' '}
@@ -354,7 +358,7 @@ export function RulesPage() {
                     ))}
                   </div>
                 )}
-                {selected.evidence && (
+                {selected.evidence && !selected.evidence_sources?.length && (
                   <div className="evidence-box">
                     원문 근거{selected.source_chapter ? ` · ${selected.source_chapter}장` : ''} “{selected.evidence}”
                     {latest && selected.source_chapter && !selected.evidence_sources?.length && (

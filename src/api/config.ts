@@ -93,6 +93,7 @@ const AI_ROUTES: Array<[string, RegExp]> = [
   ['GET', r('{P}\\/nl-extractions\\/{ID}$')],
   ['POST', r('{P}\\/nl-extractions\\/{ID}\\/(retry|forward)$')],
   // REX AI 규칙 추출
+  ['GET', r('{P}\\/rule-extractions$')],
   ['POST', r('{P}\\/manuscripts\\/{ID}\\/rule-extractions$')],
   ['GET', r('{P}\\/manuscripts\\/{ID}\\/rule-extractions\\/{ID}$')],
   ['POST', r('{P}\\/manuscripts\\/{ID}\\/rule-extractions\\/{ID}\\/(retry|confirm)$')],
