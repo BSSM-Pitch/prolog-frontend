@@ -219,6 +219,16 @@ export const worldRoutes: Route[] = [
     },
   ],
   [
+    'GET',
+    '/projects/:projectId/rule-extractions',
+    (req, db, { projectId }) => {
+      const access = requireProject(req, db, projectId)
+      if (isResponse(access)) return access
+      settleJobs(db)
+      return ok(200, db.jobs.filter((j) => j.project_id === projectId && j.kind === 'rule_extraction').sort((a, b) => b.created_at.localeCompare(a.created_at)).map(toJob))
+    },
+  ],
+  [
     // 4.1 규칙 추출 요청 (가장 최근 원고 대상)
     'POST',
     '/projects/:projectId/manuscripts/:manuscriptId/rule-extractions',
@@ -226,6 +236,9 @@ export const worldRoutes: Route[] = [
       const access = requireProject(req, db, projectId, 'editor')
       if (isResponse(access)) return access
       if (!db.manuscripts.some((m) => m.manuscript_id === manuscriptId && m.project_id === projectId)) return fail(404, 'MANUSCRIPT_NOT_FOUND', '원고를 찾을 수 없어요.')
+      settleJobs(db)
+      const active = db.jobs.find((j) => j.project_id === projectId && j.manuscript_id === manuscriptId && j.kind === 'rule_extraction' && ['queued', 'analyzing'].includes(j.status))
+      if (active) return ok(202, toJob(active))
       const job: MockJob = {
         job_id: nextId(db, 'rex'),
         project_id: projectId,

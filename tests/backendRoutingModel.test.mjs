@@ -19,3 +19,7 @@ test('source confirmations persist through the real backend instead of mock fall
   assert.equal(isBackendRoute('POST', `${p}/relationships/${id}/history/${id}/source-confirmation`), true)
   assert.equal(isBackendRoute('DELETE', `${p}/foreshadowings/${id}/source-confirmation`), false)
 })
+
+test('world-rule restoration reaches the server rather than browser-only mock history', () => {
+  assert.equal(isBackendRoute('GET', '/projects/80388efe-ffed-4551-8647-9b6a02ef0781/rule-extractions'), true)
+})

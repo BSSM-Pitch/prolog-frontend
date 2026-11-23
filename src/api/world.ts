@@ -67,6 +67,11 @@ export function extractRules(token: string, projectId: string, manuscriptId: str
   return request<RuleExtraction>('POST', `${p(projectId)}/manuscripts/${manuscriptId}/rule-extractions`, { accessToken: token })
 }
 
+export function listRuleExtractions(token: string, projectId: string) {
+  if (IS_REAL) return ai.listRuleExtractions(token, projectId)
+  return request<RuleExtraction[]>('GET', `${p(projectId)}/rule-extractions`, { accessToken: token })
+}
+
 export function getRuleExtraction(token: string, projectId: string, manuscriptId: string, jobId: string) {
   if (IS_REAL) return ai.getRuleExtraction(token, projectId, manuscriptId, jobId)
   return request<RuleExtraction>('GET', `${p(projectId)}/manuscripts/${manuscriptId}/rule-extractions/${jobId}`, { accessToken: token })

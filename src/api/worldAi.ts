@@ -5,46 +5,10 @@ import type { Conflict, ConflictCheck, RuleAssessment, RuleExtraction, WorldRule
 
 // real 모드 AI — prolog-backend 06b8928의 REX 추출과 SCDS를 화면 모양으로 맞춘다.
 //
-// REX: 규칙 후보는 추출 작업 결과 안에만 있고 "추출 목록" API가 없다. 이 브라우저에서 요청한 추출 ID를 기억해 두고
-//   목록을 부를 때 그 결과의 후보를 확정 규칙 뒤에 붙인다. 후보 ID는 "추출ID~번호"다.
-// SCDS: 서버의 원고 전체 검사 한 건을 사용한다. 규칙 등록 없이 설정·관계·복선을 추적한다.
+// REX: 서버에 저장된 작품별 작업 목록에서 진행 상태와 미확정 후보를 복원한다.
+// SCDS: 서버의 원고 전체 검사 한 건을 사용한다.
 
 const p = (projectId: string) => `/projects/${projectId}`
-
-// --- 저장소 (이 브라우저) -------------------------------------------------------------------------
-
-function readStore<T>(key: string): Record<string, T> {
-  try {
-    return JSON.parse(localStorage.getItem(key) ?? '{}') as Record<string, T>
-  } catch {
-    return {}
-  }
-}
-
-function writeStore<T>(key: string, store: Record<string, T>) {
-  try {
-    localStorage.setItem(key, JSON.stringify(store))
-  } catch {
-    // 저장소를 못 쓰면 이번 화면에서만 기억한다
-  }
-}
-
-const EXTRACTIONS = 'prolog.rule-extractions.v1'
-type RememberedExtraction = { extraction_id: string; manuscript_id: string }
-
-const remembered = (projectId: string) => readStore<RememberedExtraction[]>(EXTRACTIONS)[projectId] ?? []
-
-function remember(projectId: string, e: RememberedExtraction) {
-  const store = readStore<RememberedExtraction[]>(EXTRACTIONS)
-  store[projectId] = [e, ...(store[projectId] ?? []).filter((x) => x.extraction_id !== e.extraction_id)].slice(0, 20)
-  writeStore(EXTRACTIONS, store)
-}
-
-function forget(projectId: string, extractionId: string) {
-  const store = readStore<RememberedExtraction[]>(EXTRACTIONS)
-  store[projectId] = (store[projectId] ?? []).filter((x) => x.extraction_id !== extractionId)
-  writeStore(EXTRACTIONS, store)
-}
 
 // --- REX ----------------------------------------------------------------------------------------
 
@@ -68,6 +32,7 @@ interface BackendRuleExtraction {
   status: 'queued' | 'extracting' | 'completed' | 'failed'
   extracted_rules: BackendCandidate[]
   created_at: string
+  updated_at: string
 }
 
 type CandidateEdit = { title?: string; description?: string; violation_keywords?: string[] }
@@ -95,17 +60,12 @@ const toRuleJob = (e: BackendRuleExtraction): RuleExtraction => ({
   manuscript_id: e.manuscript_id,
 })
 
-async function fetchExtraction(token: string, projectId: string, r: RememberedExtraction) {
-  try {
-    return (
-      await requestLenient<BackendRuleExtraction>('GET', extractionPath(projectId, r.manuscript_id, r.extraction_id), {
-        accessToken: token,
-      })
-    ).data
-  } catch (e) {
-    if (e instanceof ApiError && e.status === 404) forget(projectId, r.extraction_id)
-    return null
-  }
+async function loadExtractions(token: string, projectId: string) {
+  return requestAll<BackendRuleExtraction>(`${p(projectId)}/rule-extractions`, { accessToken: token })
+}
+
+export async function listRuleExtractions(token: string, projectId: string) {
+  return (await loadExtractions(token, projectId)).map(toRuleJob)
 }
 
 export async function extractRules(token: string, projectId: string, manuscriptId: string) {
@@ -113,7 +73,6 @@ export async function extractRules(token: string, projectId: string, manuscriptI
   const e = (
     await requestLenient<BackendRuleExtraction>('POST', extractionPath(projectId, manuscriptId), { accessToken: token })
   ).data
-  remember(projectId, { extraction_id: e.extraction_id, manuscript_id: e.manuscript_id })
   return toRuleJob(e)
 }
 
@@ -130,7 +89,7 @@ export async function getRuleExtraction(token: string, projectId: string, manusc
 export async function listRules(token: string, projectId: string): Promise<WorldRule[]> {
   const [rules, extractions] = await Promise.all([
     requestAll<BackendWorldRule>(`${p(projectId)}/world-rules`, { accessToken: token }),
-    Promise.all(remembered(projectId).map((r) => fetchExtraction(token, projectId, r))),
+    loadExtractions(token, projectId),
   ])
   // 백엔드 후보는 근거 장(source_chapter)을 비워 둔다. 근거 문장이 들어 있는 장을 찾아 채운다
   const manuscriptIds = [
@@ -184,6 +143,10 @@ export async function listRules(token: string, projectId: string): Promise<World
         status: c.review_status === 'ignored' ? 'ignored' : 'pending',
         source_chapter: c.source_chapter ?? chapterOf(e.manuscript_id, c.evidence),
         evidence: c.evidence,
+        evidence_sources: c.evidence ? [{
+          manuscript_id: e.manuscript_id, extraction_id: e.extraction_id, candidate_index: c.index,
+          source_hash: null, chapter_no: c.source_chapter ?? chapterOf(e.manuscript_id, c.evidence), quote: c.evidence,
+        }] : [],
         duplicate_rule_id: c.duplicate_rule_id,
         duplicate_reason: c.duplicate_reason,
         duplicate_kind: c.duplicate_kind,
@@ -204,11 +167,11 @@ async function reviewCandidate(
   },
 ) {
   const { extractionId, index } = parseCandidate(id)
-  const found = remembered(projectId).find((r) => r.extraction_id === extractionId)
+  const found = (await loadExtractions(token, projectId)).find((r) => r.extraction_id === extractionId)
   if (!found)
     throw new ApiError(404, {
       code: 'EXTRACTION_NOT_FOUND',
-      message: '규칙 후보를 찾을 수 없어요. 규칙을 다시 추출해 주세요.',
+      message: '규칙 후보를 찾을 수 없어요. 원고가 삭제되었는지 확인해 주세요.',
       details: { index },
     })
   return request<BackendWorldRule[]>(
