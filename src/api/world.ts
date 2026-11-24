@@ -62,9 +62,9 @@ export async function deleteRule(token: string, projectId: string, ruleId: strin
 }
 
 /** REX 4.1 규칙 추출 요청 */
-export function extractRules(token: string, projectId: string, manuscriptId: string) {
-  if (IS_REAL) return ai.extractRules(token, projectId, manuscriptId)
-  return request<RuleExtraction>('POST', `${p(projectId)}/manuscripts/${manuscriptId}/rule-extractions`, { accessToken: token })
+export function extractRules(token: string, projectId: string, manuscriptId: string, chapterIds?: string[]) {
+  if (IS_REAL) return ai.extractRules(token, projectId, manuscriptId, chapterIds)
+  return request<RuleExtraction>('POST', `${p(projectId)}/manuscripts/${manuscriptId}/rule-extractions`, { accessToken: token, body: { chapter_ids: chapterIds } })
 }
 
 export function listRuleExtractions(token: string, projectId: string) {

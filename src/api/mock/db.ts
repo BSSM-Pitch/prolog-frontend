@@ -215,6 +215,9 @@ export interface MockJob {
   status: 'queued' | 'analyzing' | 'completed' | 'failed' | 'skipped'
   manuscript_id: string | null
   chapter_id?: string
+  rule_chapters?: MockChapter[]
+  chapter_ids?: string[]
+  char_count?: number
   ready_at: number | null
   will_fail: boolean
   result_ids: string[]

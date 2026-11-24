@@ -33,6 +33,9 @@ interface BackendRuleExtraction {
   extracted_rules: BackendCandidate[]
   created_at: string
   updated_at: string
+  chapter_ids?: string[] | null
+  chapter_numbers?: number[] | null
+  char_count?: number | null
 }
 
 type CandidateEdit = { title?: string; description?: string; violation_keywords?: string[] }
@@ -58,6 +61,7 @@ const toRuleJob = (e: BackendRuleExtraction): RuleExtraction => ({
     .map((c) => candidateId(e.extraction_id, c.index)),
   skipped_reason: null,
   manuscript_id: e.manuscript_id,
+  chapter_ids: e.chapter_ids, chapter_numbers: e.chapter_numbers, char_count: e.char_count,
 })
 
 async function loadExtractions(token: string, projectId: string) {
@@ -68,10 +72,10 @@ export async function listRuleExtractions(token: string, projectId: string) {
   return (await loadExtractions(token, projectId)).map(toRuleJob)
 }
 
-export async function extractRules(token: string, projectId: string, manuscriptId: string) {
-  await syncManuscriptContent(token, projectId, manuscriptId)
+export async function extractRules(token: string, projectId: string, manuscriptId: string, chapterIds?: string[]) {
+  if (chapterIds === undefined) await syncManuscriptContent(token, projectId, manuscriptId)
   const e = (
-    await requestLenient<BackendRuleExtraction>('POST', extractionPath(projectId, manuscriptId), { accessToken: token })
+    await requestLenient<BackendRuleExtraction>('POST', extractionPath(projectId, manuscriptId), { accessToken: token, body: { chapter_ids: chapterIds } })
   ).data
   return toRuleJob(e)
 }

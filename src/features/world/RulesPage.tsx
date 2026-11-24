@@ -17,6 +17,7 @@ import '../manuscripts/answer.css'
 import './world.css'
 import { TextArea } from '../../components/TextArea'
 import { Select } from '../../components/Select'
+import { RuleExtractionDialog } from './RuleExtractionDialog'
 
 type Draft = { title: string; description: string; keywords: string }
 const toKeywords = (s: string) =>
@@ -49,7 +50,7 @@ function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProj
 
   const extraction = useRuleExtractions(projectId, rules.reload)
   const [submitting, setSubmitting] = useState(false)
-  const [extractionError, setExtractionError] = useState<string | null>(null)
+  const [choosingChapters, setChoosingChapters] = useState(false)
   const submitLock = useRef(false)
   const activeExtractions = (extraction.jobs ?? []).filter(isRunning)
   const latestExtraction = extraction.jobs?.[0]
@@ -82,17 +83,14 @@ function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProj
     }
   }
 
-  async function startExtraction() {
-    if (!latest || submitLock.current || extraction.loading || activeExtractions.length) return
+  async function startExtraction(manuscriptId: string, chapterIds: string[]) {
+    if (submitLock.current || extraction.loading || activeExtractions.length) throw new Error("Extraction already active")
     submitLock.current = true
     setSubmitting(true)
     setNotice(null)
-    setExtractionError(null)
     try {
-      await withAuth((t) => api.extractRules(t, projectId, latest.manuscript_id))
-      extraction.refresh()
-    } catch (e) {
-      setExtractionError(describeError(e))
+      const job = await withAuth((t) => api.extractRules(t, projectId, manuscriptId, chapterIds))
+      extraction.accept(job)
     } finally {
       submitLock.current = false
       setSubmitting(false)
@@ -136,6 +134,12 @@ function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProj
 
   return (
     <div className="world">
+      {choosingChapters && <RuleExtractionDialog
+        projectId={projectId}
+        manuscripts={(manuscripts.data ?? []).filter((m) => m.status === 'ready')}
+        onSubmit={startExtraction}
+        onClose={() => setChoosingChapters(false)}
+      />}
       <header>
         <p className="page-crumb">
           원고 기반 규칙 / 확정 {confirmed.length} · 검토 대기 {pending.length}
@@ -166,15 +170,18 @@ function RulesView({ project }: { project: NonNullable<ReturnType<typeof useProj
               >
                 + 규칙 직접 추가
               </Button>
-              <Button tone="secondary" onClick={startExtraction} busy={running} disabled={!latest || extraction.loading || Boolean(extraction.error)}>
+              <Button tone="secondary" onClick={() => setChoosingChapters(true)} busy={running} disabled={!latest || extraction.loading || Boolean(extraction.error)}>
                 {running ? '추출하는 중…' : extraction.loading ? '이전 작업 확인 중…' : '원고에서 다시 추출'}
               </Button>
             </div>
           )}
-          {(extractionError || extraction.error) && <p className="notice notice--error" role="alert">{extractionError || `작업 상태를 다시 확인하고 있어요. ${extraction.error}`}</p>}
+          {extraction.error && <p className="notice notice--error" role="alert">{`작업 상태를 다시 확인하고 있어요. ${extraction.error}`}</p>}
           {rules.error && <p className="notice notice--error" role="alert">{rules.error}</p>}
           {!latest && manuscripts.data && <p className="panel__label">규칙을 추출하려면 먼저 원고를 올려 주세요.</p>}
 
+          {latestExtraction?.char_count != null && (
+            <p className="panel__label">최근 추출 범위 · {latestExtraction.chapter_numbers?.length ? `${latestExtraction.chapter_numbers.join(', ')}장` : '전체 원고'} · {latestExtraction.char_count.toLocaleString()}자</p>
+          )}
           {running && (
             <div className="state-block" role="status">
               <LogoLoader className="answer__loader" />

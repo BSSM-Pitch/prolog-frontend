@@ -33,7 +33,15 @@ export function useRuleExtractions(projectId: string, onChange: () => void) {
     return () => { stop(); window.removeEventListener('focus', refresh) }
   }, [projectId, withAuth, revision])
 
-  return { jobs, error, loading: jobs === null, refresh: () => setRevision((r) => r + 1) }
+  return {
+    jobs, error, loading: jobs === null,
+    refresh: () => setRevision((r) => r + 1),
+    accept: (job: RuleExtraction) => {
+      setJobs((previous) => [job, ...(previous ?? []).filter((item) => item.job_id !== job.job_id)])
+      setError(null)
+      setRevision((r) => r + 1)
+    },
+  }
 }
 
 export function isRunning(job: RuleExtraction) {

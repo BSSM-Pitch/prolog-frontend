@@ -445,7 +445,11 @@ export interface NarrativeResult {
   findings: NarrativeFinding[]
   more_items: boolean
 }
-export type RuleExtraction = ConflictCheck
+export type RuleExtraction = ConflictCheck & {
+  chapter_ids?: string[] | null
+  chapter_numbers?: number[] | null
+  char_count?: number | null
+}
 
 // RCV 명세 — 관계 변화
 

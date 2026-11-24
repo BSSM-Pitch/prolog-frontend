@@ -1,3 +1,4 @@
+import { ruleExtractionSelection } from '../../../features/world/ruleExtractionModel'
 import type { Conflict, ConflictCheck, RuleExtraction, WorldRule } from '../../types'
 import { requireProject, touchProject } from '../access'
 import { findRuleCandidates, matchesKeyword, splitSentences } from '../ai'
@@ -36,7 +37,7 @@ function toConflict(w: ReturnType<typeof world>, c: DemoConflict): Conflict {
 }
 
 function toJob(j: MockJob): ConflictCheck & RuleExtraction {
-  return { job_id: j.job_id, status: j.status, result_ids: j.result_ids, skipped_reason: j.skipped_reason, manuscript_id: j.manuscript_id }
+  return { job_id: j.job_id, status: j.status, result_ids: j.result_ids, skipped_reason: j.skipped_reason, manuscript_id: j.manuscript_id, chapter_ids: j.chapter_ids, chapter_numbers: j.rule_chapters?.map((c) => c.chapter_no), char_count: j.char_count }
 }
 
 /** 목업: 끝날 시간이 된 작업의 결과를 만든다 */
@@ -57,7 +58,7 @@ function settleJobs(db: MockDb) {
     if (j.kind === 'rule_extraction') {
       // 이미 있는 규칙의 근거 문장을 포함하거나 그 안에 들어가는 문장은 같은 규칙으로 본다
       const known = w.rules.map((r) => (r.evidence ?? '').replace(/[.。]$/, '')).filter(Boolean)
-      const found = findRuleCandidates(chapters).filter((c) => !known.some((k) => c.sentence.includes(k) || k.includes(c.sentence.replace(/[.。]$/, ''))))
+      const found = findRuleCandidates(j.rule_chapters ?? chapters).filter((c) => !known.some((k) => c.sentence.includes(k) || k.includes(c.sentence.replace(/[.。]$/, ''))))
       for (const f of found.slice(0, 5)) {
         const rule: DemoRule = {
           rule_id: nextId(db, 'wr'),
@@ -236,11 +237,23 @@ export const worldRoutes: Route[] = [
       const access = requireProject(req, db, projectId, 'editor')
       if (isResponse(access)) return access
       if (!db.manuscripts.some((m) => m.manuscript_id === manuscriptId && m.project_id === projectId)) return fail(404, 'MANUSCRIPT_NOT_FOUND', '원고를 찾을 수 없어요.')
+      const requested = (req.body as Body)?.chapter_ids
+      const available = db.chapters.filter((c) => c.manuscript_id === manuscriptId)
+      const ids = requested == null ? available.map((c) => c.chapter_id) : requested
+      if (!Array.isArray(ids) || ids.some((id) => typeof id !== 'string') || new Set(ids).size !== ids.length || ids.some((id) => !available.some((c) => c.chapter_id === id))) return fail(400, 'INVALID_INPUT', '선택한 장을 이 원고에서 찾을 수 없어요.')
+      const selection = ruleExtractionSelection(available, ids as string[])
+      if (selection.error) return fail(400, 'INVALID_INPUT', selection.error)
       settleJobs(db)
       const active = db.jobs.find((j) => j.project_id === projectId && j.manuscript_id === manuscriptId && j.kind === 'rule_extraction' && ['queued', 'analyzing'].includes(j.status))
-      if (active) return ok(202, toJob(active))
+      if (active) {
+        if (active.rule_chapters && JSON.stringify(active.rule_chapters) !== JSON.stringify(selection.selected)) return fail(400, 'INVALID_INPUT', '이 원고에서 다른 범위의 규칙을 추출 중이에요. 완료 후 다시 요청해 주세요.')
+        return ok(202, toJob(active))
+      }
       const job: MockJob = {
         job_id: nextId(db, 'rex'),
+        rule_chapters: structuredClone(selection.selected),
+        chapter_ids: selection.selected.map((c) => c.chapter_id),
+        char_count: selection.charCount,
         project_id: projectId,
         kind: 'rule_extraction',
         status: 'queued',
