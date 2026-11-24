@@ -1,0 +1,8 @@
+.rule-extraction-form { display: grid; gap: 12px; }
+.rule-extraction-chapters { border: 1px solid var(--line, #deddd7); border-radius: 8px; padding: 12px; max-height: 38vh; overflow-y: auto; min-width: 0; }
+.rule-extraction-chapters legend { padding: 0 6px; font-size: 13px; }
+.rule-extraction-chapter { display: flex; align-items: center; gap: 10px; padding: 10px 4px; cursor: pointer; }
+.rule-extraction-chapter input { flex: none; width: 16px; height: 16px; }
+.rule-extraction-chapter > span:nth-child(2) { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rule-extraction-chapter > span:last-child { flex: none; text-align: right; }
+@media (max-width: 480px) { .rule-extraction-chapter { flex-wrap: wrap; } .rule-extraction-chapter > span:last-child { margin-left: 26px; } }
