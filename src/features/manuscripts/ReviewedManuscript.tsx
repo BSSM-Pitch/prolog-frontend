@@ -105,15 +105,15 @@ export function ReviewedManuscript(props: Props) {
             : '키워드 검색을 마쳤어요. AI 의미 검토가 없는 이전 검사 결과예요.',
       )
   }
-  const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), completed)
-  const checking = starting || check.running
+  const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), completed, `${projectId}:${manuscriptId}`)
+  const checking = starting || check.starting || check.running
 
   useEffect(() => {
     let cancelled = false
     const epoch = ++reviewEpoch.current
     withAuth((token) => api.latestNarrativeReview(token, projectId, manuscriptId))
       .then((job) => { if (!cancelled && epoch === reviewEpoch.current && !submitLock.current) check.setJob(job) })
-      .catch((error) => { if (!cancelled) check.setError(describeError(error)) })
+      .catch((error) => { if (!cancelled && epoch === reviewEpoch.current) check.setError(describeError(error)) })
     return () => { cancelled = true }
     // Restore the durable job on chapter navigation, without starting a paid review.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,16 +125,18 @@ export function ReviewedManuscript(props: Props) {
     reviewEpoch.current += 1
     setStarting(true)
     setMessage(null)
+    check.clearNotice()
     check.setError(null)
     try {
       if (!(await props.beforeCheck())) {
         setMessage('원고를 저장한 뒤 다시 검사해 주세요.')
         return
       }
-      const job = await withAuth((token) => api.rescan(token, projectId, false, { manuscriptId, chapterId }))
-      setLocalDirty(false)
-      check.setJob(job)
-      if (!['queued', 'analyzing'].includes(job.status)) completed(job)
+      await check.submit(async () => {
+        const job = await withAuth((token) => api.rescan(token, projectId, false, { manuscriptId, chapterId }))
+        setLocalDirty(false)
+        return job
+      })
     } catch (error) {
       check.setError(describeError(error))
     } finally {
@@ -154,10 +156,8 @@ export function ReviewedManuscript(props: Props) {
     setStarting(true)
     try {
       check.setError(null)
-      const next = await withAuth((token) => api.retryConflictCheck(token, projectId, check.job!.job_id))
-      check.setJob(next)
       setMessage(null)
-      if (!['queued', 'analyzing'].includes(next.status)) completed(next)
+      await check.submit(() => withAuth((token) => api.retryConflictCheck(token, projectId, check.job!.job_id)))
     } catch (error) {
       check.setError(describeError(error))
     } finally {
@@ -322,9 +322,9 @@ export function ReviewedManuscript(props: Props) {
         )}
       </div>
       {checking && <AnalysisProgress label="전체 원고의 설정·복선 검토 중" />}
-      {(error || message) && (
+      {(error || check.notice || message) && (
         <p className="manuscript-review__notice" role="status">
-          {error ?? message}
+          {error ?? check.notice ?? message}
           {review.error && (
             <button type="button" className="text-link" onClick={review.reload}>
               다시 불러오기
