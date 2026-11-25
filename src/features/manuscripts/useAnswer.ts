@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import * as api from '../../api/manuscripts'
 import type { QAMessage } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { describeError } from '../../lib/errors'
+import { useJobRequest } from '../../lib/useJobRequest'
 
 interface Target {
   projectId: string
@@ -23,7 +24,10 @@ export function useAnswer(target: Target | null, source: QAMessage | null) {
   // 다른 메시지로 바뀌었으면 이전에 받은 값은 버린다
   const message = latest && latest.message_id === target?.messageId ? latest : source
   const pending = message?.status === 'pending'
-  const key = target ? `${target.threadId}/${target.messageId}` : ''
+  const key = target ? `${target.projectId}/${target.manuscriptId}/${target.threadId}/${target.messageId}` : ''
+  const [connectionAttempt, setConnectionAttempt] = useState(0)
+  const retryRequest = useJobRequest<QAMessage>(key, setLatest)
+  useEffect(() => { setError(null) }, [key])
 
   useEffect(() => {
     if (!target || !pending) return
@@ -52,18 +56,17 @@ export function useAnswer(target: Target | null, source: QAMessage | null) {
     }
     // target 객체는 매 렌더 새로 만들어지므로 key로만 반응한다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, pending, withAuth])
+  }, [key, pending, withAuth, connectionAttempt])
 
-  const retry = useCallback(async () => {
-    if (!target) return
+  async function retry() {
+    if (!target || pending) return
     setError(null)
-    try {
-      setLatest(await withAuth((t) => api.retryMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId)))
-    } catch (e) {
-      setError(describeError(e))
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, withAuth])
+    await retryRequest.run(() => withAuth((t) => api.retryMessage(t, target.projectId, target.manuscriptId, target.threadId, target.messageId)))
+  }
 
-  return { message, setMessage: setLatest, error, retry }
+  return {
+    message, setMessage: setLatest, error: retryRequest.error ?? error, retry,
+    retrying: retryRequest.busy,
+    reconnect: () => { setError(null); setConnectionAttempt((value) => value + 1) },
+  }
 }

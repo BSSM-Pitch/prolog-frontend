@@ -14,6 +14,7 @@ import { describeError } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import { InsightNav } from '../insights/InsightNav'
+import { AddRelationship } from './AddRelationship'
 import { NarrativeReview } from '../insights/NarrativeReview'
 import { InsightDialog } from '../insights/InsightDialog'
 import { chapterAt, relationshipView, snapshotAt, toneOf } from '../insights/insightModel'
@@ -460,6 +461,9 @@ function Relationships({
       )}
       {adding && (
         <AddRelationship
+          projectId={projectId}
+          manuscriptId={manuscriptId}
+          chapterRows={chapters.data ?? []}
           people={people}
           chapter={chapter}
           chapters={(chapters.data ?? []).map((item) => item.chapter_no)}
@@ -561,112 +565,5 @@ function RecordForm({
         </Button>
       </div>
     </form>
-  )
-}
-
-function AddRelationship({
-  people,
-  chapter,
-  chapters,
-  onCancel,
-  onSubmit,
-}: {
-  people: Array<{ character_id: string; name: string }>
-  chapter: number
-  chapters: number[]
-  onCancel: () => void
-  onSubmit: (input: {
-    source_character_id: string
-    target_character_id: string
-    initial_history: api.EntryInput
-  }) => Promise<void>
-}) {
-  const [a, setA] = useState(people[0]?.character_id ?? '')
-  const [b, setB] = useState(people[1]?.character_id ?? '')
-  const [first, setFirst] = useState(String(chapters.includes(chapter) ? chapter : chapters[0] ?? ''))
-  const [state, setState] = useState('우호')
-  const [trust, setTrust] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    if (busy) return
-    if (a === b) return setError('서로 다른 두 인물을 골라 주세요.')
-    if (!chapters.includes(Number(first))) return setError('원고에 있는 장을 골라 주세요.')
-    setBusy(true)
-    setError(null)
-    try {
-      await onSubmit({
-        source_character_id: a,
-        target_character_id: b,
-        initial_history: { chapter: Number(first), state, trust: trust === '' ? null : Number(trust) },
-      })
-    } catch (err) {
-      setError(describeError(err))
-      setBusy(false)
-    }
-  }
-
-  return (
-    <InsightDialog title="관계 추가" onClose={onCancel} busy={busy}>
-      <form className="insight-form" onSubmit={submit}>
-        <div className="two-col form-grid">
-          {[
-            ['인물 A', a, setA],
-            ['인물 B', b, setB],
-          ].map(([label, value, setter]) => (
-            <label key={label as string} className="field">
-              <span className="field__label">{label as string}</span>
-              <Select
-                className="nl-select"
-                value={value as string}
-                onChange={(e) => (setter as (v: string) => void)(e.target.value)}
-              >
-                {people.map((p) => (
-                  <option key={p.character_id} value={p.character_id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
-            </label>
-          ))}
-          <label className="field">
-            <span className="field__label">첫 기록 장</span>
-            <Select value={first} onChange={(e) => setFirst(e.target.value)}>
-              {chapters.map((no) => <option key={no} value={no}>{no}장</option>)}
-            </Select>
-          </label>
-          <label className="field">
-            <span className="field__label">관계 상태</span>
-            <Select className="nl-select" value={state} onChange={(e) => setState(e.target.value)}>
-              {RELATION_STATES.map((s) => (
-                <option key={s}>{s}</option>
-              ))}
-            </Select>
-          </label>
-          <label className="field">
-            <span className="field__label">신뢰도 · 선택 · 0~100</span>
-            <input
-              className="char-search"
-              type="number"
-              min={0}
-              max={100}
-              value={trust}
-              onChange={(e) => setTrust(e.target.value)}
-            />
-          </label>
-        </div>
-        {error && <p className="notice notice--error" role="alert">{error}</p>}
-        <div className="dialog__actions">
-          <Button tone="outline" onClick={onCancel}>
-            취소
-          </Button>
-          <Button type="submit" busy={busy}>
-            관계 추가
-          </Button>
-        </div>
-      </form>
-    </InsightDialog>
   )
 }

@@ -50,6 +50,8 @@ const BACKEND_ROUTES: Array<[string, RegExp]> = [
   ['POST', /^\/projects\/[^/]+\/foreshadowings\/[^/]+\/source-confirmation$/],
   ['POST', /^\/projects\/[^/]+\/relationships\/[^/]+\/history\/[^/]+\/source-confirmation$/],
   // FTS (사건 연결 제외 전부)
+  ['POST', /^\/projects\/[^/]+\/relationship-drafts$/],
+  ['GET', /^\/projects\/[^/]+\/relationship-drafts\/[^/]+$/],
   // RCV — 원고별 실제 관계 기록 (chapter_id로 저장)
   ['GET|POST', /^\/projects\/[^/]+\/relationships$/],
   ['GET|DELETE', /^\/projects\/[^/]+\/relationships\/[^/]+$/],

@@ -10,8 +10,8 @@ import { IS_REAL } from '../../api/config'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { Select } from '../../components/Select'
-import { describeError } from '../../lib/errors'
-import { useInterval, useResource } from '../../lib/useResource'
+import { useResource } from '../../lib/useResource'
+import { useJobRequest } from '../../lib/useJobRequest'
 import { projectPath } from '../app/currentProject'
 import {
   kindLabel,
@@ -117,9 +117,14 @@ function MemoryWorkspace({
   onCharactersChanged: () => void
   onOverview?: (overview: MemoryOverview | null) => void
 }) {
-  const state = useResource((t) => api.getMemory(t, projectId, manuscriptId), [projectId, manuscriptId])
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const state = useResource((t) => api.getMemory(t, projectId, manuscriptId), [projectId, manuscriptId], {
+    pollInterval: (data) => !data || (data.job && ['queued', 'running'].includes(data.job.status)) ? 4000 : false,
+  })
+  const action = useJobRequest<api.MemoryJob>(`${projectId}:${manuscriptId}`, (job) => {
+    state.setData((previous) => previous ? { ...previous, job } : previous)
+    state.reload()
+  })
+  const { busy, error } = action
   const [order, setOrder] = useState('')
   const { withAuth } = useSession()
   const memory = state.data
@@ -128,28 +133,18 @@ function MemoryWorkspace({
     return () => onOverview?.(null)
   }, [memory, onOverview])
   const working = memory?.job?.status === 'queued' || memory?.job?.status === 'running'
-  useInterval(state.reload, 4000, working)
   const discoveryComplete = memory?.job?.discovery?.complete
   const analysisId = memory?.job?.analysis_id
   useEffect(() => {
     if (discoveryComplete) onCharactersChanged()
   }, [analysisId, discoveryComplete, onCharactersChanged])
   async function analyze(retry = false) {
-    if (busy) return
-    setBusy(true)
-    setError(null)
-    try {
-      await withAuth((t) =>
-        retry && memory?.job
-          ? api.retryMemory(t, projectId, manuscriptId, memory.job.analysis_id)
-          : api.buildMemory(t, projectId, manuscriptId),
-      )
-      state.reload()
-    } catch (e) {
-      setError(describeError(e))
-    } finally {
-      setBusy(false)
-    }
+    if (working) return
+    await action.run(() => withAuth((t) =>
+      retry && memory?.job
+        ? api.retryMemory(t, projectId, manuscriptId, memory.job.analysis_id)
+        : api.buildMemory(t, projectId, manuscriptId),
+    ))
   }
   if (state.error)
     return (
@@ -187,6 +182,7 @@ function MemoryWorkspace({
       {memory.mode === 'fake' && (
         <div className="detail-notice">테스트 모드로 만든 빈 분석입니다. 실제 디테일 분석 결과가 아니에요.</div>
       )}
+      {busy && <p className="detail-notice" role="status">인물 분석을 요청하고 있어요.</p>}
       {working ? (
         <div className="memory-progress" role="status">
           <span className="memory-pulse" />

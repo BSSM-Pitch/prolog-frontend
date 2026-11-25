@@ -1,7 +1,6 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import * as api from '../../api/characters'
-import type { NLExtraction } from '../../api/types'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
 import { LogoLoader } from '../../components/LogoLoader'
@@ -9,6 +8,7 @@ import { TextField } from '../../components/TextField'
 import { describeError, errorCode } from '../../lib/errors'
 import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
+import { useExtraction } from './useExtraction'
 import { CATEGORIES, Stepper } from './shared'
 import '../manuscripts/answer.css'
 import './characters.css'
@@ -19,6 +19,14 @@ const EXAMPLE = '윤서는 신중하지만 집요하고, 약속을 무엇보다 
 
 // Figma 842:994 · 22 문장으로 인물 그리기
 export function NewCharacterPage() {
+  const project = useProject()
+  const { user } = useSession()
+  const [params] = useSearchParams()
+  if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
+  return <NewCharacterForm key={`${user?.user_id}:${project.project_id}:${params.get('target') ?? ''}`} />
+}
+
+function NewCharacterForm() {
   const project = useProject()
   const navigate = useNavigate()
   const [params] = useSearchParams()
@@ -31,25 +39,24 @@ export function NewCharacterPage() {
   const [name, setName] = useState('')
   const [text, setText] = useState('')
   const [errors, setErrors] = useState<{ name?: string; text?: string }>({})
-  const [extraction, setExtraction] = useState<NLExtraction | null>(null)
+  const work = useExtraction(projectId, params.get('target') ?? '')
+  const extraction = work.job
+  const restoreForm = useRef(work.selectedId)
   const [notice, setNotice] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const busy = work.busy
   const [forwarding, setForwarding] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const analyzing = extraction?.status === 'analyzing'
-  const extractionId = extraction?.extraction_id
-
-  // 추출이 끝날 때까지 1초마다 상태를 확인한다 (NLCD 4.2)
   useEffect(() => {
-    if (!analyzing || !extractionId) return
-    const id = window.setInterval(() => {
-      withAuth((t) => api.getExtraction(t, projectId, extractionId))
-        .then(setExtraction)
-        .catch((e) => setError(describeError(e)))
-    }, 1000)
-    return () => window.clearInterval(id)
-  }, [analyzing, extractionId, projectId, withAuth])
+    if (!extraction || restoreForm.current !== extraction.extraction_id) return
+    restoreForm.current = null
+    setText(extraction.source_text)
+    setName(extraction.character_name ?? '')
+    setTargetId(extraction.target_character_id ?? '')
+    setMode(extraction.target_character_id ? 'existing' : 'new')
+    setNotice('저장된 추출 작업을 불러왔어요.')
+  }, [extraction])
 
   if (!project) return <p className="page-desc">작품을 불러오고 있어요</p>
   const existing = characters.data ?? []
@@ -57,6 +64,7 @@ export function NewCharacterPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
+    if (busy || analyzing || work.restoring) return
     const next = {
       name: mode === 'new' && !name.trim() ? '인물 이름을 입력해 주세요.' : undefined,
       text: !text.trim() ? '인물을 설명하는 문장을 입력해 주세요.' : undefined,
@@ -64,34 +72,28 @@ export function NewCharacterPage() {
     if (mode === 'existing' && !targetId) next.name = '정보를 더할 인물을 골라 주세요.'
     setErrors(next)
     if (next.name || next.text) return
-    setBusy(true)
     setError(null)
     setNotice(null)
-    try {
-      const res = await withAuth((t) =>
-        api.createExtraction(t, projectId, {
-          source_text: text.trim(),
-          character_name: mode === 'new' ? name.trim() : target?.name,
-          target_character_id: mode === 'existing' ? targetId : null,
-        }),
-      )
-      setExtraction(res)
-      if (res.duplicate_of) setNotice('이전에 비슷한 문장을 입력한 기록이 있어요. 초안을 확정할 때 병합 여부를 고를 수 있어요.')
-    } catch (err) {
-      setError(describeError(err))
-    } finally {
-      setBusy(false)
-    }
+    restoreForm.current = null
+    await work.submit((t) => api.createExtraction(t, projectId, {
+      source_text: text.trim(),
+      character_name: mode === 'new' ? name.trim() : target?.name,
+      target_character_id: mode === 'existing' ? targetId : null,
+    }))
   }
 
   async function retry() {
-    if (!extraction) return
+    if (!extraction || extraction.status !== 'failed') return
     setError(null)
-    try {
-      setExtraction(await withAuth((t) => api.retryExtraction(t, projectId, extraction.extraction_id)))
-    } catch (err) {
-      setError(describeError(err))
-    }
+    await work.submit((t) => api.retryExtraction(t, projectId, extraction.extraction_id))
+  }
+
+  function restore(id: string) {
+    restoreForm.current = id || null
+    work.select(id || null)
+    setNotice(null)
+    setError(null)
+    if (!id) { setText(''); setName('') }
   }
 
   async function forward() {
@@ -122,6 +124,22 @@ export function NewCharacterPage() {
         <p className="page-desc">떠오르는 모습을 적으면 인물 초안으로 정리해요.</p>
       </header>
       <Stepper current={done ? 2 : 1} />
+      <div className="panel">
+        <label className="field">
+          <span className="field__label">최근 인물 추출</span>
+          <Select aria-label="최근 인물 추출" value={work.selectedId ?? ''} disabled={busy || forwarding} onChange={(event) => restore(event.target.value)}>
+            <option value="">새로 입력</option>
+            {work.selectedId && !work.history.data?.some((row) => row.extraction_id === work.selectedId) && (
+              <option value={work.selectedId}>이전 작업</option>
+            )}
+            {(work.history.data ?? []).map((row) => <option key={row.extraction_id} value={row.extraction_id}>
+              {row.character_name ?? '이름 없는 인물'} · {row.status === 'analyzing' ? '추출 중' : row.status === 'failed' ? '재시도 필요' : row.forwarded_draft_id ? '초안으로 전달됨' : '추출 완료'} · {new Date(row.created_at).toLocaleString('ko-KR')}
+            </option>)}
+          </Select>
+        </label>
+        <p className="panel__label">다른 화면으로 이동해도 작업은 계속돼요. 최근 20개 작업을 여기서 다시 열 수 있어요.</p>
+        {work.history.error && <p className="notice notice--error" role="alert">추출 이력을 불러오지 못했어요. {work.history.error}</p>}
+      </div>
 
       <div className="two-col">
         <form className="panel" onSubmit={onSubmit} noValidate>
@@ -177,8 +195,8 @@ export function NewCharacterPage() {
               예시 문장 넣기
             </button>
           )}
-          <Button type="submit" block busy={busy || analyzing}>
-            {analyzing ? '추출하는 중…' : '추출 미리보기'}
+          <Button type="submit" block busy={busy || analyzing || work.restoring}>
+            {busy ? '추출 요청 중…' : work.restoring ? '이전 작업 확인 중…' : analyzing ? '추출하는 중…' : '추출 미리보기'}
           </Button>
         </form>
 
@@ -186,14 +204,16 @@ export function NewCharacterPage() {
           <h2 id="preview-title" className="panel__title">
             추출 미리보기{done ? ` / ${CATEGORIES.length}개 카테고리` : ''}
           </h2>
-          {notice && <p className="check-note">{notice}</p>}
-          {error && (
+          {notice && <p className="check-note" role="status">{notice}</p>}
+          {extraction?.duplicate_of && <p className="check-note">이전에 비슷한 문장을 입력한 기록이 있어요. 초안을 확정할 때 병합 여부를 고를 수 있어요.</p>}
+          {(error || work.error) && (
             <p className="notice notice--error" role="alert">
-              {error}
+              {error || work.error}
             </p>
           )}
 
-          {!extraction && (
+          {(busy || work.restoring) && <p role="status">{busy ? '인물 추출을 요청하고 있어요.' : '저장된 추출 작업을 불러오고 있어요.'}</p>}
+          {!extraction && !busy && !work.restoring && (
             <div className="state-block">
               <p className="answer__title">문장을 입력하고 추출 미리보기를 눌러 보세요</p>
               <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 원문 근거와 함께 나눠 드려요.</p>
@@ -206,11 +226,11 @@ export function NewCharacterPage() {
               <p className="answer__body">성격, 가치관, 영향 관계, 감정 키워드를 나누고 있어요.</p>
             </div>
           )}
-          {extraction?.status === 'failed' && (
+          {extraction?.status === 'failed' && !busy && (
             <div className="state-block state-block--error" role="alert">
               <p className="answer__title">인물 정보를 읽지 못했어요</p>
               <p className="answer__body">입력한 문장은 그대로 남아 있어요.</p>
-              <Button onClick={retry}>다시 시도</Button>
+              <Button onClick={retry} busy={busy} disabled={busy}>다시 시도</Button>
             </div>
           )}
           {empty && (

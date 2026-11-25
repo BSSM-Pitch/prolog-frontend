@@ -21,10 +21,13 @@
 }
 .editor__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-columns: minmax(0, calc((100% - 40px) * var(--paper-ratio, 68) / 100)) 20px minmax(0, 1fr);
   align-items: start;
-  gap: 40px;
+  gap: 10px;
 }
+.editor__resize { align-self: stretch; min-height: 300px; display: flex; justify-content: center; align-items: flex-start; padding-top: 28px; cursor: col-resize; touch-action: none; user-select: none; color: var(--itda-ink); border-inline: 1px solid transparent; }
+.editor__resize:hover, .editor__resize:focus-visible { background: #f2f2ef; border-color: var(--stroke); outline: none; }
+.editor__layout > * { min-width: 0; }
 .app .editor__paper {
   gap: 0;
   padding: 0;
@@ -173,6 +176,7 @@
   line-height: 1.8;
 }
 @media (max-width: 1180px) {
+  .editor__resize { display: none; }
   .editor__layout {
     grid-template-columns: minmax(0, 1fr);
     gap: 40px;
