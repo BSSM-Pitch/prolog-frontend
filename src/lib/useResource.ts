@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from '../auth/session'
 import { describeError } from './errors'
+import { pollResource } from './pollResource'
 
 interface Loaded<T> {
   key: string
@@ -22,22 +23,23 @@ export interface Resource<T> {
  * 인증이 필요한 GET을 불러온다. deps가 바뀌면 다시 불러오고, 바뀌는 동안에는 loading이 true가 된다.
  * fetcher가 null이면 아무것도 하지 않는다 (예: 아직 프로젝트를 모를 때).
  */
-export function useResource<T>(fetcher: ((token: string) => Promise<T>) | null, deps: unknown[]): Resource<T> {
+export function useResource<T>(fetcher: ((token: string) => Promise<T>) | null, deps: unknown[], options?: { pollInterval: (data: T | undefined) => number | false }): Resource<T> {
   const { withAuth } = useSession()
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const key = `${JSON.stringify(deps)}|${reloadKey}`
   const enabled = fetcher !== null
+  const interval = useRef(options?.pollInterval)
+  interval.current = options?.pollInterval
 
   useEffect(() => {
     if (!fetcher) return
-    let cancelled = false
-    withAuth(fetcher)
-      .then((data) => !cancelled && setLoaded({ key, data, error: null }))
-      .catch((e) => !cancelled && setLoaded((prev) => ({ key, data: prev?.data ?? null, error: describeError(e) })))
-    return () => {
-      cancelled = true
-    }
+    return pollResource({
+      load: () => withAuth(fetcher),
+      onValue: (data) => setLoaded({ key, data, error: null }),
+      onError: (e) => setLoaded((prev) => ({ key, data: prev?.data ?? null, error: describeError(e) })),
+      delay: (data) => interval.current?.(data) ?? false,
+    })
     // fetcher는 매 렌더 새로 만들어지므로 deps(→ key)로만 다시 불러온다
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, enabled, withAuth])
@@ -53,13 +55,4 @@ export function useResource<T>(fetcher: ((token: string) => Promise<T>) | null, 
     reload,
     setData,
   }
-}
-
-/** 조건이 참인 동안 ms마다 fn을 실행한다 (비동기 작업 상태 폴링) */
-export function useInterval(fn: () => void, ms: number, active: boolean) {
-  useEffect(() => {
-    if (!active) return
-    const id = window.setInterval(fn, ms)
-    return () => window.clearInterval(id)
-  }, [fn, ms, active])
 }

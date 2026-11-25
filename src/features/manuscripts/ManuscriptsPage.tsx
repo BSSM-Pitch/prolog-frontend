@@ -10,7 +10,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { describeError } from '../../lib/errors'
 import { formatCount } from '../../lib/format'
 import { relativeTime } from '../../lib/relativeTime'
-import { useInterval, useResource } from '../../lib/useResource'
+import { useResource } from '../../lib/useResource'
 import { projectPath, useProject } from '../app/currentProject'
 import { ManuscriptFilePicker } from './ManuscriptFilePicker'
 import { MANUSCRIPT_ACCEPT, validateManuscriptFile } from './manuscriptUploadModel'
@@ -37,7 +37,9 @@ function ProjectManuscripts({ project }: { project: Project }) {
   const uploads = useManuscriptUploads()
 
   const projectId = project.project_id
-  const list = useResource((token) => api.listManuscripts(token, projectId), [projectId])
+  const list = useResource((token) => api.listManuscripts(token, projectId), [projectId], {
+    pollInterval: (rows) => !rows || rows.some((m) => m.status === 'processing') ? 1500 : false,
+  })
   const manuscripts = list.data ?? []
 
   const [replacing, setReplacing] = useState(false)
@@ -67,9 +69,6 @@ function ProjectManuscripts({ project }: { project: Project }) {
     }
   }
 
-  // 처리 중인 원고가 있으면 상태를 계속 확인한다 (MSU 4.6 비고: 상세 조회로 status 폴링)
-  const processing = manuscripts.some((m) => m.status === 'processing')
-  useInterval(list.reload, 1500, processing)
 
   const canEdit = project.my_role !== 'viewer'
   const waitingIds = new Set(

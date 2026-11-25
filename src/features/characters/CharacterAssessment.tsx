@@ -5,14 +5,15 @@ import { IconArrowUpRight, IconChevronDown } from '@tabler/icons-react'
 import {
   buildAssessment,
   getAssessment,
+  type CharacterAssessmentJob,
   type CharacterAxisScore,
   type CharacterRubric,
 } from '../../api/characterAssessment'
 import type { CharacterDetails } from '../../api/characterMemory'
 import { useSession } from '../../auth/session'
 import { Button } from '../../components/Button'
-import { describeError } from '../../lib/errors'
-import { useInterval, useResource } from '../../lib/useResource'
+import { useJobRequest } from '../../lib/useJobRequest'
+import { useResource } from '../../lib/useResource'
 import './assessment.css'
 
 export function CharacterAssessment({
@@ -37,27 +38,21 @@ export function CharacterAssessment({
   const state = useResource(
     (t) => getAssessment(t, projectId, manuscriptId, characterId, order),
     [projectId, manuscriptId, characterId, order, data.analysis_id],
+    { pollInterval: (value) => !value || (value.job && ['queued', 'running'].includes(value.job.status)) ? 4000 : false },
   )
   const { withAuth } = useSession()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const action = useJobRequest<CharacterAssessmentJob>(`${projectId}:${manuscriptId}:${characterId}:${order}:${data.analysis_id}`, (job) => {
+    state.setData((previous) => previous ? { ...previous, job } : previous)
+    state.reload()
+  })
+  const { busy, error } = action
   const [expanded, setExpanded] = useState<string | null>(null)
   const sourceChanged = state.data && state.data.memory_analysis_id !== data.analysis_id
   const job = sourceChanged ? null : state.data?.job
   const working = job?.status === 'queued' || job?.status === 'running'
-  useInterval(state.reload, 4000, working)
   async function evaluate() {
-    if (busy) return
-    setBusy(true)
-    setError(null)
-    try {
-      await withAuth((t) => buildAssessment(t, projectId, manuscriptId, characterId, order))
-      state.reload()
-    } catch (e) {
-      setError(describeError(e))
-    } finally {
-      setBusy(false)
-    }
+    if (working) return
+    await action.run(() => withAuth((t) => buildAssessment(t, projectId, manuscriptId, characterId, order)))
   }
   const result = job?.result
   const unverified = result?.axes.filter((axis) => axis.status === 'unverified_evidence').length ?? 0
@@ -93,6 +88,7 @@ export function CharacterAssessment({
           </Button>
         </div>
       )}
+      {busy && <p role="status">인물 평가를 요청하고 있어요.</p>}
       {working && (
         <div className="memory-progress" role="status">
           <span className="memory-pulse" />
@@ -129,7 +125,7 @@ export function CharacterAssessment({
                   : '각 항목에 서로 다른 원고 구간 3개 이상의 근거가 있어야 점수를 표시합니다.'}
               </p>
               {canEdit && !state.data.stale ? (
-                <Button busy={busy} disabled={busy} onClick={evaluate}>
+                <Button busy={busy} disabled={busy || working} onClick={evaluate}>
                   {job?.status === 'failed' ? '인물 평가 다시 시도' : '원문으로 인물 평가하기'}
                 </Button>
               ) : (
@@ -145,7 +141,7 @@ export function CharacterAssessment({
             <div className="notice" role="status">
               {unverified}개 항목은 원문 근거 검증을 통과하지 못해 점수를 보류했어요.
               {canEdit && !state.data?.stale && (
-                <Button tone="outline" busy={busy} disabled={busy} onClick={evaluate}>
+                <Button tone="outline" busy={busy} disabled={busy || working} onClick={evaluate}>
                   인물 평가 다시 검토
                 </Button>
               )}

@@ -3,7 +3,7 @@ export function pollResource<T>({ load, onValue, onError, delay }: {
   load: () => Promise<T>
   onValue: (value: T) => void
   onError: (error: unknown) => void
-  delay: (value: T | undefined) => number
+  delay: (value: T | undefined) => number | false
 }) {
   let stopped = false
   let timer: ReturnType<typeof setTimeout> | undefined
@@ -18,7 +18,10 @@ export function pollResource<T>({ load, onValue, onError, delay }: {
       if (stopped) return
       onError(error)
     }
-    if (!stopped) timer = setTimeout(read, delay(previous))
+    if (!stopped) {
+      const wait = delay(previous)
+      if (wait !== false) timer = setTimeout(read, wait)
+    }
   }
   void read()
   return () => { stopped = true; clearTimeout(timer) }

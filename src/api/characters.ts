@@ -92,6 +92,17 @@ export function createExtraction(
   return request<NLExtraction>('POST', `${p(projectId)}/nl-extractions`, { body: input, accessToken: token })
 }
 
+export type ExtractionSummary = Pick<NLExtraction, 'extraction_id' | 'source_text' | 'character_name' | 'target_character_id' | 'status' | 'forwarded_draft_id' | 'created_at'>
+
+export async function listExtractions(token: string, projectId: string): Promise<ExtractionSummary[]> {
+  const options = { accessToken: token, query: { limit: '20' } }
+  if (!IS_REAL) return request<ExtractionSummary[]>('GET', `${p(projectId)}/nl-extractions`, options)
+  const rows = await request<Array<Omit<ExtractionSummary, 'character_name'> & { name: string | null }>>(
+    'GET', `${p(projectId)}/nl-extractions`, options,
+  )
+  return rows.map(({ name, ...row }) => ({ ...row, character_name: name }))
+}
+
 /** NLCD 4.2 결과 폴링 */
 export function getExtraction(token: string, projectId: string, extractionId: string) {
   if (IS_REAL) return realExtraction('GET', `${p(projectId)}/nl-extractions/${extractionId}`, { accessToken: token })

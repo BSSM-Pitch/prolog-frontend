@@ -195,7 +195,7 @@ function Conversation({ projectId, manuscriptId, thread, onThreadCreated, onAnsw
   const [answered, setAnswered] = useState<Record<string, QAMessage>>({})
   // 폴링 중인 마지막 답변을 최신 값으로 바꿔 보여 준다
   const shownMessages = messages.map((m) => (polled.message && m.message_id === polled.message.message_id ? polled.message : (answered[m.message_id] ?? m)))
-  const waiting = polled.message?.status === 'pending'
+  const waiting = polled.retrying || polled.message?.status === 'pending'
 
   useEffect(() => {
     const m = polled.message
@@ -235,6 +235,8 @@ function Conversation({ projectId, manuscriptId, thread, onThreadCreated, onAnsw
               message={m}
               error={m.message_id === polled.message?.message_id ? polled.error : null}
               onRetry={polled.retry}
+              retrying={m.message_id === polled.message?.message_id && polled.retrying}
+              onReconnect={polled.reconnect}
               onOpenCitation={onOpenCitation}
             />
           ),

@@ -109,6 +109,12 @@ const chars = '/projects/:projectId/characters'
 
 export const characterRoutes: Route[] = [
   // ───────── NLCD ─────────
+  ['GET', nl, (req, db, { projectId }) => {
+    const access = requireProject(req, db, projectId)
+    if (isResponse(access)) return access
+    settleExtractions(db)
+    return ok(200, db.extractions.filter((e) => e.project_id === projectId).slice().reverse().slice(0, 20).map(toExtraction))
+  }],
   [
     'POST',
     nl,

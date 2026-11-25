@@ -1,3 +1,4 @@
+import { useEditorSplit } from './useEditorSplit'
 import { ExportDialog } from './ExportDialog'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type RefObject } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -37,6 +38,7 @@ export function EditorPage() {
 }
 
 function DocumentEditor() {
+  const split = useEditorSplit()
   const project = useProject()
   const { manuscriptId = '' } = useParams()
   const [params, setParams] = useSearchParams()
@@ -279,7 +281,7 @@ function DocumentEditor() {
       )}
 
       {ms && ms.status === 'ready' && (
-        <div className="editor__layout">
+        <div className="editor__layout" ref={split.layout} style={split.style}>
           <section className="panel editor__paper" aria-label="원고">
             <div className="editor__head">
               <div className="editor__head-title">
@@ -384,6 +386,7 @@ function DocumentEditor() {
           </section>
 
           {exporting && <ExportDialog projectId={projectId} manuscriptId={manuscriptId} title={manuscript.data?.title ?? '원고'} chapters={list} current={chapter?.chapter_no} beforeExport={flush} onClose={() => setExporting(false)} />}
+          {split.separator}
           <AskPanel
             projectId={projectId}
             manuscriptId={manuscriptId}
@@ -563,6 +566,8 @@ function AskPanel({ projectId, manuscriptId, chapter, blocked, textRef, beforeAs
             message={answer.message}
             error={answer.error}
             onRetry={answer.retry}
+            retrying={answer.retrying}
+            onReconnect={answer.reconnect}
             onOpenCitation={onOpenCitation}
             onEditQuestion={() => setQuestion(target.question)}
           />
