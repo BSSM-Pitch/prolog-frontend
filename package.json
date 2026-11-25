@@ -10,7 +10,7 @@
     "test:story": "node --experimental-strip-types --test tests/storyModel.test.mjs",
     "test:insights": "node --experimental-strip-types --test tests/*Model.test.mjs tests/pollResource.test.mjs",
     "preview": "vite preview",
-    "test:ui": "node --experimental-strip-types --test tests/richTextRendering.test.mjs"
+    "test:ui": "node --experimental-strip-types --test tests/*Rendering.test.mjs"
   },
   "dependencies": {
     "@tabler/icons-react": "^3.48.0",

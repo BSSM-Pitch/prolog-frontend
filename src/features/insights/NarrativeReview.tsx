@@ -14,51 +14,43 @@ export function NarrativeReview({ projectId, manuscriptId, kind, canEdit }: {
   canEdit: boolean
 }) {
   const { withAuth } = useSession()
-  const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const epoch = useRef(0)
-  const lock = useRef(false)
-  const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), () => {})
+  const check = useJob((token, id) => api.getConflictCheck(token, projectId, id), () => {}, `${projectId}:${manuscriptId}`)
   useEffect(() => {
     let cancelled = false
     const current = ++epoch.current
     withAuth((token) => api.latestNarrativeReview(token, projectId, manuscriptId))
       .then((job) => { if (!cancelled && current === epoch.current) check.setJob(job) })
-      .catch((error) => { if (!cancelled) check.setError(describeError(error)) })
+      .catch((error) => { if (!cancelled && current === epoch.current) check.setError(describeError(error)) })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
     // The page keys this component by manuscript; navigation restores the saved review.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, manuscriptId, withAuth])
   async function review() {
-    if (lock.current || check.running || !canEdit) return
-    lock.current = true
+    if (check.starting || check.running || !canEdit) return
     epoch.current += 1
-    setBusy(true)
-    check.setError(null)
-    try {
-      check.setJob(await withAuth((token) => api.rescan(token, projectId, false, { manuscriptId, chapterId: '' })))
-    } catch (error) {
-      check.setError(describeError(error))
-    } finally {
-      lock.current = false
-      setBusy(false)
-    }
+    await check.submit(() => withAuth((token) => api.rescan(token, projectId, false, { manuscriptId, chapterId: '' })))
   }
   return (
-    <NarrativeSummary
-      job={check.job}
-      projectId={projectId}
-      scope={kind === 'relationships' ? 'relationship' : 'foreshadowing'}
-      loading={loading}
-      error={check.error}
-      action={
-        canEdit && (
-          <Button tone="outline" busy={busy} disabled={loading || check.running} onClick={review}>
-            {check.running ? '검사하는 중…' : check.job ? '다시 검사' : '원고 검사하기'}
-          </Button>
-        )
-      }
-    />
+    <>
+      {check.notice && <p className="notice notice--success" role="status">{check.notice}</p>}
+      <NarrativeSummary
+        job={check.job}
+        projectId={projectId}
+        scope={kind === 'relationships' ? 'relationship' : 'foreshadowing'}
+        loading={loading}
+        starting={check.starting}
+        error={check.error}
+        action={
+          canEdit && (
+            <Button tone="outline" busy={check.starting || check.running} disabled={loading || check.running} onClick={review}>
+              {check.starting ? '검사 요청 중…' : check.running ? '검사하는 중…' : check.job ? '다시 검사' : '원고 검사하기'}
+            </Button>
+          )
+        }
+      />
+    </>
   )
 }

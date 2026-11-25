@@ -57,6 +57,7 @@ export function NarrativeSummary({
   scope,
   action,
   loading = false,
+  starting = false,
   error = null,
   onAdopt,
 }: {
@@ -66,6 +67,7 @@ export function NarrativeSummary({
   /** 다시 검사 같은 머리말 오른쪽 버튼 */
   action?: ReactNode
   loading?: boolean
+  starting?: boolean
   error?: string | null
   onAdopt?: () => void
 }) {
@@ -158,9 +160,10 @@ export function NarrativeSummary({
   ].sort((a, b) => a - b)
   const filtered = Boolean(filters.status || filters.focus || filters.chapter || filters.query)
 
-  const running = job && ['queued', 'analyzing'].includes(job.status)
+  const running = starting || (job && ['queued', 'analyzing'].includes(job.status))
   let line: ReactNode
-  if (loading) line = '지난 검사 결과를 불러오고 있어요.'
+  if (starting) line = '원고와 설정이 바뀌었는지 확인하고 있어요.'
+  else if (loading) line = '지난 검사 결과를 불러오고 있어요.'
   else if (!job) line = `원고 전체를 읽고 ${noun} 후보를 찾아 드려요.`
   else if (running) line = '원고 전체를 읽고 있어요. 다른 화면으로 옮겨도 검사는 이어져요.'
   else if (job.status === 'failed') line = '검사를 마치지 못했어요. 다시 검사해 주세요.'

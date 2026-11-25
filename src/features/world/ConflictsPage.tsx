@@ -111,6 +111,7 @@ function ConflictReview() {
               : '키워드로만 찾은 이전 검사 결과예요.',
         )
     },
+    `${projectId}:${latest?.manuscript_id ?? ''}`,
   )
 
   const reviewManuscriptId = latest?.manuscript_id
@@ -121,7 +122,7 @@ function ConflictReview() {
     check.setJob(null)
     withAuth((token) => api.latestNarrativeReview(token, projectId, reviewManuscriptId))
       .then((job) => { if (!cancelled && epoch === reviewEpoch.current) check.setJob(job) })
-      .catch((error) => { if (!cancelled) check.setError(describeError(error)) })
+      .catch((error) => { if (!cancelled && epoch === reviewEpoch.current) check.setError(describeError(error)) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, reviewManuscriptId, withAuth])
@@ -177,24 +178,18 @@ function ConflictReview() {
   }
 
   async function startCheck(simulateFailure = false) {
-    if (!latest || check.running) return
+    if (!latest || check.starting || check.running) return
     reviewEpoch.current += 1
     setNotice(null)
-    check.setError(null)
-    try {
-      check.setJob(await withAuth((t) => api.rescan(t, projectId, simulateFailure, { manuscriptId: latest.manuscript_id, chapterId: '' })))
-    } catch (e) {
-      check.setError(describeError(e))
-    }
+    await check.submit(() => withAuth((t) => api.rescan(t, projectId, simulateFailure, { manuscriptId: latest.manuscript_id, chapterId: '' })))
   }
 
   async function retryCheck() {
-    if (!check.job) return
-    try {
-      check.setJob(await withAuth((t) => api.retryConflictCheck(t, projectId, check.job!.job_id)))
-    } catch (e) {
-      check.setError(describeError(e))
-    }
+    if (!check.job || check.starting || check.running) return
+    reviewEpoch.current += 1
+    setNotice(null)
+    const jobId = check.job.job_id
+    await check.submit(() => withAuth((t) => api.retryConflictCheck(t, projectId, jobId)))
   }
 
   const job = check.job
@@ -226,26 +221,26 @@ function ConflictReview() {
             </label>
           )}
           {canEdit && (
-            <Button onClick={() => startCheck()} busy={check.running} disabled={!latest}>
-              {check.running ? '검사하는 중…' : '다시 검사'}
+            <Button onClick={() => startCheck()} busy={check.starting || check.running} disabled={!latest}>
+              {check.starting ? '검사 요청 중…' : check.running ? '검사하는 중…' : '다시 검사'}
             </Button>
           )}
         </div>
       </header>
       <InsightNav projectId={projectId} />
-      {check.running && (
+      {(check.starting || check.running) && (
         <div className="state-block" role="status">
           <LogoLoader className="answer__loader" />
-          <p className="answer__title">원고를 검사하고 있어요</p>
+          <p className="answer__title">{check.starting ? '검사를 요청하고 있어요' : '원고를 검사하고 있어요'}</p>
           <AnalysisProgress label="설정·복선 검토 중" />
           <p className="answer__body">
-            {job?.status === 'analyzing'
+            {check.starting ? '원고와 설정이 바뀌었는지 확인하고 있어요.' : job?.status === 'analyzing'
               ? '앞 장의 설정과 뒤 장의 내용이 어긋나는 곳을 찾고 있어요.'
               : '모든 장의 본문을 모으고 있어요. 다른 화면으로 옮겨도 검사는 이어져요.'}
           </p>
         </div>
       )}
-      {job?.status === 'failed' && (
+      {!check.starting && job?.status === 'failed' && (
         <div className="state-block state-block--error" role="alert">
           <p className="answer__title">AI 검토를 마치지 못했어요</p>
           <p className="answer__body">
@@ -254,7 +249,7 @@ function ConflictReview() {
           <Button onClick={retryCheck}>AI 검토 다시 시도</Button>
         </div>
       )}
-      {job?.status === 'skipped' && (
+      {!check.starting && job?.status === 'skipped' && (
         <div className="state-block">
           <p className="answer__title">{skipInfo(job.skipped_reason).title}</p>
           <p className="answer__body">{skipInfo(job.skipped_reason).body}</p>
@@ -263,9 +258,9 @@ function ConflictReview() {
           </Link>
         </div>
       )}
-      {(notice || check.error) && (
+      {(check.notice || notice || check.error) && (
         <p className={check.error ? 'notice notice--error' : 'notice notice--success'} role="status">
-          {check.error ?? notice}
+          {check.error ?? check.notice ?? notice}
         </p>
       )}
 
